@@ -1,9 +1,32 @@
 <!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BitBank</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+    <div id="login-container" class="login-wrapper">
+        <div class="glass-card login-card">
+            <div class="logo-area">
+                <i class="fas fa-building-columns"></i>
+                <h1>Bit<span>Bank</span></h1>
+                <p data-i18n="subtitle">симулятор фінансової гри</p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="login" data-i18n="loginTab">Вхід</button>
+                <button class="tab-btn" data-tab="register" data-i18n="registerTab">Реєстрація</button>
+            </div>
+
             <div id="login-form" class="auth-form active">
                 <input type="text" id="login-username" placeholder="Логін">
                 <input type="password" id="login-password" placeholder="Пароль">
                 <button id="login-btn" class="btn-primary" data-i18n="loginBtn">Увійти</button>
-                <div class="demo-info">Новий акаунт: +500 грн | Адмін: creator / 9creator9</div>
+                <div class="demo-info">Адмін: creator / 9creator9</div>
             </div>
 
             <div id="register-form" class="auth-form">
@@ -14,55 +37,68 @@
         </div>
     </div>
 
-    <div id="app-container" style="display: none;">
-        <aside class="sidebar">
+    <div id="app-container" style="display:none;">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <i class="fas fa-coins"></i>
                 <span>BitBank</span>
             </div>
 
             <nav class="sidebar-nav">
-                <button data-page="dashboard"><i class="fas fa-tachometer-alt"></i><span data-i18n="navDashboard">Головна</span></button>
+                <button data-page="dashboard"><i class="fas fa-house"></i><span data-i18n="navDashboard">Головна</span></button>
                 <button data-page="crypto"><i class="fab fa-bitcoin"></i><span data-i18n="navCrypto">Крипто</span></button>
                 <button data-page="stocks"><i class="fas fa-chart-line"></i><span data-i18n="navStocks">Акції</span></button>
                 <button data-page="business"><i class="fas fa-store"></i><span data-i18n="navBusiness">Бізнес</span></button>
-                <button data-page="realty"><i class="fas fa-house"></i><span data-i18n="navRealty">Нерухомість</span></button>
+                <button data-page="realty"><i class="fas fa-city"></i><span data-i18n="navRealty">Нерухомість</span></button>
                 <button data-page="cars"><i class="fas fa-car"></i><span data-i18n="navCars">Авто</span></button>
                 <button data-page="classes"><i class="fas fa-star"></i><span data-i18n="navClasses">Класи</span></button>
                 <button data-page="transfer"><i class="fas fa-exchange-alt"></i><span data-i18n="navTransfer">Перекази</span></button>
-                <button data-page="history"><i class="fas fa-history"></i><span data-i18n="navHistory">Історія</span></button>
+                <button data-page="history"><i class="fas fa-clock-rotate-left"></i><span data-i18n="navHistory">Історія</span></button>
                 <button data-page="donate"><i class="fas fa-hand-holding-heart"></i><span data-i18n="navDonate">Підтримка</span></button>
                 <button data-page="top"><i class="fas fa-trophy"></i><span data-i18n="navTop">Топ 100</span></button>
                 <button id="admin-panel-btn" style="display:none;"><i class="fas fa-crown"></i><span data-i18n="navAdmin">Адмін</span></button>
-                <button id="logout-btn"><i class="fas fa-sign-out-alt"></i><span data-i18n="navLogout">Вихід</span></button>
+                <button id="logout-btn"><i class="fas fa-right-from-bracket"></i><span data-i18n="navLogout">Вихід</span></button>
             </nav>
         </aside>
 
         <main class="main-content">
             <div class="top-bar">
-                <div class="user-info">
-                    <span><i class="fas fa-user"></i> <span id="username-display"></span></span>
-                    <span class="status-badge"><i class="fas fa-shield-alt"></i> <span id="status-text"></span></span>
+                <div class="top-left">
+                    <button class="menu-toggle mobile-only" id="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+
+                    <div class="user-info">
+                        <span><i class="fas fa-user"></i> <span id="username-display"></span></span>
+                        <span class="status-badge"><span id="status-text"></span></span>
+                    </div>
+                </div>
+
+                <div class="top-actions">
                     <button id="change-pin-btn" class="small-btn" data-i18n="changePin">Змінити PIN</button>
                     <button id="change-card-name-btn" class="small-btn" data-i18n="changeCardName">Назва карти</button>
                     <button id="change-card-color-btn" class="small-btn" data-i18n="changeCardColor">Колір картки</button>
                     <button id="vip-giveaway-btn" class="small-btn vip-giveaway" style="display:none;" data-i18n="vipGiveaway">VIP-роздача</button>
                     <button id="lang-toggle-btn" class="small-btn"><i class="fas fa-language"></i> EN</button>
-                    <button id="sound-toggle-btn" class="small-btn"><i class="fas fa-volume-up"></i></button>
                 </div>
+
                 <div class="balance-card">
                     <span>💰 <span data-i18n="balanceLabel">Баланс</span>:</span>
-                    <strong id="main-balance">0</strong> грн
-                    <span style="margin-left: 10px;">💵 USD:</span>
-                    <strong id="usd-balance">0</strong> USD
+                    <strong id="main-balance">0</strong>
+                    <span class="currency-label">грн</span>
+                    <span class="divider">|</span>
+                    <span>💵 USD:</span>
+                    <strong id="usd-balance">0</strong>
                 </div>
             </div>
+
+            <div id="global-message-box" class="global-message-box" style="display:none;"></div>
 
             <div id="page-content" class="page-container"></div>
 
             <div class="clicker-area" id="clicker-area">
                 <button id="click-button" class="click-btn">
-                    <i class="fab fa-bitcoin"></i>
+                    <i class="fas fa-hand-pointer"></i>
                     <span data-i18n="clickButton">КЛІК</span>
                 </button>
             </div>
@@ -71,7 +107,7 @@
 
     <div id="color-modal" class="modal" style="display:none;">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" id="color-modal-close">&times;</span>
             <h3 data-i18n="chooseCardColor">Оберіть колір картки</h3>
             <div class="color-options">
                 <div class="color-option black" data-color="black"></div>
