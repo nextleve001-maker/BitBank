@@ -464,3 +464,87 @@ button:hover {
         font-size: 0.8rem;
     }
 }
+body {
+    background: linear-gradient(180deg, rgba(14,22,36,0.95), rgba(8,12,20,0.96));
+    border-radius: 24px;
+    padding: 1rem;
+    border: 1px solid rgba(0, 255, 255, 0.16);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.asset-card .card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 10px;
+}
+
+.asset-card h4 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.asset-sub {
+    color: #96a7c3;
+    font-size: 0.9rem;
+}
+
+.profile-hero {
+    display: grid;
+    grid-template-columns: minmax(280px, 380px) 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.profile-panel {
+    background: rgba(0,0,0,0.28);
+    border-radius: 28px;
+    padding: 1.25rem;
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.stat-box {
+    background: rgba(15, 24, 40, 0.95);
+    border: 1px solid rgba(0,255,255,0.12);
+    border-radius: 22px;
+    padding: 1rem;
+}
+
+.stat-box .label {
+    font-size: 0.85rem;
+    color: #8aa0be;
+    margin-bottom: 6px;
+}
+
+.stat-box .value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.admin-grid .admin-card textarea {
+    width: 100%;
+    min-height: 70px;
+    margin-top: 6px;
+    background: #1e2a3a;
+    border: 1px solid #2e4a6a;
+    color: white;
+    border-radius: 16px;
+    padding: 10px 12px;
+    resize: vertical;
+}
+
+.admin-card .button-group button,
+.admin-card button {
+    border-radius: 16px;
+}
+
+@media (max-width: 900px) {
+    .profile-hero {
+        grid-template-columns: 1fr;
+    }
+}
