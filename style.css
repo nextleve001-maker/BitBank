@@ -748,3 +748,24 @@ button, input, select, textarea {
         justify-self: start;
     }
 }
+.auth-form {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.auth-form.active {
+    display: flex;
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 10px;
+    cursor: pointer;
+}
