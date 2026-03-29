@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- LOGIN / REGISTER -->
   <div id="login-screen" class="screen">
     <div class="auth-card">
       <div class="brand">
@@ -41,6 +42,7 @@
     </div>
   </div>
 
+  <!-- APP -->
   <div id="app-screen" class="screen hidden">
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-top">
@@ -80,6 +82,7 @@
       <header class="topbar">
         <div class="topbar-left">
           <button id="sidebar-open" class="icon-btn mobile-only">☰</button>
+
           <div class="user-chip">
             <span id="header-username">user</span>
             <span id="header-status" class="pill">NONE</span>
@@ -105,18 +108,21 @@
       </header>
 
       <section id="global-message" class="message hidden"></section>
+
       <section id="page-content" class="content"></section>
 
       <button id="click-btn" class="click-btn">КЛІК</button>
     </main>
   </div>
 
+  <!-- CARD COLOR MODAL -->
   <div id="color-modal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">
         <h3>Оберіть колір картки</h3>
         <button class="icon-btn" id="close-color-modal">✕</button>
       </div>
+
       <div class="color-grid">
         <button class="color-option black" data-color="black"></button>
         <button class="color-option white" data-color="white"></button>
