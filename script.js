@@ -1,1909 +1,2384 @@
-// ==================== STATE ====================
-let currentUser = null;
-let users = {};
-let cryptoPrices = {};
-let stocks = [];
-let commissionBank = 0;
-let supportBank = 0;
-let boostMultiplier = 1;
-let boostExpiry = 0;
-let usdRate = 40;
-let currentLang = "uk";
-let globalMessage = null;
+// ======================================================
+// BitBank - FULL script.js
+// Працює з останнім index.html + style.css
+// ======================================================
 
-const STORAGE = {
-    users: "bitbank_users",
-    commission: "bitbank_commission",
-    support: "bitbank_support",
-    boost: "bitbank_boost",
-    lang: "bitbank_lang",
-    message: "bitbank_message"
+// -----------------------------
+// GLOBAL STATE
+// -----------------------------
+const STORAGE_KEY = "bitbank_full_game_v2";
+
+let appState = {
+  currentUser: null,
+  lang: "uk",
+  soundEnabled: true,
+  usdRate: 40,
+  commissionBank: 0,
+  supportBank: 0,
+  globalMessage: "",
+  users: {},
+  market: {
+    crypto: {},
+    stocks: []
+  }
 };
 
-// ==================== TRANSLATIONS ====================
-const translations = {
-    uk: {
-        subtitle: "симулятор фінансової гри",
-        loginTab: "Вхід",
-        registerTab: "Реєстрація",
-        loginBtn: "Увійти",
-        registerBtn: "Створити",
-        balanceLabel: "Баланс",
-        clickButton: "КЛІК",
-        buy: "Купити",
-        sell: "Продати",
-        navDashboard: "Головна",
-        navCrypto: "Крипто",
-        navStocks: "Акції",
-        navBusiness: "Бізнес",
-        navRealty: "Нерухомість",
-        navCars: "Авто",
-        navClasses: "Класи",
-        navTransfer: "Перекази",
-        navHistory: "Історія",
-        navDonate: "Підтримка",
-        navTop: "Топ 100",
-        navAdmin: "Адмін",
-        navLogout: "Вихід",
-        changePin: "Змінити PIN",
-        changeCardName: "Назва карти",
-        changeCardColor: "Колір картки",
-        vipGiveaway: "VIP-роздача",
-        chooseCardColor: "Оберіть колір картки",
-        owned: "Власність",
-        buyBtn: "Купити",
-        transferTitleUah: "Переказ гривень (комісія 5%)",
-        transferTitleUsd: "Переказ USD (комісія 5%)",
-        transferTitleCrypto: "Переказ крипти (комісія 1%)",
-        recipient: "Отримувач",
-        amount: "Сума",
-        amountUsd: "Сума USD",
-        cryptoRecipient: "Отримувач",
-        cryptoAmount: "Кількість",
-        symbolPlaceholder: "Символ (BTC, ETH..)",
-        donateToSupport: "Підтримати",
-        upgradeStatus: "Підвищити статус",
-        statistics: "Статистика",
-        passiveIncome: "Пасивний дохід/хв",
-        clickReward: "Клік",
-        buyUsd: "Купити USD",
-        sellUsd: "Продати USD",
-        supportBank: "Банка підтримки",
-        donateAmount: "Сума донату",
-        thankYou: "Дякуємо!",
-        pinChanged: "PIN-код змінено",
-        invalidPin: "Невірний CVV-код!",
-        insufficientFunds: "Недостатньо коштів",
-        vipDailyLimit: "Ви вже використали ліміт роздачі на сьогодні (100000 грн)",
-        vipGiveawaySuccess: "Видано {amount} грн користувачу {user}",
-        status: "Статус",
-        titles: "Титули",
-        none: "немає",
-        history: "Історія операцій",
-        profileTitle: "Профіль та картка",
-        profileStats: "Статистика профілю",
-        profileCapital: "Капітал",
-        profileCard: "Ваша картка",
-        profileActions: "Дії з карткою",
-        exchangeSection: "Конвертація валют",
-        passiveIncomePerMin: "Пасивний дохід/хв",
-        currentClass: "Поточний статус",
-        stockPrice: "Ціна",
-        yourBalance: "Ваш баланс",
-        adminMassTitle: "Масові дії",
-        adminGiveAllOnlineMoney: "Видати всім онлайн гроші",
-        adminGiveAllOnlineCrypto: "Видати всім онлайн крипту",
-        adminTakeCommission: "Забрати комісії",
-        adminTakeSupport: "Забрати підтримку",
-        adminBroadcast: "Надіслати всім онлайн",
-        adminMessage: "Повідомлення",
-        adminAnalytics: "Аналітика",
-        enterAmountForAllOnline: "Введіть суму для всіх онлайн користувачів",
-        enterCryptoSymbol: "Введіть символ крипти",
-        enterCryptoAmount: "Введіть кількість крипти",
-        massRewardSuccess: "Успішно видано всім онлайн",
-        cryptoMassRewardSuccess: "Успішно видано крипту всім онлайн",
-        transferSuccess: "Переказ успішний",
-        invalidUser: "Невірний користувач",
-        notEnoughCrypto: "Недостатньо крипти",
-        onlineUsers: "Онлайн користувачі",
-        totalUsers: "Всього користувачів",
-        totalCapital: "Сумарний капітал",
-        adminPanel: "Адмін панель",
-        send: "Надіслати",
-        refresh: "Оновити",
-        dailyBonus: "Щоденний бонус",
-        claimBonus: "Забрати бонус",
-        bonusTaken: "Бонус вже отримано сьогодні",
-        cardNamePrompt: "Введіть нову назву картки",
-        changeCvvPrompt: "Введіть новий CVV (3 цифри)",
-        invalidCredentials: "Невірний логін або пароль",
-        userExists: "Користувач уже існує",
-        userCreated: "Акаунт створено",
-        usernameTooShort: "Логін має містити мінімум 3 символи",
-        passwordTooShort: "Пароль має містити мінімум 4 символи",
-        bannedUser: "Ваш акаунт заблоковано",
-        invalidData: "Невірні дані",
-        languageSwitched: "Мову змінено",
-        adminsOnly: "Тільки для адміністратора",
-        topTitle: "Топ 100 гравців (капітал у USD)"
-    },
-    en: {
-        subtitle: "financial game simulator",
-        loginTab: "Login",
-        registerTab: "Register",
-        loginBtn: "Login",
-        registerBtn: "Create",
-        balanceLabel: "Balance",
-        clickButton: "CLICK",
-        buy: "Buy",
-        sell: "Sell",
-        navDashboard: "Dashboard",
-        navCrypto: "Crypto",
-        navStocks: "Stocks",
-        navBusiness: "Business",
-        navRealty: "Real Estate",
-        navCars: "Cars",
-        navClasses: "Classes",
-        navTransfer: "Transfers",
-        navHistory: "History",
-        navDonate: "Support",
-        navTop: "Top 100",
-        navAdmin: "Admin",
-        navLogout: "Logout",
-        changePin: "Change PIN",
-        changeCardName: "Card name",
-        changeCardColor: "Card color",
-        vipGiveaway: "VIP giveaway",
-        chooseCardColor: "Choose card color",
-        owned: "Owned",
-        buyBtn: "Buy",
-        transferTitleUah: "UAH transfer (5% fee)",
-        transferTitleUsd: "USD transfer (5% fee)",
-        transferTitleCrypto: "Crypto transfer (1% fee)",
-        recipient: "Recipient",
-        amount: "Amount",
-        amountUsd: "Amount USD",
-        cryptoRecipient: "Recipient",
-        cryptoAmount: "Amount",
-        symbolPlaceholder: "Symbol (BTC, ETH..)",
-        donateToSupport: "Donate",
-        upgradeStatus: "Upgrade status",
-        statistics: "Statistics",
-        passiveIncome: "Passive income/min",
-        clickReward: "Click",
-        buyUsd: "Buy USD",
-        sellUsd: "Sell USD",
-        supportBank: "Support fund",
-        donateAmount: "Donation amount",
-        thankYou: "Thank you!",
-        pinChanged: "PIN changed",
-        invalidPin: "Invalid CVV!",
-        insufficientFunds: "Insufficient funds",
-        vipDailyLimit: "You have already used today's limit (100000 UAH)",
-        vipGiveawaySuccess: "Given {amount} UAH to user {user}",
-        status: "Status",
-        titles: "Titles",
-        none: "none",
-        history: "Transaction history",
-        profileTitle: "Profile & Card",
-        profileStats: "Profile statistics",
-        profileCapital: "Capital",
-        profileCard: "Your card",
-        profileActions: "Card actions",
-        exchangeSection: "Currency conversion",
-        passiveIncomePerMin: "Passive income/min",
-        currentClass: "Current status",
-        stockPrice: "Price",
-        yourBalance: "Your balance",
-        adminMassTitle: "Mass actions",
-        adminGiveAllOnlineMoney: "Give all online users money",
-        adminGiveAllOnlineCrypto: "Give all online users crypto",
-        adminTakeCommission: "Collect commissions",
-        adminTakeSupport: "Collect support",
-        adminBroadcast: "Send to all online",
-        adminMessage: "Message",
-        adminAnalytics: "Analytics",
-        enterAmountForAllOnline: "Enter amount for all online users",
-        enterCryptoSymbol: "Enter crypto symbol",
-        enterCryptoAmount: "Enter crypto amount",
-        massRewardSuccess: "Successfully granted to all online users",
-        cryptoMassRewardSuccess: "Successfully granted crypto to all online users",
-        transferSuccess: "Transfer successful",
-        invalidUser: "Invalid user",
-        notEnoughCrypto: "Not enough crypto",
-        onlineUsers: "Online users",
-        totalUsers: "Total users",
-        totalCapital: "Total capital",
-        adminPanel: "Admin panel",
-        send: "Send",
-        refresh: "Refresh",
-        dailyBonus: "Daily bonus",
-        claimBonus: "Claim bonus",
-        bonusTaken: "Bonus already claimed today",
-        cardNamePrompt: "Enter new card name",
-        changeCvvPrompt: "Enter new CVV (3 digits)",
-        invalidCredentials: "Invalid username or password",
-        userExists: "User already exists",
-        userCreated: "Account created",
-        usernameTooShort: "Username must be at least 3 characters",
-        passwordTooShort: "Password must be at least 4 characters",
-        bannedUser: "Your account is banned",
-        invalidData: "Invalid data",
-        languageSwitched: "Language changed",
-        adminsOnly: "Admins only",
-        topTitle: "Top 100 players (capital in USD)"
-    }
+// -----------------------------
+// TRANSLATIONS
+// -----------------------------
+const I18N = {
+  uk: {
+    subtitle: "Симулятор фінансової гри",
+    login: "Вхід",
+    register: "Реєстрація",
+    profile: "Профіль",
+    crypto: "Крипто",
+    stocks: "Акції",
+    business: "Бізнес",
+    realty: "Нерухомість",
+    cars: "Авто",
+    classes: "Класи",
+    transfer: "Перекази",
+    history: "Історія",
+    top: "Топ 100",
+    support: "Підтримка",
+    admin: "Адмін",
+    logout: "Вийти",
+    balance: "Баланс",
+    lifetimeEarned: "Зароблено за весь час",
+    passiveIncome: "Пасивний дохід/хв",
+    clickIncome: "Дохід за клік",
+    currentClass: "Поточний клас",
+    buy: "Купити",
+    sell: "Продати",
+    owned: "Вже куплено",
+    unavailable: "Недоступно",
+    onlineOnlyMoney: "Видати всім онлайн гроші",
+    onlineOnlyCrypto: "Видати всім онлайн крипту",
+    onlineUsers: "Онлайн користувачі",
+    totalPlayers: "Всього гравців",
+    donate: "Підтримати",
+    transferUah: "Переказ гривень",
+    transferUsd: "Переказ USD",
+    transferCrypto: "Переказ крипти",
+    recipient: "Отримувач",
+    amount: "Сума",
+    symbol: "Символ",
+    online: "ONLINE",
+    phone: "З телефона",
+    desktop: "ПК",
+    allTimeCapital: "Капітал",
+    click: "КЛІК",
+    creatorOnly: "Тільки для creator",
+    invalidData: "Невірні дані",
+    insufficientFunds: "Недостатньо коштів",
+    invalidUser: "Невірний користувач",
+    userExists: "Користувач уже існує",
+    bannedName: "Такий логін заборонений",
+    userCreated: "Акаунт створено",
+    loginError: "Невірний логін або пароль",
+    accountBanned: "Акаунт заблоковано",
+    bought: "Успішно куплено",
+    sold: "Успішно продано",
+    noAccessStocks: "Акції доступні з класу Trader і вище",
+    noAccessBusiness: "Бізнес доступний тільки з класу Businessman і вище",
+    upgradeSuccess: "Клас успішно придбано",
+    codeNeeded: "Введіть CVV код",
+    wrongCode: "Невірний CVV",
+    cvvChanged: "CVV змінено",
+    cardNameChanged: "Назву карти змінено",
+    colorChanged: "Колір карти змінено",
+    donated: "Дякуємо за підтримку",
+    sent: "Переказ успішний",
+    historyEmpty: "Історія порожня",
+    rankTitle: "Топ 100 гравців",
+    vipSent: "VIP-роздача виконана",
+    massDone: "Масова дія виконана",
+    soundOn: "Звук увімкнено",
+    soundOff: "Звук вимкнено",
+    dailyBonusTaken: "Щоденний бонус уже забрано",
+    dailyBonusGot: "Щоденний бонус отримано",
+    classBenefits: "Плюшки класу",
+    buyClass: "Купити клас",
+    nextRequirement: "Потрібен попередній клас",
+    profileCardActions: "Дії з карткою",
+    profileStats: "Статистика",
+    exchange: "Конвертація",
+    supportBank: "Банк підтримки",
+    commissionBank: "Банк комісій",
+    adminAnalytics: "Аналітика",
+    meOrNick: "Можна писати me або свій нік",
+    onlinePlayersList: "Гравці в грі",
+    dailyBonus: "Щоденний бонус",
+    titles: "Титули",
+    none: "немає",
+    buyUsd: "Купити USD",
+    sellUsd: "Продати USD",
+    classAccess: "Доступ",
+    playerManagement: "Керування гравцем",
+    giveMoney: "Видати гроші",
+    takeMoney: "Забрати гроші",
+    setBalance: "Встановити баланс",
+    setClass: "Встановити клас",
+    banUser: "Забанити",
+    unbanUser: "Розбанити",
+    resetUser: "Скинути акаунт",
+    deleteUser: "Видалити акаунт",
+    giveBusiness: "Видати бізнес",
+    giveRealty: "Видати нерухомість",
+    giveCar: "Видати авто",
+    sendGlobalMessage: "Надіслати повідомлення всім",
+    collectCommission: "Забрати банк комісій",
+    collectSupport: "Забрати банк підтримки",
+    adminTools: "Інструменти адміна",
+    choosePlayer: "Оберіть гравця",
+    enterAmountForAllOnline: "Введіть суму для всіх онлайн",
+    enterCryptoSymbol: "Введіть символ крипти",
+    enterCryptoAmount: "Введіть кількість крипти",
+    enterMessage: "Введіть повідомлення",
+    businessLocked: "Бізнес відкривається з класу Businessman",
+    stocksLocked: "Акції відкриваються з класу Trader",
+    creatorPanel: "Creator панель",
+    purchaseRequiresCvv: "Для покупки потрібен CVV",
+    transferRequiresCvv: "Для переказу потрібен CVV",
+    classRequiresCvv: "Для купівлі класу потрібен CVV",
+    vipRequiresClass: "VIP-роздача доступна з VIP і вище",
+    playerNotFound: "Гравця не знайдено",
+    valueUpdated: "Значення оновлено",
+    accountReset: "Акаунт скинуто",
+    accountDeleted: "Акаунт видалено",
+    classSet: "Клас встановлено",
+    deviceType: "Пристрій",
+    lastSeen: "Остання активність",
+    totalAssets: "Усього активів",
+    sellFor: "Продати за",
+    buyFor: "Купити за"
+  },
+  en: {
+    subtitle: "Financial game simulator",
+    login: "Login",
+    register: "Register",
+    profile: "Profile",
+    crypto: "Crypto",
+    stocks: "Stocks",
+    business: "Business",
+    realty: "Realty",
+    cars: "Cars",
+    classes: "Classes",
+    transfer: "Transfers",
+    history: "History",
+    top: "Top 100",
+    support: "Support",
+    admin: "Admin",
+    logout: "Logout",
+    balance: "Balance",
+    lifetimeEarned: "Earned all time",
+    passiveIncome: "Passive income/min",
+    clickIncome: "Income per click",
+    currentClass: "Current class",
+    buy: "Buy",
+    sell: "Sell",
+    owned: "Already owned",
+    unavailable: "Unavailable",
+    onlineOnlyMoney: "Give all online money",
+    onlineOnlyCrypto: "Give all online crypto",
+    onlineUsers: "Online users",
+    totalPlayers: "Total players",
+    donate: "Donate",
+    transferUah: "UAH transfer",
+    transferUsd: "USD transfer",
+    transferCrypto: "Crypto transfer",
+    recipient: "Recipient",
+    amount: "Amount",
+    symbol: "Symbol",
+    online: "ONLINE",
+    phone: "On phone",
+    desktop: "Desktop",
+    allTimeCapital: "Capital",
+    click: "CLICK",
+    creatorOnly: "Creator only",
+    invalidData: "Invalid data",
+    insufficientFunds: "Insufficient funds",
+    invalidUser: "Invalid user",
+    userExists: "User already exists",
+    bannedName: "This username is forbidden",
+    userCreated: "Account created",
+    loginError: "Invalid username or password",
+    accountBanned: "Account is banned",
+    bought: "Successfully bought",
+    sold: "Successfully sold",
+    noAccessStocks: "Stocks are available from Trader class and above",
+    noAccessBusiness: "Business is available only from Businessman class and above",
+    upgradeSuccess: "Class purchased successfully",
+    codeNeeded: "Enter CVV code",
+    wrongCode: "Wrong CVV",
+    cvvChanged: "CVV changed",
+    cardNameChanged: "Card name changed",
+    colorChanged: "Card color changed",
+    donated: "Thanks for support",
+    sent: "Transfer successful",
+    historyEmpty: "History is empty",
+    rankTitle: "Top 100 players",
+    vipSent: "VIP giveaway completed",
+    massDone: "Mass action completed",
+    soundOn: "Sound enabled",
+    soundOff: "Sound disabled",
+    dailyBonusTaken: "Daily bonus already claimed",
+    dailyBonusGot: "Daily bonus claimed",
+    classBenefits: "Class perks",
+    buyClass: "Buy class",
+    nextRequirement: "Previous class required",
+    profileCardActions: "Card actions",
+    profileStats: "Statistics",
+    exchange: "Exchange",
+    supportBank: "Support bank",
+    commissionBank: "Commission bank",
+    adminAnalytics: "Analytics",
+    meOrNick: "You can type me or your nickname",
+    onlinePlayersList: "Players in game",
+    dailyBonus: "Daily bonus",
+    titles: "Titles",
+    none: "none",
+    buyUsd: "Buy USD",
+    sellUsd: "Sell USD",
+    classAccess: "Access",
+    playerManagement: "Player management",
+    giveMoney: "Give money",
+    takeMoney: "Take money",
+    setBalance: "Set balance",
+    setClass: "Set class",
+    banUser: "Ban",
+    unbanUser: "Unban",
+    resetUser: "Reset account",
+    deleteUser: "Delete account",
+    giveBusiness: "Give business",
+    giveRealty: "Give realty",
+    giveCar: "Give car",
+    sendGlobalMessage: "Send message to all",
+    collectCommission: "Collect commission bank",
+    collectSupport: "Collect support bank",
+    adminTools: "Admin tools",
+    choosePlayer: "Choose player",
+    enterAmountForAllOnline: "Enter amount for all online users",
+    enterCryptoSymbol: "Enter crypto symbol",
+    enterCryptoAmount: "Enter crypto amount",
+    enterMessage: "Enter message",
+    businessLocked: "Business unlocks from Businessman class",
+    stocksLocked: "Stocks unlock from Trader class",
+    creatorPanel: "Creator panel",
+    purchaseRequiresCvv: "Purchase requires CVV",
+    transferRequiresCvv: "Transfer requires CVV",
+    classRequiresCvv: "Class purchase requires CVV",
+    vipRequiresClass: "VIP giveaway requires VIP or higher",
+    playerNotFound: "Player not found",
+    valueUpdated: "Value updated",
+    accountReset: "Account reset",
+    accountDeleted: "Account deleted",
+    classSet: "Class set",
+    deviceType: "Device",
+    lastSeen: "Last seen",
+    totalAssets: "Total assets",
+    sellFor: "Sell for",
+    buyFor: "Buy for"
+  }
 };
 
-function t(key, params = {}) {
-    let text = translations[currentLang][key] || key;
-    for (const k in params) {
-        text = text.replace(`{${k}}`, params[k]);
-    }
-    return text;
+function tr(key) {
+  return I18N[appState.lang][key] || key;
 }
 
-// ==================== CONFIGS ====================
-const statuses = {
-    none: { price: 0, clickReward: 5, onlineIncome: 0, offlineIncome: 0, icon: "👤", desc: { uk: "Початківець", en: "Beginner" } },
-    basic: { price: 500, clickReward: 15, onlineIncome: 10, offlineIncome: 5, icon: "⭐", desc: { uk: "Базовий статус", en: "Basic status" } },
-    medium: { price: 2500, clickReward: 50, onlineIncome: 40, offlineIncome: 20, icon: "💎", desc: { uk: "Середній клас", en: "Middle class" } },
-    vip: { price: 10000, clickReward: 200, onlineIncome: 150, offlineIncome: 80, icon: "👑", desc: { uk: "VIP-клієнт", en: "VIP client" } },
-    businessman: { price: 50000, clickReward: 1000, onlineIncome: 600, offlineIncome: 300, icon: "🏢", desc: { uk: "Бізнесмен", en: "Businessman" } },
-    manager: { price: 200000, clickReward: 10000, onlineIncome: 4000, offlineIncome: 2000, icon: "📊", desc: { uk: "Топ-менеджер", en: "Top manager" } },
-    admin: { price: 0, clickReward: 50000, onlineIncome: 20000, offlineIncome: 10000, icon: "🛡️", desc: { uk: "Адміністратор", en: "Administrator" } }
-};
-
-const businessesList = [
-    { id: "kiosk", name: "Кіоск", cost: 1000, incomePerMin: 5, icon: "fas fa-store" },
-    { id: "cafe", name: "Кав’ярня", cost: 5000, incomePerMin: 30, icon: "fas fa-mug-hot" },
-    { id: "shop", name: "Магазин", cost: 20000, incomePerMin: 150, icon: "fas fa-cart-shopping" },
-    { id: "itstudio", name: "IT студія", cost: 100000, incomePerMin: 800, icon: "fas fa-laptop-code" },
-    { id: "cryptofarm", name: "Криптоферма", cost: 500000, incomePerMin: 4000, icon: "fas fa-microchip" },
-    { id: "restaurant", name: "Ресторан", cost: 150000, incomePerMin: 1200, icon: "fas fa-utensils" },
-    { id: "tesla", name: "Tesla", costUsd: 500000000, incomePerMin: 1000000, icon: "fab fa-tesla" },
-    { id: "spacex", name: "SpaceX", costUsd: 1000000000, incomePerMin: 2000000, icon: "fas fa-rocket" },
-    { id: "neuralink", name: "Neuralink", costUsd: 50000000, incomePerMin: 100000, icon: "fas fa-brain" },
-    { id: "microsoft", name: "Microsoft", costUsd: 100000000, incomePerMin: 500000, icon: "fab fa-microsoft" }
+// -----------------------------
+// CLASSES
+// -----------------------------
+const classList = [
+  {
+    key: "none",
+    title: "Starter",
+    price: 0,
+    clickReward: 5,
+    passivePerMin: 0,
+    perks: {
+      uk: "Базовий старт. Є доступ до профілю, крипти, переказів та історії.",
+      en: "Basic start. Access to profile, crypto, transfers and history."
+    }
+  },
+  {
+    key: "basic",
+    title: "Basic",
+    price: 1000,
+    clickReward: 15,
+    passivePerMin: 10,
+    perks: {
+      uk: "Трохи більше грошей за клік і невеликий пасивний дохід.",
+      en: "More money per click and a small passive income."
+    }
+  },
+  {
+    key: "medium",
+    title: "Medium",
+    price: 6000,
+    clickReward: 45,
+    passivePerMin: 45,
+    perks: {
+      uk: "Сильніший пасивний дохід і швидший ріст балансу.",
+      en: "Stronger passive income and faster balance growth."
+    }
+  },
+  {
+    key: "trader",
+    title: "Trader",
+    price: 18000,
+    clickReward: 110,
+    passivePerMin: 110,
+    perks: {
+      uk: "Дає доступ до розділу акцій. Усі класи вище теж мають доступ до акцій.",
+      en: "Unlocks stocks. All higher classes also have access to stocks."
+    }
+  },
+  {
+    key: "vip",
+    title: "VIP",
+    price: 50000,
+    clickReward: 250,
+    passivePerMin: 260,
+    perks: {
+      uk: "Відкриває VIP-роздачу, золотий колір картки і більший дохід.",
+      en: "Unlocks VIP giveaway, gold card color and better income."
+    }
+  },
+  {
+    key: "businessman",
+    title: "Businessman",
+    price: 150000,
+    clickReward: 600,
+    passivePerMin: 700,
+    perks: {
+      uk: "Відкриває бізнеси та великий пасивний дохід.",
+      en: "Unlocks businesses and large passive income."
+    }
+  },
+  {
+    key: "manager",
+    title: "Manager",
+    price: 500000,
+    clickReward: 1700,
+    passivePerMin: 2200,
+    perks: {
+      uk: "Максимально сильний дохід і всі плюшки нижчих класів.",
+      en: "Very strong income and all perks from lower classes."
+    }
+  },
+  {
+    key: "creator",
+    title: "Creator",
+    price: 0,
+    clickReward: 50000,
+    passivePerMin: 25000,
+    perks: {
+      uk: "Повний контроль, адмінка, бачить усіх гравців і їхню активність.",
+      en: "Full control, admin panel, sees all players and activity."
+    }
+  }
 ];
 
-const realtiesList = [
-    { id: "palm", name: "🌴 Пальмовий острів", cost: 25000, incomePerMin: 60 },
-    { id: "volcano", name: "🌋 Вулканічний острів", cost: 45000, incomePerMin: 120 },
-    { id: "paradise", name: "🏝️ Райський острів", cost: 80000, incomePerMin: 200 },
-    { id: "treasure", name: "💰 Острів скарбів", cost: 120000, incomePerMin: 320 },
-    { id: "house1", name: "🏠 Затишний будинок", cost: 30000, incomePerMin: 80 },
-    { id: "house2", name: "🏡 Сімейний будинок", cost: 60000, incomePerMin: 150 },
-    { id: "house3", name: "🏘️ Котедж", cost: 100000, incomePerMin: 250 },
-    { id: "house4", name: "🏰 Садиба", cost: 200000, incomePerMin: 500 }
+const classMap = {};
+classList.forEach((item, index) => {
+  classMap[item.key] = { ...item, index };
+});
+
+// -----------------------------
+// CATALOGS
+// -----------------------------
+const cryptoCatalog = [
+  { symbol: "BTC", name: "Bitcoin", price: 2800000, img: "https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=032" },
+  { symbol: "ETH", name: "Ethereum", price: 145000, img: "https://cryptologos.cc/logos/ethereum-eth-logo.png?v=032" },
+  { symbol: "BNB", name: "BNB", price: 24500, img: "https://cryptologos.cc/logos/bnb-bnb-logo.png?v=032" },
+  { symbol: "SOL", name: "Solana", price: 7200, img: "https://cryptologos.cc/logos/solana-sol-logo.png?v=032" },
+  { symbol: "XRP", name: "XRP", price: 24, img: "https://cryptologos.cc/logos/xrp-xrp-logo.png?v=032" }
 ];
 
-const carsList = [
-    { name: "Toyota Corolla", priceUsd: 22000 },
-    { name: "Honda Civic", priceUsd: 24000 },
-    { name: "Ford Mustang", priceUsd: 33000 },
-    { name: "BMW 3 Series", priceUsd: 42000 },
-    { name: "Mercedes C-Class", priceUsd: 45000 },
-    { name: "Audi A4", priceUsd: 41000 },
-    { name: "Tesla Model 3", priceUsd: 47000 },
-    { name: "Porsche 911", priceUsd: 110000 }
+const stocksCatalog = [
+  { id: "apple", name: "Apple", price: 8100, img: "https://logo.clearbit.com/apple.com" },
+  { id: "microsoft", name: "Microsoft", price: 16800, img: "https://logo.clearbit.com/microsoft.com" },
+  { id: "google", name: "Google", price: 7200, img: "https://logo.clearbit.com/google.com" },
+  { id: "amazon", name: "Amazon", price: 6900, img: "https://logo.clearbit.com/amazon.com" },
+  { id: "tesla", name: "Tesla", price: 9100, img: "https://logo.clearbit.com/tesla.com" },
+  { id: "nvidia", name: "NVIDIA", price: 25000, img: "https://logo.clearbit.com/nvidia.com" }
 ];
 
-const stockImages = {
-    Apple: "https://logo.clearbit.com/apple.com",
-    Microsoft: "https://logo.clearbit.com/microsoft.com",
-    Google: "https://logo.clearbit.com/google.com",
-    Amazon: "https://logo.clearbit.com/amazon.com",
-    Tesla: "https://logo.clearbit.com/tesla.com",
-    Meta: "https://logo.clearbit.com/meta.com",
-    NVIDIA: "https://logo.clearbit.com/nvidia.com",
-    Netflix: "https://logo.clearbit.com/netflix.com",
-    Adobe: "https://logo.clearbit.com/adobe.com"
-};
+const businessCatalog = [
+  { id: "coffee", name: "Кав'ярня", price: 40000, income: 90, img: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&auto=format&fit=crop" },
+  { id: "shop", name: "Магазин", price: 95000, income: 220, img: "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=400&auto=format&fit=crop" },
+  { id: "gym", name: "Фітнес-клуб", price: 180000, income: 430, img: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&auto=format&fit=crop" },
+  { id: "hotel", name: "Готель", price: 550000, income: 1500, img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&auto=format&fit=crop" },
+  { id: "it", name: "IT Студія", price: 800000, income: 2600, img: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=400&auto=format&fit=crop" }
+];
 
-const realtyImages = {
-    palm: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop",
-    volcano: "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=300&auto=format&fit=crop",
-    paradise: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=300&auto=format&fit=crop",
-    treasure: "https://images.unsplash.com/photo-1468413253725-0d5181091126?w=300&auto=format&fit=crop",
-    house1: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&auto=format&fit=crop",
-    house2: "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=300&auto=format&fit=crop",
-    house3: "https://images.unsplash.com/photo-1448630360428-65456885c650?w=300&auto=format&fit=crop",
-    house4: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=300&auto=format&fit=crop"
-};
+const realtyCatalog = [
+  { id: "palm", name: "🌴 Пальмовий острів", price: 25000, income: 60, img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&auto=format&fit=crop" },
+  { id: "volcano", name: "🌋 Вулканічний острів", price: 45000, income: 120, img: "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=400&auto=format&fit=crop" },
+  { id: "paradise", name: "🏝 Райський острів", price: 80000, income: 200, img: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=400&auto=format&fit=crop" },
+  { id: "treasure", name: "💰 Острів скарбів", price: 120000, income: 320, img: "https://images.unsplash.com/photo-1468413253725-0d5181091126?w=400&auto=format&fit=crop" },
+  { id: "skyvilla", name: "🏙 Sky Villa", price: 420000, income: 1300, img: "https://images.unsplash.com/photo-1494526585095-c41746248156?w=400&auto=format&fit=crop" },
+  { id: "oceanhome", name: "🌊 Ocean Home", price: 520000, income: 1700, img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&auto=format&fit=crop" }
+];
 
-const carImages = {
-    "Toyota Corolla": "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&auto=format&fit=crop",
-    "Honda Civic": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&auto=format&fit=crop",
-    "Tesla Model 3": "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=300&auto=format&fit=crop",
-    "BMW 3 Series": "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=300&auto=format&fit=crop",
-    "Mercedes C-Class": "https://images.unsplash.com/photo-1502877338535-766e1452684a?w=300&auto=format&fit=crop"
-};
+const carCatalog = [
+  { id: "corolla", name: "Toyota Corolla", priceUsd: 22000, img: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&auto=format&fit=crop" },
+  { id: "civic", name: "Honda Civic", priceUsd: 24000, img: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&auto=format&fit=crop" },
+  { id: "bmw3", name: "BMW 3 Series", priceUsd: 42000, img: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400&auto=format&fit=crop" },
+  { id: "tesla3", name: "Tesla Model 3", priceUsd: 47000, img: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400&auto=format&fit=crop" },
+  { id: "gclass", name: "Mercedes G-Class", priceUsd: 180000, img: "https://images.unsplash.com/photo-1502877338535-766e1452684a?w=400&auto=format&fit=crop" },
+  { id: "huracan", name: "Lamborghini Huracan", priceUsd: 250000, img: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&auto=format&fit=crop" }
+];
 
-function fallbackAssetImage(label) {
-    return `https://via.placeholder.com/72x72/0e1624/ffffff?text=${encodeURIComponent((label || "??").slice(0, 2).toUpperCase())}`;
-}
+// -----------------------------
+// AUDIO
+// -----------------------------
+let audioContext = null;
 
-// ==================== HELPERS ====================
-function formatMoney(value) {
-    return Number(value || 0).toLocaleString(currentLang === "uk" ? "uk-UA" : "en-US", { maximumFractionDigits: 2 });
-}
-
-function sanitize(str) {
-    return String(str || "").replace(/[<>]/g, "").trim();
-}
-
-function randomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function todayKey() {
-    return new Date().toISOString().slice(0, 10);
-}
-
-function showToast(msg, isError = false) {
-    const toast = document.createElement("div");
-    toast.innerText = msg;
-    toast.style.position = "fixed";
-    toast.style.bottom = "128px";
-    toast.style.left = "50%";
-    toast.style.transform = "translateX(-50%)";
-    toast.style.background = isError ? "#c0392b" : "#21364e";
-    toast.style.color = "white";
-    toast.style.padding = "10px 18px";
-    toast.style.borderRadius = "999px";
-    toast.style.zIndex = "9999";
-    toast.style.boxShadow = "0 10px 30px rgba(0,0,0,0.35)";
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2800);
-}
-
-function tReplace(el) {
-    const key = el.getAttribute("data-i18n");
-    if (key && translations[currentLang][key]) {
-        el.textContent = translations[currentLang][key];
+function playBeep(freq = 440, duration = 0.05, volume = 0.02) {
+  if (!appState.soundEnabled) return;
+  try {
+    if (!audioContext) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      audioContext = new Ctx();
     }
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.value = freq;
+    gain.gain.value = volume;
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + duration);
+  } catch (error) {
+    // ignore
+  }
 }
 
-function updateStaticTexts() {
-    document.querySelectorAll("[data-i18n]").forEach(tReplace);
+// -----------------------------
+// HELPERS
+// -----------------------------
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
-    const langBtn = document.getElementById("lang-toggle-btn");
-    if (langBtn) {
-        langBtn.innerHTML = `<i class="fas fa-language"></i> ${currentLang === "uk" ? "EN" : "UA"}`;
+function formatNum(value) {
+  return Number(value || 0).toLocaleString(appState.lang === "uk" ? "uk-UA" : "en-US", {
+    maximumFractionDigits: 2
+  });
+}
+
+function sanitize(value) {
+  return String(value || "").trim().replace(/[<>]/g, "");
+}
+
+function generateCardNumber() {
+  let raw = "4";
+  while (raw.length < 16) raw += String(rand(0, 9));
+  return raw.replace(/(.{4})/g, "$1 ").trim();
+}
+
+function generateCardExpiry() {
+  const mm = String(rand(1, 12)).padStart(2, "0");
+  const yy = String((new Date().getFullYear() + rand(2, 6))).slice(-2);
+  return `${mm}/${yy}`;
+}
+
+function todayString() {
+  return new Date().toDateString();
+}
+
+function saveAppState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+}
+
+function makeUser(password, isCreator = false) {
+  const deviceType = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? "phone" : "desktop";
+
+  return {
+    password,
+    balance: isCreator ? 1000000 : 500,
+    usd: isCreator ? 5000 : 0,
+    crypto: {},
+    stocks: {},
+    businesses: [],
+    realty: [],
+    cars: [],
+    history: [],
+    classKey: isCreator ? "creator" : "none",
+    cardName: isCreator ? "Creator Card" : "BitBank Card",
+    cardColor: isCreator ? "gold" : "black",
+    cardCvv: String(rand(100, 999)),
+    cardNumber: generateCardNumber(),
+    cardExpiry: generateCardExpiry(),
+    totalEarned: isCreator ? 1000000 : 500,
+    lastSeen: Date.now(),
+    deviceType,
+    banned: false,
+    lastBonusDay: "",
+    vipGiveawayDay: ""
+  };
+}
+
+function loadAppState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+
+  if (raw) {
+    try {
+      appState = JSON.parse(raw);
+    } catch (error) {
+      console.error(error);
     }
+  }
+
+  if (!appState.users || typeof appState.users !== "object") {
+    appState.users = {};
+  }
+
+  if (!appState.market) {
+    appState.market = { crypto: {}, stocks: [] };
+  }
+
+  if (!appState.market.crypto || Object.keys(appState.market.crypto).length === 0) {
+    appState.market.crypto = {};
+    cryptoCatalog.forEach(item => {
+      appState.market.crypto[item.symbol] = { ...item };
+    });
+  }
+
+  if (!appState.market.stocks || appState.market.stocks.length === 0) {
+    appState.market.stocks = stocksCatalog.map(item => ({ ...item }));
+  }
+
+  if (!appState.users.creator) {
+    appState.users.creator = makeUser("9creator9", true);
+  }
+
+  Object.entries(appState.users).forEach(([username, user]) => {
+    if (!user.crypto) user.crypto = {};
+    if (!user.stocks) user.stocks = {};
+    if (!user.businesses) user.businesses = [];
+    if (!user.realty) user.realty = [];
+    if (!user.cars) user.cars = [];
+    if (!user.history) user.history = [];
+    if (!user.cardName) user.cardName = "BitBank Card";
+    if (!user.cardColor) user.cardColor = "black";
+    if (!user.cardCvv) user.cardCvv = String(rand(100, 999));
+    if (!user.cardNumber) user.cardNumber = generateCardNumber();
+    if (!user.cardExpiry) user.cardExpiry = generateCardExpiry();
+    if (!user.classKey) user.classKey = username === "creator" ? "creator" : "none";
+    if (!user.totalEarned) user.totalEarned = user.balance || 0;
+    if (!user.lastSeen) user.lastSeen = Date.now();
+    if (!user.deviceType) user.deviceType = "desktop";
+    if (!user.lastBonusDay) user.lastBonusDay = "";
+    if (!user.vipGiveawayDay) user.vipGiveawayDay = "";
+    if (typeof user.banned !== "boolean") user.banned = false;
+  });
+
+  saveAppState();
 }
 
 function getCurrentUser() {
-    return currentUser ? users[currentUser.username] : null;
+  if (!appState.currentUser) return null;
+  return appState.users[appState.currentUser] || null;
 }
 
-function getTotalPassiveIncome(user) {
-    let income = statuses[user.status].onlineIncome;
-    (user.businesses || []).forEach(id => {
-        const biz = businessesList.find(x => x.id === id);
-        if (biz) income += biz.incomePerMin;
-    });
-    (user.realties || []).forEach(id => {
-        const realty = realtiesList.find(x => x.id === id);
-        if (realty) income += realty.incomePerMin;
-    });
-    return income;
+function getClassData(classKey) {
+  return classMap[classKey];
 }
 
-function getUserCapitalUsd(user) {
-    let totalUah = Number(user.balance || 0);
-    totalUah += Number(user.usdBalance || 0) * usdRate;
-
-    Object.entries(user.crypto || {}).forEach(([sym, qty]) => {
-        const coin = cryptoPrices[sym];
-        if (coin) totalUah += qty * coin.price;
-    });
-
-    Object.entries(user.stocks || {}).forEach(([stockId, qty]) => {
-        const stock = stocks.find(s => String(s.id) === String(stockId));
-        if (stock) totalUah += qty * stock.price;
-    });
-
-    (user.businesses || []).forEach(id => {
-        const biz = businessesList.find(x => x.id === id);
-        if (biz) totalUah += biz.cost || ((biz.costUsd || 0) * usdRate);
-    });
-
-    (user.realties || []).forEach(id => {
-        const realty = realtiesList.find(x => x.id === id);
-        if (realty) totalUah += realty.cost;
-    });
-
-    (user.cars || []).forEach(index => {
-        const car = carsList[index];
-        if (car) totalUah += car.priceUsd * usdRate;
-    });
-
-    return totalUah / usdRate;
+function classIndex(classKey) {
+  return getClassData(classKey).index;
 }
 
-function addTransaction(username, type, amount, currency, details) {
-    if (!users[username]) return;
-    if (!users[username].transactions) users[username].transactions = [];
-    users[username].transactions.unshift({
-        timestamp: Date.now(),
-        type,
-        amount,
-        currency,
-        details
-    });
-    users[username].transactions = users[username].transactions.slice(0, 100);
-    saveData();
+function hasStocksAccess(user) {
+  return classIndex(user.classKey) >= classIndex("trader");
 }
 
-function generateCardData() {
-    const number = "4" + Math.floor(Math.random() * 1e15).toString().padStart(15, "0");
-    const mm = String(randomInt(1, 12)).padStart(2, "0");
-    const yy = String((new Date().getFullYear() + randomInt(1, 5))).slice(-2);
-    return { number, expiry: `${mm}/${yy}` };
+function hasBusinessAccess(user) {
+  return classIndex(user.classKey) >= classIndex("businessman");
 }
 
-function createDefaultUser(password, isAdmin = false) {
-    return {
-        password,
-        balance: isAdmin ? 1000000 : 500,
-        usdBalance: 0,
-        status: isAdmin ? "admin" : "none",
-        isAdmin,
-        isBanned: false,
-        crypto: {},
-        stocks: {},
-        businesses: [],
-        realties: [],
-        cars: [],
-        card: generateCardData(),
-        cardColor: isAdmin ? "gold" : "black",
-        cardName: isAdmin ? "Admin Card" : "Virtual Card",
-        cardCvv: String(randomInt(100, 999)),
-        cvvChanged: false,
-        lastSeen: Date.now(),
-        clickMultiplier: 1,
-        multiplierExpiry: 0,
-        transactions: [],
-        specialTitles: [],
-        vipGiveawayDate: null,
-        lastDailyBonusDate: null
-    };
+function hasVipAccess(user) {
+  return classIndex(user.classKey) >= classIndex("vip");
 }
 
-function saveData() {
-    localStorage.setItem(STORAGE.users, JSON.stringify(users));
-    localStorage.setItem(STORAGE.commission, String(commissionBank));
-    localStorage.setItem(STORAGE.support, String(supportBank));
-    localStorage.setItem(STORAGE.boost, JSON.stringify({ boostMultiplier, boostExpiry }));
-    localStorage.setItem(STORAGE.lang, currentLang);
-    localStorage.setItem(STORAGE.message, JSON.stringify(globalMessage));
+function isCreator(user) {
+  return user && user.classKey === "creator";
 }
 
-function loadData() {
-    try {
-        users = JSON.parse(localStorage.getItem(STORAGE.users) || "{}");
-        commissionBank = Number(localStorage.getItem(STORAGE.commission) || 0);
-        supportBank = Number(localStorage.getItem(STORAGE.support) || 0);
-        const boost = JSON.parse(localStorage.getItem(STORAGE.boost) || '{"boostMultiplier":1,"boostExpiry":0}');
-        boostMultiplier = Number(boost.boostMultiplier || 1);
-        boostExpiry = Number(boost.boostExpiry || 0);
-        currentLang = localStorage.getItem(STORAGE.lang) || "uk";
-        globalMessage = JSON.parse(localStorage.getItem(STORAGE.message) || "null");
-    } catch {
-        users = {};
-    }
-
-    if (!users.creator) {
-        users.creator = createDefaultUser("9creator9", true);
-    }
-
-    Object.keys(users).forEach(username => {
-        const u = users[username];
-        if (!u.crypto) u.crypto = {};
-        if (!u.stocks) u.stocks = {};
-        if (!u.businesses) u.businesses = [];
-        if (!u.realties) u.realties = [];
-        if (!u.cars) u.cars = [];
-        if (!u.card) u.card = generateCardData();
-        if (!u.cardName) u.cardName = "Virtual Card";
-        if (!u.cardColor) u.cardColor = "black";
-        if (!u.cardCvv) u.cardCvv = String(randomInt(100, 999));
-        if (!u.transactions) u.transactions = [];
-        if (!u.specialTitles) u.specialTitles = [];
-        if (typeof u.usdBalance !== "number") u.usdBalance = 0;
-        if (typeof u.isAdmin !== "boolean") u.isAdmin = username === "creator" || u.status === "admin";
-        if (typeof u.isBanned !== "boolean") u.isBanned = false;
-        if (!u.lastSeen) u.lastSeen = Date.now();
-        if (!u.lastDailyBonusDate) u.lastDailyBonusDate = null;
-    });
-
-    saveData();
+function getClickReward(user) {
+  return getClassData(user.classKey).clickReward;
 }
 
-// ==================== ONLINE / PRICES ====================
-function isOnline(username) {
-    const user = users[username];
-    if (!user) return false;
-    return Date.now() - Number(user.lastSeen || 0) < 2 * 60 * 1000;
+function getPassiveIncome(user) {
+  let total = getClassData(user.classKey).passivePerMin;
+
+  user.businesses.forEach(id => {
+    const business = businessCatalog.find(item => item.id === id);
+    if (business) total += business.income;
+  });
+
+  user.realty.forEach(id => {
+    const realty = realtyCatalog.find(item => item.id === id);
+    if (realty) total += realty.income;
+  });
+
+  return total;
 }
 
-function updateLastSeen() {
-    if (!currentUser) return;
-    users[currentUser.username].lastSeen = Date.now();
-    saveData();
+function calculateCapitalUsd(user) {
+  let totalUah = user.balance + user.usd * appState.usdRate;
+
+  Object.entries(user.crypto).forEach(([symbol, amount]) => {
+    const crypto = appState.market.crypto[symbol];
+    if (crypto) totalUah += amount * crypto.price;
+  });
+
+  Object.entries(user.stocks).forEach(([stockId, amount]) => {
+    const stock = appState.market.stocks.find(item => item.id === stockId);
+    if (stock) totalUah += amount * stock.price;
+  });
+
+  user.businesses.forEach(id => {
+    const business = businessCatalog.find(item => item.id === id);
+    if (business) totalUah += business.price;
+  });
+
+  user.realty.forEach(id => {
+    const realty = realtyCatalog.find(item => item.id === id);
+    if (realty) totalUah += realty.price;
+  });
+
+  user.cars.forEach(id => {
+    const car = carCatalog.find(item => item.id === id);
+    if (car) totalUah += car.priceUsd * appState.usdRate;
+  });
+
+  return totalUah / appState.usdRate;
 }
 
-function initStocks() {
-    const companies = [
-        "Apple", "Microsoft", "Google", "Amazon", "Tesla", "Meta",
-        "NVIDIA", "Netflix", "Adobe", "AMD", "Intel", "PayPal",
-        "Spotify", "Sony", "Visa", "Mastercard", "Pfizer", "Samsung"
-    ];
+function addHistory(user, text, amount = null) {
+  user.history.unshift({
+    text,
+    amount,
+    time: Date.now()
+  });
+  user.history = user.history.slice(0, 140);
+}
 
-    stocks = companies.map((name, index) => ({
-        id: index,
-        name,
-        price: 20 + Math.random() * 450
+function addMoney(user, amount, historyText = "") {
+  user.balance += amount;
+  if (amount > 0) {
+    user.totalEarned += amount;
+  }
+  if (historyText) {
+    addHistory(user, historyText, amount);
+  }
+}
+
+function normalizeRecipient(input, currentNickname) {
+  const value = sanitize(input).toLowerCase();
+  if (!value) return "";
+  if (value === "me" || value === currentNickname.toLowerCase()) {
+    return currentNickname;
+  }
+  return value;
+}
+
+function getOnlinePlayersDetailed() {
+  const now = Date.now();
+
+  return Object.entries(appState.users)
+    .filter(([, user]) => !user.banned && now - user.lastSeen < 120000)
+    .map(([name, user]) => ({
+      name,
+      ...user
     }));
-
-    stocks.push({ id: stocks.length, name: "Berkshire Hathaway A", price: 600000 });
 }
 
-async function fetchUsdRate() {
-    try {
-        const res = await fetch("https://api.exchangerate.host/latest?base=USD&symbols=UAH");
-        const data = await res.json();
-        if (data?.rates?.UAH) usdRate = Number(data.rates.UAH);
-    } catch {}
-    updateUI();
+function promptCvv(user, reasonText = "") {
+  const promptText = reasonText || tr("codeNeeded");
+  const entered = prompt(`${promptText} (CVV)`);
+  if (entered === null) return false;
+  if (String(entered) !== String(user.cardCvv)) {
+    showToast(tr("wrongCode"), true);
+    return false;
+  }
+  return true;
 }
 
-async function fetchCryptoPrices() {
-    try {
-        const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false");
-        const data = await res.json();
-        cryptoPrices = {};
-        data.forEach(coin => {
-            cryptoPrices[coin.symbol.toUpperCase()] = {
-                name: coin.name,
-                price: coin.current_price * usdRate,
-                img: coin.image
-            };
-        });
-    } catch {}
-
-    const active = document.querySelector(".sidebar-nav button.active-page")?.getAttribute("data-page");
-    if (currentUser && active === "crypto") renderCrypto();
+function imageTag(src, alt) {
+  return `<img class="asset-thumb" src="${src}" alt="${alt}" onerror="this.src='https://via.placeholder.com/72x72/0e1624/ffffff?text=BB'">`;
 }
 
-function fluctuateStocks() {
-    stocks.forEach(stock => {
-        const change = (Math.random() - 0.5) * 0.03;
-        stock.price = Math.max(0.5, stock.price * (1 + change));
-    });
-
-    const active = document.querySelector(".sidebar-nav button.active-page")?.getAttribute("data-page");
-    if (currentUser && active === "stocks") renderStocks();
+function cardColorClass(color) {
+  if (color === "white") return "card-white";
+  if (color === "yellow") return "card-yellow";
+  if (color === "gold") return "card-gold";
+  return "card-black";
 }
 
-// ==================== AUTH ====================
-function registerUser() {
-    const username = sanitize(document.getElementById("reg-username").value);
-    const password = sanitize(document.getElementById("reg-password").value);
-
-    if (username.length < 3) return showToast(t("usernameTooShort"), true);
-    if (password.length < 4) return showToast(t("passwordTooShort"), true);
-    if (users[username]) return showToast(t("userExists"), true);
-
-    users[username] = createDefaultUser(password, false);
-    saveData();
-    showToast(t("userCreated"));
-
-    document.querySelector('[data-tab="login"]').click();
-    document.getElementById("login-username").value = username;
-    document.getElementById("login-password").value = password;
+function showToast(text, isError = false) {
+  const toast = document.createElement("div");
+  toast.textContent = text;
+  toast.style.position = "fixed";
+  toast.style.left = "50%";
+  toast.style.bottom = "130px";
+  toast.style.transform = "translateX(-50%)";
+  toast.style.background = isError ? "#b33939" : "#20344d";
+  toast.style.color = "#fff";
+  toast.style.padding = "10px 16px";
+  toast.style.borderRadius = "999px";
+  toast.style.zIndex = "9999";
+  toast.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
 }
 
-function loginUser() {
-    const username = sanitize(document.getElementById("login-username").value);
-    const password = sanitize(document.getElementById("login-password").value);
-    const user = users[username];
+// -----------------------------
+// UI UPDATE
+// -----------------------------
+function updateHeader() {
+  const user = getCurrentUser();
+  if (!user) return;
 
-    if (!user || user.password !== password) return showToast(t("invalidCredentials"), true);
-    if (user.isBanned) return showToast(t("bannedUser"), true);
+  document.getElementById("header-username").textContent = appState.currentUser;
+  document.getElementById("header-status").textContent = getClassData(user.classKey).title.toUpperCase();
+  document.getElementById("header-online").textContent = tr("online");
+  document.getElementById("header-device").textContent = user.deviceType === "phone"
+    ? `📱 ${tr("phone")}`
+    : `🖥 ${tr("desktop")}`;
+  document.getElementById("balance-uah").textContent = formatNum(user.balance);
+  document.getElementById("balance-usd").textContent = formatNum(user.usd);
 
-    currentUser = { username };
-    users[username].lastSeen = Date.now();
-    saveData();
+  document.getElementById("vip-giveaway-btn").classList.toggle("hidden", !hasVipAccess(user));
+  document.getElementById("admin-nav").classList.toggle("hidden", !isCreator(user));
 
-    document.getElementById("login-container").style.display = "none";
-    document.getElementById("app-container").style.display = "flex";
+  const globalMessageBox = document.getElementById("global-message");
+  if (appState.globalMessage) {
+    globalMessageBox.classList.remove("hidden");
+    globalMessageBox.textContent = appState.globalMessage;
+  } else {
+    globalMessageBox.classList.add("hidden");
+    globalMessageBox.textContent = "";
+  }
 
-    updateStaticTexts();
-    updateUI();
-    setAdminVisibility();
-    showGlobalMessage();
-    navigate("dashboard");
+  document.getElementById("lang-btn").textContent = appState.lang === "uk" ? "EN" : "UA";
+  document.getElementById("toggle-sound-btn").textContent = appState.soundEnabled ? "🔊 Звук" : "🔇 Звук";
 }
 
-function logoutUser() {
-    currentUser = null;
-    document.getElementById("app-container").style.display = "none";
-    document.getElementById("login-container").style.display = "flex";
+function setActivePage(page) {
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.page === page);
+  });
 }
 
-function setAdminVisibility() {
-    const user = getCurrentUser();
-    if (!user) return;
+// -----------------------------
+// PROFILE
+// -----------------------------
+function renderProfilePage() {
+  const user = getCurrentUser();
+  const classData = getClassData(user.classKey);
 
-    document.getElementById("admin-panel-btn").style.display = user.isAdmin ? "inline-flex" : "none";
-    document.getElementById("vip-giveaway-btn").style.display = ["vip", "businessman", "manager", "admin"].includes(user.status) ? "inline-flex" : "none";
-}
+  const titles = [];
+  if (user.classKey === "creator") titles.push("👑 Creator");
+  if (user.realty.includes("paradise")) titles.push("🏝 Island Lord");
+  if (user.businesses.includes("it")) titles.push("💻 Tech Boss");
+  if (user.cars.includes("huracan")) titles.push("🔥 Supercar Owner");
 
-function showGlobalMessage() {
-    const box = document.getElementById("global-message-box");
-    if (!box) return;
+  const profileHtml = `
+    <h2 class="page-title">🏠 ${tr("profile")}</h2>
 
-    if (globalMessage && globalMessage.text) {
-        box.style.display = "block";
-        box.textContent = `${globalMessage.from}: ${globalMessage.text}`;
-    } else {
-        box.style.display = "none";
-    }
-}
+    <div class="profile-layout">
+      <div class="panel">
+        <div class="card-visual ${cardColorClass(user.cardColor)}">
+          <div class="card-chip"></div>
+          <div class="card-number">${user.cardNumber}</div>
+          <div class="card-bottom">
+            <span>CVV: ${user.cardCvv}</span>
+            <span>${user.cardExpiry}</span>
+          </div>
+          <div class="card-brand">${user.cardName}</div>
+        </div>
 
-// ==================== UI ====================
-function updateUI() {
-    if (!currentUser) return;
-    const user = getCurrentUser();
+        <h3>${tr("profileCardActions")}</h3>
+        <div class="profile-actions">
+          <button id="profile-go-classes-btn">${tr("buyClass")}</button>
+          <button id="profile-change-name-btn">${appState.lang === "uk" ? "Змінити назву" : "Change name"}</button>
+          <button id="profile-change-color-btn">${appState.lang === "uk" ? "Змінити колір" : "Change color"}</button>
+          <button id="profile-daily-bonus-btn">${tr("dailyBonus")}</button>
+        </div>
+      </div>
 
-    document.getElementById("username-display").textContent = currentUser.username;
-    document.getElementById("status-text").textContent = `${statuses[user.status].icon} ${user.status.toUpperCase()}`;
-    document.getElementById("main-balance").textContent = formatMoney(Math.floor(user.balance));
-    document.getElementById("usd-balance").textContent = formatMoney(user.usdBalance || 0);
-}
+      <div class="panel">
+        <h3>${tr("profileStats")}</h3>
 
-function setActiveNav(page) {
-    document.querySelectorAll(".sidebar-nav button[data-page]").forEach(btn => {
-        btn.classList.toggle("active-page", btn.getAttribute("data-page") === page);
-    });
-}
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="label">${tr("balance")}</div>
+            <div class="value">${formatNum(user.balance)} грн</div>
+          </div>
 
-function navigate(page) {
-    if (!currentUser) return;
-    setActiveNav(page);
+          <div class="stat-card">
+            <div class="label">USD</div>
+            <div class="value">${formatNum(user.usd)} USD</div>
+          </div>
 
-    switch (page) {
-        case "dashboard": renderDashboard(); break;
-        case "crypto": renderCrypto(); break;
-        case "stocks": renderStocks(); break;
-        case "business": renderBusiness(); break;
-        case "realty": renderRealty(); break;
-        case "cars": renderCars(); break;
-        case "classes": renderClasses(); break;
-        case "transfer": renderTransfer(); break;
-        case "history": renderHistory(); break;
-        case "donate": renderDonate(); break;
-        case "top": renderTop(); break;
-        case "admin":
-            if (getCurrentUser().isAdmin) renderAdminPanel();
-            else showToast(t("adminsOnly"), true);
-            break;
-        default: renderDashboard();
-    }
+          <div class="stat-card">
+            <div class="label">${tr("allTimeCapital")}</div>
+            <div class="value">${formatNum(calculateCapitalUsd(user))} USD</div>
+          </div>
 
-    document.getElementById("sidebar").classList.remove("open");
-}
+          <div class="stat-card">
+            <div class="label">${tr("currentClass")}</div>
+            <div class="value">${classData.title}</div>
+          </div>
 
-window.navigate = navigate;
+          <div class="stat-card">
+            <div class="label">${tr("passiveIncome")}</div>
+            <div class="value">${formatNum(getPassiveIncome(user))} грн</div>
+          </div>
 
-// ==================== CVV / CARD ====================
-function verifyCvv(callback) {
-    if (!currentUser) return callback(false);
-    const cvv = prompt("CVV (3):");
-    if (cvv === getCurrentUser().cardCvv) callback(true);
-    else {
-        showToast(t("invalidPin"), true);
-        callback(false);
-    }
-}
+          <div class="stat-card">
+            <div class="label">${tr("clickIncome")}</div>
+            <div class="value">+${formatNum(getClickReward(user))} грн</div>
+          </div>
+        </div>
 
-function changeCardName() {
-    const user = getCurrentUser();
-    const newName = prompt(t("cardNamePrompt"), user.cardName);
+        <div class="top-extra">
+          <div class="stat-card">
+            <div class="label">${tr("lifetimeEarned")}</div>
+            <div class="value">${formatNum(user.totalEarned)} грн</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="label">${tr("deviceType")}</div>
+            <div class="value">${user.deviceType === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`}</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="label">${tr("classBenefits")}</div>
+            <div class="value" style="font-size:14px;line-height:1.45;font-weight:600">${classData.perks[appState.lang]}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px">
+          <h3>${tr("exchange")}</h3>
+          <p>1 USD = ${formatNum(appState.usdRate)} грн</p>
+
+          <div class="transfer-row">
+            <input id="buy-usd-uah" type="number" placeholder="${tr("amount")} грн">
+            <button id="buy-usd-btn">${tr("buyUsd")}</button>
+          </div>
+
+          <div class="transfer-row">
+            <input id="sell-usd-amount" type="number" placeholder="${tr("amount")} USD">
+            <button id="sell-usd-btn">${tr("sellUsd")}</button>
+          </div>
+        </div>
+
+        <div style="margin-top:18px">
+          <h3>${tr("titles")}</h3>
+          <div>
+            ${titles.length ? titles.map(item => `<span class="badge-title">${item}</span>`).join("") : `<span class="sub">${tr("none")}</span>`}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("page-content").innerHTML = profileHtml;
+
+  document.getElementById("profile-go-classes-btn").onclick = () => renderClassesPage();
+
+  document.getElementById("profile-change-name-btn").onclick = () => {
+    const newName = prompt(appState.lang === "uk" ? "Нова назва карти" : "New card name", user.cardName);
     if (!newName) return;
-    user.cardName = sanitize(newName).slice(0, 28) || user.cardName;
-    saveData();
-    renderDashboard();
-}
+    user.cardName = newName.slice(0, 24);
+    saveAppState();
+    playBeep(640);
+    showToast(tr("cardNameChanged"));
+    renderProfilePage();
+  };
 
-function changePin() {
-    const user = getCurrentUser();
-    const newCvv = prompt(t("changeCvvPrompt"), user.cardCvv);
-    if (!newCvv) return;
-    if (!/^\d{3}$/.test(newCvv)) return showToast(t("invalidPin"), true);
-    user.cardCvv = newCvv;
-    saveData();
-    showToast(t("pinChanged"));
-    renderDashboard();
-}
+  document.getElementById("profile-change-color-btn").onclick = () => {
+    document.getElementById("color-modal").classList.remove("hidden");
+  };
 
-function openColorModal() {
-    const user = getCurrentUser();
-    const goldOption = document.getElementById("gold-option");
-    goldOption.style.display = ["vip", "businessman", "manager", "admin"].includes(user.status) ? "block" : "none";
-    document.getElementById("color-modal").style.display = "flex";
-}
-
-function closeColorModal() {
-    document.getElementById("color-modal").style.display = "none";
-}
-
-function setCardColor(color) {
-    const user = getCurrentUser();
-    if (color === "gold" && !["vip", "businessman", "manager", "admin"].includes(user.status)) {
-        return showToast("Gold only for VIP+", true);
+  document.getElementById("profile-daily-bonus-btn").onclick = () => {
+    const today = todayString();
+    if (user.lastBonusDay === today) {
+      showToast(tr("dailyBonusTaken"), true);
+      return;
     }
-    user.cardColor = color;
-    saveData();
-    closeColorModal();
-    renderDashboard();
-}
+    const bonus = rand(150, 650);
+    user.lastBonusDay = today;
+    addMoney(user, bonus, `${tr("dailyBonus")}: +${formatNum(bonus)} грн`);
+    saveAppState();
+    playBeep(760);
+    showToast(`${tr("dailyBonusGot")} +${bonus}`);
+    updateHeader();
+    renderProfilePage();
+  };
 
-// ==================== DASHBOARD ====================
-function renderDashboard() {
-    const user = getCurrentUser();
-    const card = user.card;
-
-    let cardClass = "real-card ";
-    switch (user.cardColor) {
-        case "yellow": cardClass += "card-yellow"; break;
-        case "white": cardClass += "card-white"; break;
-        case "gold": cardClass += "gold-card"; break;
-        default: cardClass += "card-black";
+  document.getElementById("buy-usd-btn").onclick = () => {
+    const amountUah = Number(document.getElementById("buy-usd-uah").value);
+    if (!amountUah || amountUah <= 0) {
+      showToast(tr("invalidData"), true);
+      return;
+    }
+    if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+    if (user.balance < amountUah) {
+      showToast(tr("insufficientFunds"), true);
+      return;
     }
 
-    let titlesHtml = "";
-    if (user.specialTitles.includes("elon")) titlesHtml += `<span class="special-title">🚀 Elon</span>`;
-    if (user.specialTitles.includes("bezos")) titlesHtml += `<span class="special-title">💻 Bezos</span>`;
-    if (!titlesHtml) titlesHtml = t("none");
+    const usdAmount = amountUah / appState.usdRate;
+    user.balance -= amountUah;
+    user.usd += usdAmount;
+    addHistory(user, `${tr("buyUsd")}: ${formatNum(usdAmount)} USD`);
+    saveAppState();
+    playBeep(560);
+    updateHeader();
+    renderProfilePage();
+  };
 
-    document.getElementById("page-content").innerHTML = `
-        <div class="page-title"><i class="fas fa-user-circle"></i> ${t("profileTitle")}</div>
+  document.getElementById("sell-usd-btn").onclick = () => {
+    const usdAmount = Number(document.getElementById("sell-usd-amount").value);
+    if (!usdAmount || usdAmount <= 0) {
+      showToast(tr("invalidData"), true);
+      return;
+    }
+    if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+    if (user.usd < usdAmount) {
+      showToast(tr("insufficientFunds"), true);
+      return;
+    }
 
-        <div class="profile-hero">
-            <div class="profile-panel">
-                <h3>${t("profileCard")}</h3>
-                <div class="${cardClass}" style="cursor:pointer;" onclick="openColorModal()">
-                    <div class="card-chip"></div>
-                    <div class="card-number">${card.number.match(/.{1,4}/g).join(" ")}</div>
-                    <div class="card-details">
-                        <span>CVV: ${user.cardCvv}</span>
-                        <span>${card.expiry}</span>
-                    </div>
-                    <div class="card-brand">BITBANK</div>
-                </div>
+    const uahAmount = usdAmount * appState.usdRate;
+    user.usd -= usdAmount;
+    user.balance += uahAmount;
+    addHistory(user, `${tr("sellUsd")}: +${formatNum(uahAmount)} грн`);
+    saveAppState();
+    playBeep(520);
+    updateHeader();
+    renderProfilePage();
+  };
+}
 
-                <h3>${t("profileActions")}</h3>
-                <div class="button-group">
-                    <button id="upgrade-status" class="btn-primary">${t("upgradeStatus")}</button>
-                    <button id="dashboard-change-name">${t("changeCardName")}</button>
-                    <button id="dashboard-change-color">${t("changeCardColor")}</button>
-                    <button id="daily-bonus-btn">${t("claimBonus")}</button>
-                </div>
-            </div>
+// -----------------------------
+// CLASSES
+// -----------------------------
+function renderClassesPage() {
+  const user = getCurrentUser();
 
-            <div class="profile-panel">
-                <h3>${t("profileStats")}</h3>
-                <div class="profile-stats">
-                    <div class="stat-box">
-                        <div class="label">${t("balanceLabel")}</div>
-                        <div class="value">${formatMoney(user.balance)} грн</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="label">USD</div>
-                        <div class="value">${formatMoney(user.usdBalance || 0)} USD</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="label">${t("profileCapital")}</div>
-                        <div class="value">${formatMoney(getUserCapitalUsd(user))} USD</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="label">${t("currentClass")}</div>
-                        <div class="value">${statuses[user.status].icon} ${user.status.toUpperCase()}</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="label">${t("passiveIncomePerMin")}</div>
-                        <div class="value">${formatMoney(getTotalPassiveIncome(user))} грн</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="label">${t("clickReward")}</div>
-                        <div class="value">+${formatMoney(Math.floor(statuses[user.status].clickReward * (boostExpiry > Date.now() ? boostMultiplier : 1)))} грн</div>
-                    </div>
-                </div>
+  const classesHtml = classList
+    .filter(item => item.key !== "creator")
+    .map(item => {
+      const currentIndex = classIndex(user.classKey);
+      const targetIndex = classIndex(item.key);
 
-                <div style="margin-top:18px;">
-                    <h3>${t("exchangeSection")}</h3>
-                    <p>1 USD = ${usdRate.toFixed(2)} грн</p>
+      const alreadyOwnedOrHigher = currentIndex >= targetIndex;
+      const canBuy = targetIndex === currentIndex + 1;
 
-                    <div class="transfer-grid">
-                        <input type="number" id="uah-amount" placeholder="${t("amount")} грн">
-                        <button id="buy-usd" class="btn-primary">${t("buyUsd")}</button>
-                    </div>
+      return `
+        <div class="class-card">
+          <h4>${item.title}</h4>
+          <div class="sub">${tr("classAccess")}</div>
+          <div class="class-price">${formatNum(item.price)} грн</div>
+          <div class="class-benefit">
+            <b>${tr("classBenefits")}:</b><br>
+            ${item.perks[appState.lang]}<br><br>
+            <b>+${formatNum(item.clickReward)} грн</b> ${appState.lang === "uk" ? "за клік" : "per click"}<br>
+            <b>+${formatNum(item.passivePerMin)} грн</b> ${appState.lang === "uk" ? "пасивно/хв" : "passive/min"}
+          </div>
 
-                    <div class="transfer-grid" style="margin-top:10px;">
-                        <input type="number" id="usd-amount" placeholder="${t("amountUsd")}">
-                        <button id="sell-usd" class="btn-primary">${t("sellUsd")}</button>
-                    </div>
-                </div>
-
-                <div style="margin-top:18px;">
-                    <h3>${t("titles")}</h3>
-                    <div>${titlesHtml}</div>
-                </div>
-            </div>
+          ${
+            alreadyOwnedOrHigher
+              ? `<button class="class-buy-btn" disabled>${tr("owned")}</button>`
+              : canBuy
+                ? `<button class="class-buy-btn" data-buy-class="${item.key}">${tr("buyClass")}</button>`
+                : `<button class="class-buy-btn" disabled>${tr("nextRequirement")}</button>`
+          }
         </div>
+      `;
+    }).join("");
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">⭐ ${tr("classes")}</h2>
+    <div class="grid cards">${classesHtml}</div>
+  `;
+
+  document.querySelectorAll("[data-buy-class]").forEach(button => {
+    button.onclick = () => {
+      const targetKey = button.dataset.buyClass;
+      const targetClass = getClassData(targetKey);
+
+      if (!promptCvv(user, tr("classRequiresCvv"))) return;
+      if (user.balance < targetClass.price) {
+        showToast(tr("insufficientFunds"), true);
+        return;
+      }
+
+      if (classIndex(targetKey) !== classIndex(user.classKey) + 1) {
+        showToast(tr("invalidData"), true);
+        return;
+      }
+
+      user.balance -= targetClass.price;
+      user.classKey = targetKey;
+      addHistory(user, `${tr("buyClass")}: ${targetClass.title}`);
+      saveAppState();
+      playBeep(820);
+      showToast(tr("upgradeSuccess"));
+      updateHeader();
+      renderClassesPage();
+    };
+  });
+}
+
+// -----------------------------
+// CRYPTO
+// -----------------------------
+function renderCryptoPage() {
+  const user = getCurrentUser();
+
+  const html = Object.values(appState.market.crypto).map(crypto => {
+    const own = user.crypto[crypto.symbol] || 0;
+
+    return `
+      <div class="asset-card">
+        <div class="asset-head">
+          ${imageTag(crypto.img, crypto.name)}
+          <div>
+            <h4>${crypto.name} (${crypto.symbol})</h4>
+            <div class="sub">${tr("buyFor")}: ${formatNum(crypto.price)} грн</div>
+          </div>
+        </div>
+
+        <div class="sub">${tr("balance")}: ${formatNum(own)}</div>
+        <input id="crypto-amount-${crypto.symbol}" type="number" step="0.0001" placeholder="${tr("amount")}">
+
+        <div class="asset-actions">
+          <button data-buy-crypto="${crypto.symbol}">${tr("buy")}</button>
+          <button data-sell-crypto="${crypto.symbol}">${tr("sell")}</button>
+        </div>
+      </div>
     `;
+  }).join("");
 
-    document.getElementById("upgrade-status").addEventListener("click", () => {
-        verifyCvv(success => success && upgradeStatus());
-    });
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">🪙 ${tr("crypto")}</h2>
+    <div class="grid cards">${html}</div>
+  `;
 
-    document.getElementById("buy-usd").addEventListener("click", () => {
-        verifyCvv(success => success && buyUsd());
-    });
+  document.querySelectorAll("[data-buy-crypto]").forEach(button => {
+    button.onclick = () => {
+      const symbol = button.dataset.buyCrypto;
+      const crypto = appState.market.crypto[symbol];
+      const amount = Number(document.getElementById(`crypto-amount-${symbol}`).value);
 
-    document.getElementById("sell-usd").addEventListener("click", () => {
-        verifyCvv(success => success && sellUsd());
-    });
+      if (!amount || amount <= 0) {
+        showToast(tr("invalidData"), true);
+        return;
+      }
 
-    document.getElementById("dashboard-change-name").addEventListener("click", changeCardName);
-    document.getElementById("dashboard-change-color").addEventListener("click", openColorModal);
-    document.getElementById("daily-bonus-btn").addEventListener("click", claimDailyBonus);
+      if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+
+      const totalCost = amount * crypto.price;
+      if (user.balance < totalCost) {
+        showToast(tr("insufficientFunds"), true);
+        return;
+      }
+
+      user.balance -= totalCost;
+      user.crypto[symbol] = (user.crypto[symbol] || 0) + amount;
+      addHistory(user, `${tr("buy")} ${formatNum(amount)} ${symbol}`);
+      saveAppState();
+      playBeep(640);
+      updateHeader();
+      renderCryptoPage();
+    };
+  });
+
+  document.querySelectorAll("[data-sell-crypto]").forEach(button => {
+    button.onclick = () => {
+      const symbol = button.dataset.sellCrypto;
+      const crypto = appState.market.crypto[symbol];
+      const amount = Number(document.getElementById(`crypto-amount-${symbol}`).value);
+
+      if (!amount || amount <= 0) {
+        showToast(tr("invalidData"), true);
+        return;
+      }
+
+      if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+
+      if ((user.crypto[symbol] || 0) < amount) {
+        showToast(tr("notEnoughCrypto"), true);
+        return;
+      }
+
+      user.crypto[symbol] -= amount;
+      user.balance += amount * crypto.price;
+      addHistory(user, `${tr("sell")} ${formatNum(amount)} ${symbol}`);
+      saveAppState();
+      playBeep(560);
+      updateHeader();
+      renderCryptoPage();
+    };
+  });
 }
 
-function claimDailyBonus() {
-    const user = getCurrentUser();
-    if (user.lastDailyBonusDate === todayKey()) {
-        return showToast(t("bonusTaken"), true);
-    }
-    const bonus = randomInt(100, 500);
-    user.balance += bonus;
-    user.lastDailyBonusDate = todayKey();
-    addTransaction(currentUser.username, "daily_bonus", bonus, "UAH", "Щоденний бонус");
-    saveData();
-    updateUI();
-    renderDashboard();
-    showToast(`+${bonus} грн`);
-}
-
-function upgradeStatus() {
-    const user = getCurrentUser();
-    const order = ["none", "basic", "medium", "vip", "businessman", "manager"];
-    const index = order.indexOf(user.status);
-    if (index >= order.length - 1) return showToast("Максимальний статус", true);
-
-    const next = order[index + 1];
-    const cost = statuses[next].price;
-    if (user.balance < cost) return showToast(`${t("insufficientFunds")} (${cost} грн)`, true);
-
-    user.balance -= cost;
-    user.status = next;
-    saveData();
-    updateUI();
-    setAdminVisibility();
-    renderDashboard();
-    showToast(`Статус підвищено до ${next}`);
-}
-
-function buyUsd() {
-    const user = getCurrentUser();
-    const amount = parseFloat(document.getElementById("uah-amount").value);
-    if (isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
-    if (user.balance < amount) return showToast(t("insufficientFunds"), true);
-
-    const usd = amount / usdRate;
-    user.balance -= amount;
-    user.usdBalance += usd;
-    addTransaction(currentUser.username, "buy_usd", amount, "UAH", `Купівля ${usd.toFixed(2)} USD`);
-    saveData();
-    updateUI();
-    renderDashboard();
-    showToast(`+${usd.toFixed(2)} USD`);
-}
-
-function sellUsd() {
-    const user = getCurrentUser();
-    const usd = parseFloat(document.getElementById("usd-amount").value);
-    if (isNaN(usd) || usd <= 0) return showToast(t("invalidData"), true);
-    if (user.usdBalance < usd) return showToast(t("insufficientFunds"), true);
-
-    const amount = usd * usdRate;
-    user.usdBalance -= usd;
-    user.balance += amount;
-    addTransaction(currentUser.username, "sell_usd", usd, "USD", `Продаж USD за ${amount.toFixed(2)} грн`);
-    saveData();
-    updateUI();
-    renderDashboard();
-    showToast(`+${amount.toFixed(2)} грн`);
-}
-
-// ==================== CRYPTO ====================
-function renderCrypto() {
-    let html = `<div class="page-title"><i class="fab fa-bitcoin"></i> ${t("navCrypto")}</div><div class="card-grid">`;
-
-    Object.keys(cryptoPrices).forEach(sym => {
-        const coin = cryptoPrices[sym];
-        const amountOwned = getCurrentUser().crypto[sym] || 0;
-        html += `
-            <div class="asset-card">
-                <div class="card-header">
-                    <img src="${coin.img || fallbackAssetImage(sym)}" class="asset-thumb" alt="${coin.name}">
-                    <div>
-                        <h4>${coin.name} (${sym})</h4>
-                        <div class="asset-sub">${coin.price.toFixed(2)} грн</div>
-                    </div>
-                </div>
-
-                <div>${t("yourBalance")}: ${formatMoney(amountOwned)}</div>
-                <input type="number" id="crypto-amount-${sym}" step="0.0001" placeholder="${t("cryptoAmount")}">
-
-                <div class="button-group">
-                    <button onclick="buyCryptoWithCvv('${sym}')">${t("buy")}</button>
-                    <button onclick="sellCryptoWithCvv('${sym}')">${t("sell")}</button>
-                </div>
-            </div>
-        `;
-    });
-
-    html += `</div>`;
-    document.getElementById("page-content").innerHTML = html;
-}
-
-window.buyCryptoWithCvv = function(sym) {
-    verifyCvv(success => success && buyCrypto(sym));
-};
-
-window.sellCryptoWithCvv = function(sym) {
-    verifyCvv(success => success && sellCrypto(sym));
-};
-
-function buyCrypto(sym) {
-    const user = getCurrentUser();
-    const amount = parseFloat(document.getElementById(`crypto-amount-${sym}`).value);
-    const price = cryptoPrices[sym]?.price;
-
-    if (!price || isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
-
-    const total = amount * price;
-    if (user.balance < total) return showToast(t("insufficientFunds"), true);
-
-    user.balance -= total;
-    user.crypto[sym] = (user.crypto[sym] || 0) + amount;
-    addTransaction(currentUser.username, "buy_crypto", total, "UAH", `Купівля ${amount} ${sym}`);
-    saveData();
-    updateUI();
-    renderCrypto();
-}
-
-function sellCrypto(sym) {
-    const user = getCurrentUser();
-    const amount = parseFloat(document.getElementById(`crypto-amount-${sym}`).value);
-    const price = cryptoPrices[sym]?.price;
-
-    if (!price || isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
-    if ((user.crypto[sym] || 0) < amount) return showToast(t("notEnoughCrypto"), true);
-
-    const total = amount * price;
-    user.crypto[sym] -= amount;
-    user.balance += total;
-    addTransaction(currentUser.username, "sell_crypto", total, "UAH", `Продаж ${amount} ${sym}`);
-    saveData();
-    updateUI();
-    renderCrypto();
-}
-
-// ==================== STOCKS ====================
-function renderStocks() {
-    let html = `<div class="page-title"><i class="fas fa-chart-line"></i> ${t("navStocks")}</div><div class="card-grid">`;
-
-    stocks.forEach(stock => {
-        const img = stockImages[stock.name] || fallbackAssetImage(stock.name);
-        const owned = getCurrentUser().stocks[stock.id] || 0;
-
-        html += `
-            <div class="asset-card">
-                <div class="card-header">
-                    <img src="${img}" class="asset-thumb" alt="${stock.name}" onerror="this.src='${fallbackAssetImage("ST")}'">
-                    <div>
-                        <h4>${stock.name}</h4>
-                        <div class="asset-sub">${t("stockPrice")}: ${stock.price.toFixed(2)} грн</div>
-                    </div>
-                </div>
-
-                <div>${t("yourBalance")}: ${formatMoney(owned)}</div>
-                <input type="number" id="stock-amount-${stock.id}" step="0.01" placeholder="шт">
-
-                <div class="button-group">
-                    <button onclick="buyStockWithCvv(${stock.id})">${t("buy")}</button>
-                    <button onclick="sellStockWithCvv(${stock.id})">${t("sell")}</button>
-                </div>
-            </div>
-        `;
-    });
-
-    html += `</div>`;
-    document.getElementById("page-content").innerHTML = html;
-}
-
-window.buyStockWithCvv = function(id) {
-    verifyCvv(success => success && buyStock(id));
-};
-
-window.sellStockWithCvv = function(id) {
-    verifyCvv(success => success && sellStock(id));
-};
-
-function buyStock(id) {
-    const user = getCurrentUser();
-    const stock = stocks.find(s => s.id === id);
-    const amount = parseFloat(document.getElementById(`stock-amount-${id}`).value);
-
-    if (!stock || isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
-
-    const total = amount * stock.price;
-    if (user.balance < total) return showToast(t("insufficientFunds"), true);
-
-    user.balance -= total;
-    user.stocks[id] = (user.stocks[id] || 0) + amount;
-    addTransaction(currentUser.username, "buy_stock", total, "UAH", `Купівля ${amount} акцій ${stock.name}`);
-    saveData();
-    updateUI();
-    renderStocks();
-}
-
-function sellStock(id) {
-    const user = getCurrentUser();
-    const stock = stocks.find(s => s.id === id);
-    const amount = parseFloat(document.getElementById(`stock-amount-${id}`).value);
-
-    if (!stock || isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
-    if ((user.stocks[id] || 0) < amount) return showToast(t("insufficientFunds"), true);
-
-    const total = amount * stock.price;
-    user.stocks[id] -= amount;
-    user.balance += total;
-    addTransaction(currentUser.username, "sell_stock", total, "UAH", `Продаж ${amount} акцій ${stock.name}`);
-    saveData();
-    updateUI();
-    renderStocks();
-}
-
-// ==================== BUSINESS ====================
-function updateSpecialTitles() {
-    const user = getCurrentUser();
-    if (!user) return;
-
-    const elonSet = ["tesla", "spacex", "neuralink"];
-    if (elonSet.every(id => user.businesses.includes(id)) && !user.specialTitles.includes("elon")) {
-        user.specialTitles.push("elon");
-    }
-    if (user.businesses.includes("microsoft") && !user.specialTitles.includes("bezos")) {
-        user.specialTitles.push("bezos");
-    }
-
-    saveData();
-}
-
-function renderBusiness() {
-    let html = `<div class="page-title"><i class="fas fa-store"></i> ${t("navBusiness")}</div><div class="card-grid">`;
-
-    businessesList.forEach(biz => {
-        const owned = getCurrentUser().businesses.includes(biz.id);
-        const costText = biz.cost ? `${formatMoney(biz.cost)} грн` : `${formatMoney(biz.costUsd)} USD`;
-
-        html += `
-            <div class="asset-card">
-                <div class="card-header">
-                    <div class="asset-thumb" style="display:flex;align-items:center;justify-content:center;font-size:24px;">
-                        <i class="${biz.icon}"></i>
-                    </div>
-                    <div>
-                        <h4>${biz.name}</h4>
-                        <div class="asset-sub">${costText} | ${biz.incomePerMin} грн/хв</div>
-                    </div>
-                </div>
-
-                ${
-                    owned
-                        ? `✅ ${t("owned")}`
-                        : `<button onclick="${biz.cost ? `buyBusiness('${biz.id}')` : `buyBusinessUsd('${biz.id}')`}">${t("buyBtn")}</button>`
-                }
-            </div>
-        `;
-    });
-
-    html += `</div>`;
-    document.getElementById("page-content").innerHTML = html;
-}
-
-window.buyBusiness = function(id) {
-    const user = getCurrentUser();
-    const biz = businessesList.find(x => x.id === id);
-    if (!biz || user.businesses.includes(id)) return;
-    if (user.balance < biz.cost) return showToast(t("insufficientFunds"), true);
-
-    user.balance -= biz.cost;
-    user.businesses.push(id);
-    addTransaction(currentUser.username, "buy_business", biz.cost, "UAH", `Купівля бізнесу ${biz.name}`);
-    saveData();
-    updateSpecialTitles();
-    updateUI();
-    renderBusiness();
-};
-
-window.buyBusinessUsd = function(id) {
-    const user = getCurrentUser();
-    const biz = businessesList.find(x => x.id === id);
-    if (!biz || user.businesses.includes(id)) return;
-    if (user.usdBalance < biz.costUsd) return showToast(t("insufficientFunds"), true);
-
-    user.usdBalance -= biz.costUsd;
-    user.businesses.push(id);
-    addTransaction(currentUser.username, "buy_business_usd", biz.costUsd, "USD", `Купівля бізнесу ${biz.name}`);
-    saveData();
-    updateSpecialTitles();
-    updateUI();
-    renderBusiness();
-};
-
-// ==================== REALTY ====================
-function renderRealty() {
-    let html = `<div class="page-title"><i class="fas fa-city"></i> ${t("navRealty")}</div><div class="card-grid">`;
-
-    realtiesList.forEach(item => {
-        const owned = getCurrentUser().realties.includes(item.id);
-        const img = realtyImages[item.id] || fallbackAssetImage(item.name);
-
-        html += `
-            <div class="asset-card">
-                <div class="card-header">
-                    <img src="${img}" class="asset-thumb" alt="${item.name}" onerror="this.src='${fallbackAssetImage("RE")}'">
-                    <div>
-                        <h4>${item.name}</h4>
-                        <div class="asset-sub">${formatMoney(item.cost)} грн | ${item.incomePerMin} грн/хв</div>
-                    </div>
-                </div>
-
-                ${
-                    owned
-                        ? `✅ ${t("owned")}`
-                        : `<button onclick="buyRealtyWithCvv('${item.id}')">${t("buyBtn")}</button>`
-                }
-            </div>
-        `;
-    });
-
-    html += `</div>`;
-    document.getElementById("page-content").innerHTML = html;
-}
-
-window.buyRealtyWithCvv = function(id) {
-    verifyCvv(success => success && buyRealty(id));
-};
-
-function buyRealty(id) {
-    const user = getCurrentUser();
-    const item = realtiesList.find(x => x.id === id);
-    if (!item || user.realties.includes(id)) return;
-    if (user.balance < item.cost) return showToast(t("insufficientFunds"), true);
-
-    user.balance -= item.cost;
-    user.realties.push(id);
-    addTransaction(currentUser.username, "buy_realty", item.cost, "UAH", `Купівля нерухомості ${item.name}`);
-    saveData();
-    updateUI();
-    renderRealty();
-}
-
-// ==================== CARS ====================
-function renderCars() {
-    let html = `<div class="page-title"><i class="fas fa-car"></i> ${t("navCars")}</div><div class="card-grid">`;
-
-    carsList.forEach((car, index) => {
-        const owned = getCurrentUser().cars.includes(index);
-        const img = carImages[car.name] || fallbackAssetImage(car.name);
-
-        html += `
-            <div class="asset-card">
-                <div class="card-header">
-                    <img src="${img}" class="asset-thumb" alt="${car.name}" onerror="this.src='${fallbackAssetImage("CA")}'">
-                    <div>
-                        <h4>${car.name}</h4>
-                        <div class="asset-sub">${formatMoney(car.priceUsd)} USD</div>
-                    </div>
-                </div>
-
-                ${
-                    owned
-                        ? `✅ ${t("owned")}`
-                        : `<button onclick="buyCar(${index})">${t("buyBtn")}</button>`
-                }
-            </div>
-        `;
-    });
-
-    html += `</div>`;
-    document.getElementById("page-content").innerHTML = html;
-}
-
-window.buyCar = function(index) {
-    verifyCvv(success => {
-        if (!success) return;
-
-        const user = getCurrentUser();
-        const car = carsList[index];
-        if (!car || user.cars.includes(index)) return;
-        if (user.usdBalance < car.priceUsd) return showToast(t("insufficientFunds"), true);
-
-        user.usdBalance -= car.priceUsd;
-        user.cars.push(index);
-        addTransaction(currentUser.username, "buy_car", car.priceUsd, "USD", `Купівля авто ${car.name}`);
-        saveData();
-        updateUI();
-        renderCars();
-    });
-};
-
-// ==================== CLASSES ====================
-function renderClasses() {
-    let html = `<div class="page-title"><i class="fas fa-star"></i> ${t("navClasses")}</div>`;
-
-    Object.entries(statuses).forEach(([key, value]) => {
-        if (key === "admin") return;
-        html += `
-            <div class="class-card">
-                <h4>${value.icon} ${key.toUpperCase()}</h4>
-                <div class="asset-sub">${formatMoney(value.price)} грн</div>
-                <p>${value.desc[currentLang]}</p>
-                <p>+${value.clickReward} грн / click</p>
-                <p>${value.onlineIncome} грн / min</p>
-            </div>
-        `;
-    });
-
-    document.getElementById("page-content").innerHTML = html;
-}
-
-// ==================== TRANSFERS ====================
-function renderTransfer() {
+// -----------------------------
+// STOCKS
+// -----------------------------
+function renderStocksPage() {
+  const user = getCurrentUser();
+
+  if (!hasStocksAccess(user)) {
     document.getElementById("page-content").innerHTML = `
-        <div class="page-title"><i class="fas fa-exchange-alt"></i> ${t("navTransfer")}</div>
-
-        <div class="transfer-section">
-            <h3>💴 ${t("transferTitleUah")}</h3>
-            <div class="transfer-grid">
-                <input id="transfer-to" placeholder="${t("recipient")}">
-                <input id="transfer-amount" type="number" placeholder="${t("amount")}">
-                <button id="transfer-grn-btn" class="btn-primary">${t("transferTitleUah")}</button>
-            </div>
-        </div>
-
-        <div class="transfer-section">
-            <h3>💵 ${t("transferTitleUsd")}</h3>
-            <div class="transfer-grid">
-                <input id="transfer-usd-to" placeholder="${t("recipient")}">
-                <input id="transfer-usd-amount" type="number" placeholder="${t("amountUsd")}">
-                <button id="transfer-usd-btn" class="btn-primary">${t("transferTitleUsd")}</button>
-            </div>
-        </div>
-
-        <div class="transfer-section">
-            <h3>🪙 ${t("transferTitleCrypto")}</h3>
-            <div class="transfer-grid">
-                <input id="crypto-to" placeholder="${t("cryptoRecipient")}">
-                <input id="crypto-symbol" placeholder="${t("symbolPlaceholder")}">
-                <input id="crypto-amount" type="number" placeholder="${t("cryptoAmount")}">
-                <button id="transfer-crypto-btn" class="btn-primary">${t("transferTitleCrypto")}</button>
-            </div>
-        </div>
+      <h2 class="page-title">📈 ${tr("stocks")}</h2>
+      <div class="panel">
+        <p>${tr("stocksLocked")}</p>
+      </div>
     `;
+    return;
+  }
 
-    document.getElementById("transfer-grn-btn").addEventListener("click", () => {
-        verifyCvv(success => success && transferGrn());
-    });
+  const html = appState.market.stocks.map(stock => {
+    const own = user.stocks[stock.id] || 0;
 
-    document.getElementById("transfer-usd-btn").addEventListener("click", () => {
-        verifyCvv(success => success && transferUsd());
-    });
+    return `
+      <div class="asset-card">
+        <div class="asset-head">
+          ${imageTag(stock.img, stock.name)}
+          <div>
+            <h4>${stock.name}</h4>
+            <div class="sub">${tr("buyFor")}: ${formatNum(stock.price)} грн</div>
+          </div>
+        </div>
 
-    document.getElementById("transfer-crypto-btn").addEventListener("click", () => {
-        verifyCvv(success => success && transferCrypto());
-    });
+        <div class="sub">${tr("balance")}: ${formatNum(own)}</div>
+        <input id="stock-amount-${stock.id}" type="number" step="0.01" placeholder="${tr("amount")}">
+
+        <div class="asset-actions">
+          <button data-buy-stock="${stock.id}">${tr("buy")}</button>
+          <button data-sell-stock="${stock.id}">${tr("sell")}</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">📈 ${tr("stocks")}</h2>
+    <div class="grid cards">${html}</div>
+  `;
+
+  document.querySelectorAll("[data-buy-stock]").forEach(button => {
+    button.onclick = () => {
+      const id = button.dataset.buyStock;
+      const stock = appState.market.stocks.find(item => item.id === id);
+      const amount = Number(document.getElementById(`stock-amount-${id}`).value);
+
+      if (!amount || amount <= 0) {
+        showToast(tr("invalidData"), true);
+        return;
+      }
+
+      if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+
+      const totalCost = amount * stock.price;
+      if (user.balance < totalCost) {
+        showToast(tr("insufficientFunds"), true);
+        return;
+      }
+
+      user.balance -= totalCost;
+      user.stocks[id] = (user.stocks[id] || 0) + amount;
+      addHistory(user, `${tr("buy")} ${formatNum(amount)} ${stock.name}`);
+      saveAppState();
+      playBeep(670);
+      updateHeader();
+      renderStocksPage();
+    };
+  });
+
+  document.querySelectorAll("[data-sell-stock]").forEach(button => {
+    button.onclick = () => {
+      const id = button.dataset.sellStock;
+      const stock = appState.market.stocks.find(item => item.id === id);
+      const amount = Number(document.getElementById(`stock-amount-${id}`).value);
+
+      if (!amount || amount <= 0) {
+        showToast(tr("invalidData"), true);
+        return;
+      }
+
+      if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+
+      if ((user.stocks[id] || 0) < amount) {
+        showToast(tr("insufficientFunds"), true);
+        return;
+      }
+
+      user.stocks[id] -= amount;
+      user.balance += amount * stock.price;
+      addHistory(user, `${tr("sell")} ${formatNum(amount)} ${stock.name}`);
+      saveAppState();
+      playBeep(590);
+      updateHeader();
+      renderStocksPage();
+    };
+  });
 }
 
-function transferGrn() {
-    const from = getCurrentUser();
-    const toName = sanitize(document.getElementById("transfer-to").value);
-    const amount = parseFloat(document.getElementById("transfer-amount").value);
+// -----------------------------
+// BUSINESS
+// -----------------------------
+function renderBusinessPage() {
+  const user = getCurrentUser();
 
-    if (!users[toName] || toName === currentUser.username || users[toName].isBanned) {
-        return showToast(t("invalidUser"), true);
+  if (!hasBusinessAccess(user)) {
+    document.getElementById("page-content").innerHTML = `
+      <h2 class="page-title">🏢 ${tr("business")}</h2>
+      <div class="panel">
+        <p>${tr("businessLocked")}</p>
+      </div>
+    `;
+    return;
+  }
+
+  const html = businessCatalog.map(business => {
+    const owned = user.businesses.includes(business.id);
+
+    return `
+      <div class="asset-card">
+        <div class="asset-head">
+          ${imageTag(business.img, business.name)}
+          <div>
+            <h4>${business.name}</h4>
+            <div class="sub">${tr("buyFor")}: ${formatNum(business.price)} грн • ${business.income}/хв</div>
+          </div>
+        </div>
+
+        <div class="asset-actions">
+          ${
+            owned
+              ? `<button disabled>${tr("owned")}</button>`
+              : `<button data-buy-business="${business.id}">${tr("buy")}</button>`
+          }
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">🏢 ${tr("business")}</h2>
+    <div class="grid cards">${html}</div>
+  `;
+
+  document.querySelectorAll("[data-buy-business]").forEach(button => {
+    button.onclick = () => {
+      const id = button.dataset.buyBusiness;
+      const business = businessCatalog.find(item => item.id === id);
+
+      if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+
+      if (user.balance < business.price) {
+        showToast(tr("insufficientFunds"), true);
+        return;
+      }
+
+      user.balance -= business.price;
+      user.businesses.push(id);
+      addHistory(user, `${tr("buy")} ${business.name}`);
+      saveAppState();
+      playBeep(700);
+      updateHeader();
+      renderBusinessPage();
+    };
+  });
+}
+
+// -----------------------------
+// REALTY
+// -----------------------------
+function renderRealtyPage() {
+  const user = getCurrentUser();
+
+  const html = realtyCatalog.map(realty => {
+    const owned = user.realty.includes(realty.id);
+
+    return `
+      <div class="asset-card">
+        <div class="asset-head">
+          ${imageTag(realty.img, realty.name)}
+          <div>
+            <h4>${realty.name}</h4>
+            <div class="sub">${tr("buyFor")}: ${formatNum(realty.price)} грн • ${realty.income}/хв</div>
+          </div>
+        </div>
+
+        <div class="asset-actions">
+          ${
+            owned
+              ? `<button disabled>${tr("owned")}</button>`
+              : `<button data-buy-realty="${realty.id}">${tr("buy")}</button>`
+          }
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">🏝️ ${tr("realty")}</h2>
+    <div class="grid cards">${html}</div>
+  `;
+
+  document.querySelectorAll("[data-buy-realty]").forEach(button => {
+    button.onclick = () => {
+      const id = button.dataset.buyRealty;
+      const realty = realtyCatalog.find(item => item.id === id);
+
+      if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+
+      if (user.balance < realty.price) {
+        showToast(tr("insufficientFunds"), true);
+        return;
+      }
+
+      user.balance -= realty.price;
+      user.realty.push(id);
+      addHistory(user, `${tr("buy")} ${realty.name}`);
+      saveAppState();
+      playBeep(710);
+      updateHeader();
+      renderRealtyPage();
+    };
+  });
+}
+
+// -----------------------------
+// CARS
+// -----------------------------
+function renderCarsPage() {
+  const user = getCurrentUser();
+
+  const html = carCatalog.map(car => {
+    const owned = user.cars.includes(car.id);
+
+    return `
+      <div class="asset-card">
+        <div class="asset-head">
+          ${imageTag(car.img, car.name)}
+          <div>
+            <h4>${car.name}</h4>
+            <div class="sub">${tr("buyFor")}: ${formatNum(car.priceUsd)} USD</div>
+          </div>
+        </div>
+
+        <div class="asset-actions">
+          ${
+            owned
+              ? `<button disabled>${tr("owned")}</button>`
+              : `<button data-buy-car="${car.id}">${tr("buy")}</button>`
+          }
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">🚗 ${tr("cars")}</h2>
+    <div class="grid cards">${html}</div>
+  `;
+
+  document.querySelectorAll("[data-buy-car]").forEach(button => {
+    button.onclick = () => {
+      const id = button.dataset.buyCar;
+      const car = carCatalog.find(item => item.id === id);
+
+      if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+
+      if (user.usd < car.priceUsd) {
+        showToast(tr("insufficientFunds"), true);
+        return;
+      }
+
+      user.usd -= car.priceUsd;
+      user.cars.push(id);
+      addHistory(user, `${tr("buy")} ${car.name}`);
+      saveAppState();
+      playBeep(680);
+      updateHeader();
+      renderCarsPage();
+    };
+  });
+}
+
+// -----------------------------
+// TRANSFERS
+// -----------------------------
+function renderTransfersPage() {
+  const user = getCurrentUser();
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">💸 ${tr("transfer")}</h2>
+
+    <div class="grid" style="gap:16px">
+      <div class="panel">
+        <h3>${tr("transferUah")}</h3>
+        <div class="sub">${tr("meOrNick")}</div>
+        <div class="transfer-row">
+          <input id="transfer-uah-to" placeholder="${tr("recipient")}">
+          <input id="transfer-uah-amount" type="number" placeholder="${tr("amount")}">
+          <button id="transfer-uah-btn">${tr("transferUah")}</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>${tr("transferUsd")}</h3>
+        <div class="transfer-row">
+          <input id="transfer-usd-to" placeholder="${tr("recipient")}">
+          <input id="transfer-usd-amount" type="number" placeholder="${tr("amount")}">
+          <button id="transfer-usd-btn">${tr("transferUsd")}</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>${tr("transferCrypto")}</h3>
+        <div class="transfer-row">
+          <input id="transfer-crypto-to" placeholder="${tr("recipient")}">
+          <input id="transfer-crypto-symbol" placeholder="${tr("symbol")} BTC">
+          <input id="transfer-crypto-amount" type="number" placeholder="${tr("amount")}">
+          <button id="transfer-crypto-btn">${tr("transferCrypto")}</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("transfer-uah-btn").onclick = () => {
+    const recipient = normalizeRecipient(document.getElementById("transfer-uah-to").value, appState.currentUser);
+    const amount = Number(document.getElementById("transfer-uah-amount").value);
+
+    if (!recipient || !appState.users[recipient]) {
+      showToast(tr("invalidUser"), true);
+      return;
     }
-    if (isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
+
+    if (!amount || amount <= 0) {
+      showToast(tr("invalidData"), true);
+      return;
+    }
+
+    if (!promptCvv(user, tr("transferRequiresCvv"))) return;
 
     const fee = amount * 0.05;
     const total = amount + fee;
-    if (from.balance < total) return showToast(t("insufficientFunds"), true);
 
-    from.balance -= total;
-    users[toName].balance += amount;
-    commissionBank += fee;
-
-    addTransaction(currentUser.username, "transfer_uah_out", amount, "UAH", `Переказ ${amount} грн користувачу ${toName}`);
-    addTransaction(toName, "transfer_uah_in", amount, "UAH", `Отримано ${amount} грн від ${currentUser.username}`);
-    saveData();
-    updateUI();
-    showToast(t("transferSuccess"));
-}
-
-function transferUsd() {
-    const from = getCurrentUser();
-    const toName = sanitize(document.getElementById("transfer-usd-to").value);
-    const amount = parseFloat(document.getElementById("transfer-usd-amount").value);
-
-    if (!users[toName] || toName === currentUser.username || users[toName].isBanned) {
-        return showToast(t("invalidUser"), true);
+    if (user.balance < total) {
+      showToast(tr("insufficientFunds"), true);
+      return;
     }
-    if (isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
+
+    user.balance -= total;
+    appState.users[recipient].balance += amount;
+    appState.commissionBank += fee;
+
+    addHistory(user, `${tr("transferUah")} → ${recipient}: ${formatNum(amount)} грн`);
+    addHistory(appState.users[recipient], `${tr("transferUah")} ← ${appState.currentUser}: ${formatNum(amount)} грн`);
+
+    saveAppState();
+    playBeep(620);
+    showToast(tr("sent"));
+    updateHeader();
+  };
+
+  document.getElementById("transfer-usd-btn").onclick = () => {
+    const recipient = normalizeRecipient(document.getElementById("transfer-usd-to").value, appState.currentUser);
+    const amount = Number(document.getElementById("transfer-usd-amount").value);
+
+    if (!recipient || !appState.users[recipient]) {
+      showToast(tr("invalidUser"), true);
+      return;
+    }
+
+    if (!amount || amount <= 0) {
+      showToast(tr("invalidData"), true);
+      return;
+    }
+
+    if (!promptCvv(user, tr("transferRequiresCvv"))) return;
 
     const fee = amount * 0.05;
     const total = amount + fee;
-    if (from.usdBalance < total) return showToast(t("insufficientFunds"), true);
 
-    from.usdBalance -= total;
-    users[toName].usdBalance += amount;
-    commissionBank += fee * usdRate;
-
-    addTransaction(currentUser.username, "transfer_usd_out", amount, "USD", `Переказ ${amount} USD користувачу ${toName}`);
-    addTransaction(toName, "transfer_usd_in", amount, "USD", `Отримано ${amount} USD від ${currentUser.username}`);
-    saveData();
-    updateUI();
-    showToast(t("transferSuccess"));
-}
-
-function transferCrypto() {
-    const from = getCurrentUser();
-    const toName = sanitize(document.getElementById("crypto-to").value);
-    const sym = sanitize(document.getElementById("crypto-symbol").value).toUpperCase();
-    const amount = parseFloat(document.getElementById("crypto-amount").value);
-
-    if (!users[toName] || toName === currentUser.username || users[toName].isBanned) {
-        return showToast(t("invalidUser"), true);
+    if (user.usd < total) {
+      showToast(tr("insufficientFunds"), true);
+      return;
     }
-    if (!sym || isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
+
+    user.usd -= total;
+    appState.users[recipient].usd += amount;
+    appState.commissionBank += fee * appState.usdRate;
+
+    addHistory(user, `${tr("transferUsd")} → ${recipient}: ${formatNum(amount)} USD`);
+    addHistory(appState.users[recipient], `${tr("transferUsd")} ← ${appState.currentUser}: ${formatNum(amount)} USD`);
+
+    saveAppState();
+    playBeep(630);
+    showToast(tr("sent"));
+    updateHeader();
+  };
+
+  document.getElementById("transfer-crypto-btn").onclick = () => {
+    const recipient = normalizeRecipient(document.getElementById("transfer-crypto-to").value, appState.currentUser);
+    const symbol = sanitize(document.getElementById("transfer-crypto-symbol").value).toUpperCase();
+    const amount = Number(document.getElementById("transfer-crypto-amount").value);
+
+    if (!recipient || !appState.users[recipient]) {
+      showToast(tr("invalidUser"), true);
+      return;
+    }
+
+    if (!symbol || !appState.market.crypto[symbol]) {
+      showToast(tr("invalidData"), true);
+      return;
+    }
+
+    if (!amount || amount <= 0) {
+      showToast(tr("invalidData"), true);
+      return;
+    }
+
+    if (!promptCvv(user, tr("transferRequiresCvv"))) return;
 
     const fee = amount * 0.01;
     const total = amount + fee;
-    if ((from.crypto[sym] || 0) < total) return showToast(t("notEnoughCrypto"), true);
 
-    from.crypto[sym] -= total;
-    users[toName].crypto[sym] = (users[toName].crypto[sym] || 0) + amount;
-    commissionBank += fee * (cryptoPrices[sym]?.price || 0);
-
-    addTransaction(currentUser.username, "transfer_crypto_out", amount, sym, `Переказ ${amount} ${sym} користувачу ${toName}`);
-    addTransaction(toName, "transfer_crypto_in", amount, sym, `Отримано ${amount} ${sym} від ${currentUser.username}`);
-    saveData();
-    updateUI();
-    showToast(t("transferSuccess"));
-}
-
-// ==================== HISTORY ====================
-function renderHistory() {
-    const history = getCurrentUser().transactions || [];
-
-    if (!history.length) {
-        document.getElementById("page-content").innerHTML = `
-            <div class="page-title"><i class="fas fa-clock-rotate-left"></i> ${t("navHistory")}</div>
-            <div class="history-card">${t("history")}: 0</div>
-        `;
-        return;
+    if ((user.crypto[symbol] || 0) < total) {
+      showToast(tr("notEnoughCrypto"), true);
+      return;
     }
 
-    const html = history.map(item => `
-        <div class="history-item">
-            <div class="history-top">
-                <strong>${item.type}</strong>
-                <span>${new Date(item.timestamp).toLocaleString()}</span>
-            </div>
-            <div>${formatMoney(item.amount)} ${item.currency}</div>
-            <div class="section-note">${item.details}</div>
-        </div>
-    `).join("");
+    user.crypto[symbol] -= total;
+    appState.users[recipient].crypto[symbol] = (appState.users[recipient].crypto[symbol] || 0) + amount;
+    appState.commissionBank += fee * appState.market.crypto[symbol].price;
 
-    document.getElementById("page-content").innerHTML = `
-        <div class="page-title"><i class="fas fa-clock-rotate-left"></i> ${t("navHistory")}</div>
-        <div class="history-list">${html}</div>
-    `;
+    addHistory(user, `${tr("transferCrypto")} → ${recipient}: ${formatNum(amount)} ${symbol}`);
+    addHistory(appState.users[recipient], `${tr("transferCrypto")} ← ${appState.currentUser}: ${formatNum(amount)} ${symbol}`);
+
+    saveAppState();
+    playBeep(640);
+    showToast(tr("sent"));
+    updateHeader();
+  };
 }
 
-// ==================== DONATE ====================
-function renderDonate() {
-    document.getElementById("page-content").innerHTML = `
-        <div class="page-title"><i class="fas fa-hand-holding-heart"></i> ${t("navDonate")}</div>
-        <div class="panel-card">
-            <p>${t("supportBank")}: <strong>${formatMoney(supportBank)} грн</strong></p>
-            <input type="number" id="donate-amount" placeholder="${t("donateAmount")}">
-            <div class="button-group">
-                <button id="donate-btn" class="btn-primary">${t("donateToSupport")}</button>
-            </div>
+// -----------------------------
+// HISTORY
+// -----------------------------
+function renderHistoryPage() {
+  const user = getCurrentUser();
+
+  const html = user.history.map(item => {
+    return `
+      <div class="history-item">
+        <div class="history-top">
+          <b>${item.text}</b>
+          <span class="sub">${new Date(item.time).toLocaleString()}</span>
         </div>
+      </div>
     `;
+  }).join("");
 
-    document.getElementById("donate-btn").addEventListener("click", () => {
-        verifyCvv(success => {
-            if (!success) return;
-
-            const amount = parseFloat(document.getElementById("donate-amount").value);
-            const user = getCurrentUser();
-
-            if (isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
-            if (user.balance < amount) return showToast(t("insufficientFunds"), true);
-
-            user.balance -= amount;
-            supportBank += amount;
-            addTransaction(currentUser.username, "donate", amount, "UAH", "Донат у банку підтримки");
-            saveData();
-            updateUI();
-            renderDonate();
-            showToast(t("thankYou"));
-        });
-    });
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">🕓 ${tr("history")}</h2>
+    <div class="history-list">
+      ${html || `<div class="panel">${tr("historyEmpty")}</div>`}
+    </div>
+  `;
 }
 
-// ==================== TOP ====================
-function renderTop() {
-    const ranking = Object.entries(users)
-        .map(([username, user]) => ({
-            username,
-            capital: getUserCapitalUsd(user),
-            status: user.status
-        }))
-        .sort((a, b) => b.capital - a.capital)
-        .slice(0, 100);
+// -----------------------------
+// TOP 100
+// -----------------------------
+function renderTopPage() {
+  const ranking = Object.entries(appState.users)
+    .filter(([, user]) => !user.banned)
+    .map(([name, user]) => {
+      const online = Date.now() - user.lastSeen < 120000;
+      return {
+        name,
+        classKey: user.classKey,
+        online,
+        deviceType: user.deviceType,
+        capitalUsd: calculateCapitalUsd(user),
+        totalEarned: user.totalEarned
+      };
+    })
+    .sort((a, b) => b.capitalUsd - a.capitalUsd)
+    .slice(0, 100);
 
-    const html = ranking.map((item, idx) => `
-        <div class="top-item">
-            <div class="rank-badge">#${idx + 1}</div>
-            <div>
-                <strong>${item.username}</strong>
-                <div class="section-note">${statuses[item.status].icon} ${item.status.toUpperCase()}</div>
-            </div>
-            <div><strong>${formatMoney(item.capital)} USD</strong></div>
+  const html = ranking.map((item, index) => {
+    return `
+      <div class="rank-item">
+        <div class="rank-badge">#${index + 1}</div>
+        <div>
+          <div><b>${item.name}</b></div>
+          <div class="sub">${getClassData(item.classKey).title}</div>
+          <div class="sub">
+            ${item.online ? `🟢 ${tr("online")}` : ""}
+            ${item.deviceType === "phone" ? ` • 📱 ${tr("phone")}` : ` • 🖥 ${tr("desktop")}`}
+          </div>
         </div>
-    `).join("");
-
-    document.getElementById("page-content").innerHTML = `
-        <div class="page-title"><i class="fas fa-trophy"></i> ${t("topTitle")}</div>
-        <div class="top-list">${html}</div>
+        <div style="text-align:right">
+          <div><b>${formatNum(item.capitalUsd)} USD</b></div>
+          <div class="sub">${tr("lifetimeEarned")}: ${formatNum(item.totalEarned)} грн</div>
+        </div>
+      </div>
     `;
+  }).join("");
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">🏆 ${tr("rankTitle")}</h2>
+    <div class="rank-list">${html}</div>
+  `;
 }
 
-// ==================== VIP ====================
-function vipGiveaway() {
-    const user = getCurrentUser();
-    if (!["vip", "businessman", "manager", "admin"].includes(user.status)) {
-        return showToast("VIP only", true);
+// -----------------------------
+// SUPPORT / DONATE
+// -----------------------------
+function renderSupportPage() {
+  const user = getCurrentUser();
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">❤️ ${tr("support")}</h2>
+    <div class="panel">
+      <p><b>${tr("supportBank")}:</b> ${formatNum(appState.supportBank)} грн</p>
+      <div class="transfer-row">
+        <input id="support-amount" type="number" placeholder="${tr("amount")}">
+        <button id="support-send-btn">${tr("donate")}</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("support-send-btn").onclick = () => {
+    const amount = Number(document.getElementById("support-amount").value);
+
+    if (!amount || amount <= 0) {
+      showToast(tr("invalidData"), true);
+      return;
     }
 
-    const today = todayKey();
-    if (user.vipGiveawayDate === today) {
-        return showToast(t("vipDailyLimit"), true);
+    if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+
+    if (user.balance < amount) {
+      showToast(tr("insufficientFunds"), true);
+      return;
     }
-
-    const amount = parseFloat(prompt("Сума (max 100000):") || "");
-    if (isNaN(amount) || amount <= 0 || amount > 100000) return;
-
-    const target = sanitize(prompt("Кому видати? (логін)") || "");
-    if (!users[target] || users[target].isBanned) return showToast(t("invalidUser"), true);
-    if (user.balance < amount) return showToast(t("insufficientFunds"), true);
 
     user.balance -= amount;
-    users[target].balance += amount;
-    user.vipGiveawayDate = today;
-
-    addTransaction(currentUser.username, "vip_giveaway_out", amount, "UAH", `VIP-роздача користувачу ${target}`);
-    addTransaction(target, "vip_giveaway_in", amount, "UAH", `Отримано VIP-роздачу від ${currentUser.username}`);
-    saveData();
-    updateUI();
-    showToast(t("vipGiveawaySuccess", { amount, user: target }));
+    appState.supportBank += amount;
+    addHistory(user, `${tr("donate")}: ${formatNum(amount)} грн`);
+    saveAppState();
+    playBeep(600);
+    showToast(tr("donated"));
+    updateHeader();
+    renderSupportPage();
+  };
 }
 
-// ==================== ADMIN ====================
-function renderAdminPanel() {
-    const user = getCurrentUser();
-    if (!user.isAdmin) return showToast(t("adminsOnly"), true);
+// -----------------------------
+// VIP GIVEAWAY
+// -----------------------------
+function handleVipGiveaway() {
+  const user = getCurrentUser();
 
-    const userOptions = Object.keys(users).map(name => `<option value="${name}">${name}</option>`).join("");
-    const businessOptions = businessesList.map(b => `<option value="${b.id}">${b.name}</option>`).join("");
-    const realtyOptions = realtiesList.map(r => `<option value="${r.id}">${r.name}</option>`).join("");
-    const carOptions = carsList.map((c, i) => `<option value="${i}">${c.name}</option>`).join("");
-    const statusOptions = Object.keys(statuses).map(s => `<option value="${s}">${s}</option>`).join("");
+  if (!hasVipAccess(user)) {
+    showToast(tr("vipRequiresClass"), true);
+    return;
+  }
 
-    const onlineCount = Object.keys(users).filter(name => !users[name].isBanned && isOnline(name)).length;
-    const totalCapital = Object.values(users).reduce((sum, u) => sum + getUserCapitalUsd(u), 0);
+  const today = todayString();
+  if (user.vipGiveawayDay === today) {
+    showToast(tr("vipDailyLimit"), true);
+    return;
+  }
 
-    document.getElementById("page-content").innerHTML = `
-        <div class="page-title"><i class="fas fa-crown"></i> ${t("adminPanel")}</div>
+  const amount = Number(prompt("Сума (max 100000)"));
+  if (!amount || amount <= 0 || amount > 100000) return;
 
-        <div class="admin-grid">
-            <div class="admin-card">
-                <h4>${t("adminMassTitle")}</h4>
-                <div class="button-group">
-                    <button id="mass-online-money-btn">${t("adminGiveAllOnlineMoney")}</button>
-                    <button id="mass-online-crypto-btn">${t("adminGiveAllOnlineCrypto")}</button>
-                </div>
-                <div class="button-group" style="margin-top:12px;">
-                    <button id="take-commission-btn">${t("adminTakeCommission")} (${formatMoney(commissionBank)} грн)</button>
-                    <button id="take-support-btn">${t("adminTakeSupport")} (${formatMoney(supportBank)} грн)</button>
-                </div>
-            </div>
+  const rawTarget = prompt(`${tr("recipient")} (${tr("meOrNick")})`);
+  const target = normalizeRecipient(rawTarget, appState.currentUser);
 
-            <div class="admin-card">
-                <h4>${t("adminMessage")}</h4>
-                <textarea id="global-message-input" placeholder="..."></textarea>
-                <div class="button-group">
-                    <button id="send-message-online-btn">${t("adminBroadcast")}</button>
-                    <button id="clear-message-btn">Clear</button>
-                </div>
-            </div>
+  if (!target || !appState.users[target]) {
+    showToast(tr("invalidUser"), true);
+    return;
+  }
 
-            <div class="admin-card">
-                <h4>User actions</h4>
-                <select id="admin-user">${userOptions}</select>
-                <input type="number" id="admin-amount" placeholder="${t("amount")}">
-                <select id="admin-status">${statusOptions}</select>
-                <select id="admin-business">${businessOptions}</select>
-                <select id="admin-realty">${realtyOptions}</select>
-                <select id="admin-car">${carOptions}</select>
+  if (user.balance < amount) {
+    showToast(tr("insufficientFunds"), true);
+    return;
+  }
 
-                <div class="button-group">
-                    <button id="admin-give-money">+ Money</button>
-                    <button id="admin-take-money">- Money</button>
-                    <button id="admin-set-balance">Set balance</button>
-                    <button id="admin-give-status">Set status</button>
-                    <button id="admin-give-business">Give business</button>
-                    <button id="admin-give-realty">Give realty</button>
-                    <button id="admin-give-car">Give car</button>
-                    <button id="admin-ban">Ban</button>
-                    <button id="admin-unban">Unban</button>
-                    <button id="admin-reset">Reset</button>
-                    <button id="admin-delete">Delete</button>
-                </div>
-            </div>
+  user.balance -= amount;
+  appState.users[target].balance += amount;
+  appState.users[target].totalEarned += amount;
+  user.vipGiveawayDay = today;
 
-            <div class="admin-card">
-                <h4>${t("adminAnalytics")}</h4>
-                <p>${t("totalUsers")}: <strong>${Object.keys(users).length}</strong></p>
-                <p>${t("onlineUsers")}: <strong>${onlineCount}</strong></p>
-                <p>${t("totalCapital")}: <strong>${formatMoney(totalCapital)} USD</strong></p>
-                <div class="button-group">
-                    <button id="refresh-admin-btn">${t("refresh")}</button>
-                </div>
-            </div>
+  addHistory(user, `VIP → ${target}: ${formatNum(amount)} грн`);
+  addHistory(appState.users[target], `VIP ← ${appState.currentUser}: ${formatNum(amount)} грн`);
+
+  saveAppState();
+  playBeep(880);
+  updateHeader();
+  showToast(tr("vipSent"));
+}
+
+// -----------------------------
+// ADMIN PANEL
+// 5+ functions added:
+// 1 give money
+// 2 take money
+// 3 set balance
+// 4 set class
+// 5 ban/unban
+// 6 reset account
+// 7 delete account
+// 8 give business
+// 9 give realty
+// 10 give car
+// 11 mass money online
+// 12 mass crypto online
+// 13 broadcast message
+// 14 collect commission bank
+// 15 collect support bank
+// -----------------------------
+function renderAdminPage() {
+  const user = getCurrentUser();
+
+  if (!isCreator(user)) {
+    document.getElementById("page-content").innerHTML = `<div class="panel">${tr("creatorOnly")}</div>`;
+    return;
+  }
+
+  const players = Object.keys(appState.users)
+    .filter(name => !appState.users[name].banned)
+    .sort();
+
+  const onlinePlayers = getOnlinePlayersDetailed();
+
+  const playerOptions = players.map(name => `<option value="${name}">${name}</option>`).join("");
+  const classOptions = classList.filter(item => item.key !== "creator").map(item => `<option value="${item.key}">${item.title}</option>`).join("");
+  const businessOptions = businessCatalog.map(item => `<option value="${item.id}">${item.name}</option>`).join("");
+  const realtyOptions = realtyCatalog.map(item => `<option value="${item.id}">${item.name}</option>`).join("");
+  const carOptions = carCatalog.map(item => `<option value="${item.id}">${item.name}</option>`).join("");
+
+  const onlineHtml = onlinePlayers.map(item => {
+    return `
+      <div class="rank-item">
+        <div class="rank-badge">●</div>
+        <div>
+          <div><b>${item.name}</b></div>
+          <div class="sub">${getClassData(item.classKey).title}</div>
         </div>
+        <div class="sub">
+          ${item.deviceType === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`}
+        </div>
+      </div>
     `;
+  }).join("");
 
-    document.getElementById("mass-online-money-btn").addEventListener("click", giveMoneyToAllOnlinePrompt);
-    document.getElementById("mass-online-crypto-btn").addEventListener("click", giveCryptoToAllOnlinePrompt);
-    document.getElementById("take-commission-btn").addEventListener("click", collectCommissionBank);
-    document.getElementById("take-support-btn").addEventListener("click", collectSupportBank);
-    document.getElementById("send-message-online-btn").addEventListener("click", sendGlobalMessage);
-    document.getElementById("clear-message-btn").addEventListener("click", clearGlobalMessage);
-    document.getElementById("refresh-admin-btn").addEventListener("click", renderAdminPanel);
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">👑 ${tr("creatorPanel")}</h2>
 
-    document.getElementById("admin-give-money").addEventListener("click", adminGiveMoney);
-    document.getElementById("admin-take-money").addEventListener("click", adminTakeMoney);
-    document.getElementById("admin-set-balance").addEventListener("click", adminSetBalance);
-    document.getElementById("admin-give-status").addEventListener("click", adminSetStatus);
-    document.getElementById("admin-give-business").addEventListener("click", adminGiveBusiness);
-    document.getElementById("admin-give-realty").addEventListener("click", adminGiveRealty);
-    document.getElementById("admin-give-car").addEventListener("click", adminGiveCar);
-    document.getElementById("admin-ban").addEventListener("click", adminBanUser);
-    document.getElementById("admin-unban").addEventListener("click", adminUnbanUser);
-    document.getElementById("admin-reset").addEventListener("click", adminResetUser);
-    document.getElementById("admin-delete").addEventListener("click", adminDeleteUser);
-}
+    <div class="grid" style="gap:16px">
 
-function getAdminUser() {
-    return sanitize(document.getElementById("admin-user").value);
-}
+      <div class="admin-card">
+        <h3>${tr("adminAnalytics")}</h3>
+        <p>${tr("totalPlayers")}: <b>${players.length}</b></p>
+        <p>${tr("onlineUsers")}: <b>${onlinePlayers.length}</b></p>
+        <p>${tr("supportBank")}: <b>${formatNum(appState.supportBank)} грн</b></p>
+        <p>${tr("commissionBank")}: <b>${formatNum(appState.commissionBank)} грн</b></p>
+      </div>
 
-function getAdminAmount() {
-    return parseFloat(document.getElementById("admin-amount").value);
-}
+      <div class="admin-card">
+        <h3>${tr("onlinePlayersList")}</h3>
+        <div class="rank-list">
+          ${onlineHtml || `<div class="sub">0</div>`}
+        </div>
+      </div>
 
-function adminGiveMoney() {
-    const username = getAdminUser();
-    const amount = getAdminAmount();
-    if (!users[username] || isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
-    users[username].balance += amount;
-    addTransaction(username, "admin_give_money", amount, "UAH", `Адмін видав гроші`);
-    saveData();
-    updateUI();
-    renderAdminPanel();
-}
+      <div class="admin-card">
+        <h3>${tr("adminMassTitle")}</h3>
+        <div class="admin-actions">
+          <button id="admin-mass-money-btn">${tr("onlineOnlyMoney")}</button>
+          <button id="admin-mass-crypto-btn">${tr("onlineOnlyCrypto")}</button>
+          <button id="admin-collect-commission-btn">${tr("collectCommission")}</button>
+          <button id="admin-collect-support-btn">${tr("collectSupport")}</button>
+        </div>
+      </div>
 
-function adminTakeMoney() {
-    const username = getAdminUser();
-    const amount = getAdminAmount();
-    if (!users[username] || isNaN(amount) || amount <= 0) return showToast(t("invalidData"), true);
-    users[username].balance = Math.max(0, users[username].balance - amount);
-    addTransaction(username, "admin_take_money", amount, "UAH", `Адмін забрав гроші`);
-    saveData();
-    updateUI();
-    renderAdminPanel();
-}
+      <div class="admin-card">
+        <h3>${tr("sendGlobalMessage")}</h3>
+        <div class="transfer-row">
+          <input id="admin-global-message-input" placeholder="${tr("enterMessage")}">
+          <button id="admin-send-message-btn">${tr("send")}</button>
+        </div>
+      </div>
 
-function adminSetBalance() {
-    const username = getAdminUser();
-    const amount = getAdminAmount();
-    if (!users[username] || isNaN(amount) || amount < 0) return showToast(t("invalidData"), true);
-    users[username].balance = amount;
-    addTransaction(username, "admin_set_balance", amount, "UAH", `Адмін встановив баланс`);
-    saveData();
-    updateUI();
-    renderAdminPanel();
-}
+      <div class="admin-card">
+        <h3>${tr("playerManagement")}</h3>
+        <div class="grid" style="gap:12px">
+          <select id="admin-player-select">${playerOptions}</select>
+          <input id="admin-amount-input" type="number" placeholder="${tr("amount")}">
+          <select id="admin-class-select">${classOptions}</select>
+          <select id="admin-business-select">${businessOptions}</select>
+          <select id="admin-realty-select">${realtyOptions}</select>
+          <select id="admin-car-select">${carOptions}</select>
+        </div>
 
-function adminSetStatus() {
-    const username = getAdminUser();
-    const status = document.getElementById("admin-status").value;
-    if (!users[username] || !statuses[status]) return showToast(t("invalidData"), true);
-    users[username].status = status;
-    if (status === "admin") users[username].isAdmin = true;
-    saveData();
-    renderAdminPanel();
-}
+        <div class="admin-actions">
+          <button id="admin-give-money-btn">${tr("giveMoney")}</button>
+          <button id="admin-take-money-btn">${tr("takeMoney")}</button>
+          <button id="admin-set-balance-btn">${tr("setBalance")}</button>
+          <button id="admin-set-class-btn">${tr("setClass")}</button>
+          <button id="admin-ban-btn">${tr("banUser")}</button>
+          <button id="admin-unban-btn">${tr("unbanUser")}</button>
+          <button id="admin-reset-btn">${tr("resetUser")}</button>
+          <button id="admin-delete-btn">${tr("deleteUser")}</button>
+          <button id="admin-give-business-btn">${tr("giveBusiness")}</button>
+          <button id="admin-give-realty-btn">${tr("giveRealty")}</button>
+          <button id="admin-give-car-btn">${tr("giveCar")}</button>
+        </div>
+      </div>
 
-function adminGiveBusiness() {
-    const username = getAdminUser();
-    const businessId = document.getElementById("admin-business").value;
-    if (!users[username]) return;
-    if (!users[username].businesses.includes(businessId)) users[username].businesses.push(businessId);
-    saveData();
-    renderAdminPanel();
-}
+    </div>
+  `;
 
-function adminGiveRealty() {
-    const username = getAdminUser();
-    const realtyId = document.getElementById("admin-realty").value;
-    if (!users[username]) return;
-    if (!users[username].realties.includes(realtyId)) users[username].realties.push(realtyId);
-    saveData();
-    renderAdminPanel();
-}
+  // Mass money
+  document.getElementById("admin-mass-money-btn").onclick = () => {
+    const amount = Number(prompt(tr("enterAmountForAllOnline")));
+    if (!amount || amount <= 0) return;
 
-function adminGiveCar() {
-    const username = getAdminUser();
-    const carIndex = Number(document.getElementById("admin-car").value);
-    if (!users[username]) return;
-    if (!users[username].cars.includes(carIndex)) users[username].cars.push(carIndex);
-    saveData();
-    renderAdminPanel();
-}
-
-function adminBanUser() {
-    const username = getAdminUser();
-    if (!users[username] || username === "creator") return;
-    users[username].isBanned = true;
-    saveData();
-    renderAdminPanel();
-}
-
-function adminUnbanUser() {
-    const username = getAdminUser();
-    if (!users[username]) return;
-    users[username].isBanned = false;
-    saveData();
-    renderAdminPanel();
-}
-
-function adminResetUser() {
-    const username = getAdminUser();
-    if (!users[username] || username === "creator") return;
-    const password = users[username].password;
-    users[username] = createDefaultUser(password, false);
-    saveData();
-    renderAdminPanel();
-}
-
-function adminDeleteUser() {
-    const username = getAdminUser();
-    if (!users[username] || username === "creator") return;
-    delete users[username];
-    saveData();
-    renderAdminPanel();
-}
-
-function collectCommissionBank() {
-    const user = getCurrentUser();
-    user.balance += commissionBank;
-    commissionBank = 0;
-    saveData();
-    updateUI();
-    renderAdminPanel();
-}
-
-function collectSupportBank() {
-    const user = getCurrentUser();
-    user.balance += supportBank;
-    supportBank = 0;
-    saveData();
-    updateUI();
-    renderAdminPanel();
-}
-
-function sendGlobalMessage() {
-    const text = sanitize(document.getElementById("global-message-input").value);
-    if (!text) return showToast(t("invalidData"), true);
-    globalMessage = {
-        text,
-        from: currentUser.username,
-        time: Date.now()
-    };
-    saveData();
-    showGlobalMessage();
-    showToast("Sent");
-}
-
-function clearGlobalMessage() {
-    globalMessage = null;
-    saveData();
-    showGlobalMessage();
-    showToast("Cleared");
-}
-
-function giveMoneyToAllOnlinePrompt() {
-    const amount = parseFloat(prompt(t("enterAmountForAllOnline")) || "");
-    if (isNaN(amount) || amount <= 0) return;
-
-    let count = 0;
-    Object.keys(users).forEach(username => {
-        if (!users[username].isBanned && isOnline(username)) {
-            users[username].balance += amount;
-            addTransaction(username, "admin_mass_money", amount, "UAH", `Масова видача від ${currentUser.username}`);
-            count++;
-        }
+    getOnlinePlayersDetailed().forEach(item => {
+      appState.users[item.name].balance += amount;
+      appState.users[item.name].totalEarned += amount;
+      addHistory(appState.users[item.name], `${tr("onlineOnlyMoney")}: +${formatNum(amount)} грн`);
     });
 
-    saveData();
-    updateUI();
-    renderAdminPanel();
-    showToast(`${t("massRewardSuccess")}: ${count}`);
-}
+    saveAppState();
+    playBeep(840);
+    showToast(tr("massDone"));
+    renderAdminPage();
+  };
 
-function giveCryptoToAllOnlinePrompt() {
-    const sym = sanitize(prompt(t("enterCryptoSymbol")) || "").toUpperCase();
-    const amount = parseFloat(prompt(t("enterCryptoAmount")) || "");
+  // Mass crypto
+  document.getElementById("admin-mass-crypto-btn").onclick = () => {
+    const symbol = sanitize(prompt(tr("enterCryptoSymbol"))).toUpperCase();
+    const amount = Number(prompt(tr("enterCryptoAmount")));
 
-    if (!sym || isNaN(amount) || amount <= 0) return;
+    if (!symbol || !appState.market.crypto[symbol]) {
+      showToast(tr("invalidData"), true);
+      return;
+    }
+    if (!amount || amount <= 0) {
+      showToast(tr("invalidData"), true);
+      return;
+    }
 
-    let count = 0;
-    Object.keys(users).forEach(username => {
-        if (!users[username].isBanned && isOnline(username)) {
-            users[username].crypto[sym] = (users[username].crypto[sym] || 0) + amount;
-            addTransaction(username, "admin_mass_crypto", amount, sym, `Масова видача крипти від ${currentUser.username}`);
-            count++;
-        }
+    getOnlinePlayersDetailed().forEach(item => {
+      appState.users[item.name].crypto[symbol] = (appState.users[item.name].crypto[symbol] || 0) + amount;
+      addHistory(appState.users[item.name], `${tr("onlineOnlyCrypto")}: +${formatNum(amount)} ${symbol}`);
     });
 
-    saveData();
-    renderAdminPanel();
-    showToast(`${t("cryptoMassRewardSuccess")}: ${count}`);
+    saveAppState();
+    playBeep(850);
+    showToast(tr("massDone"));
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-collect-commission-btn").onclick = () => {
+    const creator = getCurrentUser();
+    creator.balance += appState.commissionBank;
+    creator.totalEarned += appState.commissionBank;
+    addHistory(creator, `${tr("collectCommission")}: +${formatNum(appState.commissionBank)} грн`);
+    appState.commissionBank = 0;
+    saveAppState();
+    showToast(tr("valueUpdated"));
+    updateHeader();
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-collect-support-btn").onclick = () => {
+    const creator = getCurrentUser();
+    creator.balance += appState.supportBank;
+    creator.totalEarned += appState.supportBank;
+    addHistory(creator, `${tr("collectSupport")}: +${formatNum(appState.supportBank)} грн`);
+    appState.supportBank = 0;
+    saveAppState();
+    showToast(tr("valueUpdated"));
+    updateHeader();
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-send-message-btn").onclick = () => {
+    const message = sanitize(document.getElementById("admin-global-message-input").value);
+    appState.globalMessage = message;
+    saveAppState();
+    showToast(tr("sent"));
+    updateHeader();
+  };
+
+  const getSelectedPlayer = () => {
+    const nickname = document.getElementById("admin-player-select").value;
+    const player = appState.users[nickname];
+    if (!player) {
+      showToast(tr("playerNotFound"), true);
+      return null;
+    }
+    return { nickname, player };
+  };
+
+  document.getElementById("admin-give-money-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    const amount = Number(document.getElementById("admin-amount-input").value);
+    if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
+
+    target.player.balance += amount;
+    target.player.totalEarned += amount;
+    addHistory(target.player, `${tr("giveMoney")}: +${formatNum(amount)} грн`);
+    saveAppState();
+    showToast(tr("valueUpdated"));
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-take-money-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    const amount = Number(document.getElementById("admin-amount-input").value);
+    if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
+
+    target.player.balance = Math.max(0, target.player.balance - amount);
+    addHistory(target.player, `${tr("takeMoney")}: -${formatNum(amount)} грн`);
+    saveAppState();
+    showToast(tr("valueUpdated"));
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-set-balance-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    const amount = Number(document.getElementById("admin-amount-input").value);
+    if (amount < 0 || Number.isNaN(amount)) return showToast(tr("invalidData"), true);
+
+    target.player.balance = amount;
+    addHistory(target.player, `${tr("setBalance")}: ${formatNum(amount)} грн`);
+    saveAppState();
+    showToast(tr("valueUpdated"));
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-set-class-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    const classKey = document.getElementById("admin-class-select").value;
+
+    target.player.classKey = classKey;
+    addHistory(target.player, `${tr("setClass")}: ${getClassData(classKey).title}`);
+    saveAppState();
+    showToast(tr("classSet"));
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-ban-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    if (target.nickname === "creator") return;
+    target.player.banned = true;
+    saveAppState();
+    showToast(tr("valueUpdated"));
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-unban-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    target.player.banned = false;
+    saveAppState();
+    showToast(tr("valueUpdated"));
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-reset-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    if (target.nickname === "creator") return;
+    const oldPassword = target.player.password;
+    appState.users[target.nickname] = makeUser(oldPassword, false);
+    appState.users[target.nickname].deviceType = target.player.deviceType || "desktop";
+    saveAppState();
+    showToast(tr("accountReset"));
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-delete-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    if (target.nickname === "creator") return;
+    delete appState.users[target.nickname];
+    saveAppState();
+    showToast(tr("accountDeleted"));
+    renderAdminPage();
+  };
+
+  document.getElementById("admin-give-business-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    const businessId = document.getElementById("admin-business-select").value;
+    if (!target.player.businesses.includes(businessId)) {
+      target.player.businesses.push(businessId);
+      addHistory(target.player, `${tr("giveBusiness")}: ${businessCatalog.find(item => item.id === businessId)?.name || businessId}`);
+      saveAppState();
+      showToast(tr("valueUpdated"));
+      renderAdminPage();
+    }
+  };
+
+  document.getElementById("admin-give-realty-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    const realtyId = document.getElementById("admin-realty-select").value;
+    if (!target.player.realty.includes(realtyId)) {
+      target.player.realty.push(realtyId);
+      addHistory(target.player, `${tr("giveRealty")}: ${realtyCatalog.find(item => item.id === realtyId)?.name || realtyId}`);
+      saveAppState();
+      showToast(tr("valueUpdated"));
+      renderAdminPage();
+    }
+  };
+
+  document.getElementById("admin-give-car-btn").onclick = () => {
+    const target = getSelectedPlayer();
+    if (!target) return;
+    const carId = document.getElementById("admin-car-select").value;
+    if (!target.player.cars.includes(carId)) {
+      target.player.cars.push(carId);
+      addHistory(target.player, `${tr("giveCar")}: ${carCatalog.find(item => item.id === carId)?.name || carId}`);
+      saveAppState();
+      showToast(tr("valueUpdated"));
+      renderAdminPage();
+    }
+  };
 }
 
-// ==================== PASSIVE / CLICKER ====================
-function handleClickReward() {
-    const user = getCurrentUser();
-    if (!user) return;
+// -----------------------------
+// NAVIGATION
+// -----------------------------
+function renderPage(page) {
+  setActivePage(page);
 
-    const reward = Math.floor(statuses[user.status].clickReward * (boostExpiry > Date.now() ? boostMultiplier : 1));
-    user.balance += reward;
-    saveData();
-    updateUI();
-    showToast(`+${reward} грн`);
+  if (page === "dashboard") return renderProfilePage();
+  if (page === "crypto") return renderCryptoPage();
+  if (page === "stocks") return renderStocksPage();
+  if (page === "business") return renderBusinessPage();
+  if (page === "realty") return renderRealtyPage();
+  if (page === "cars") return renderCarsPage();
+  if (page === "classes") return renderClassesPage();
+  if (page === "transfer") return renderTransfersPage();
+  if (page === "history") return renderHistoryPage();
+  if (page === "top") return renderTopPage();
+  if (page === "donate") return renderSupportPage();
+  if (page === "admin") return renderAdminPage();
+}
+
+// -----------------------------
+// AUTH
+// -----------------------------
+function registerUser() {
+  const username = sanitize(document.getElementById("reg-username").value).toLowerCase();
+  const password = sanitize(document.getElementById("reg-password").value);
+
+  if (username.length < 3) {
+    showToast(tr("usernameTooShort"), true);
+    return;
+  }
+
+  if (password.length < 4) {
+    showToast(tr("passwordTooShort"), true);
+    return;
+  }
+
+  if (["me", "admin"].includes(username)) {
+    showToast(tr("bannedName"), true);
+    return;
+  }
+
+  if (appState.users[username]) {
+    showToast(tr("userExists"), true);
+    return;
+  }
+
+  appState.users[username] = makeUser(password, false);
+  saveAppState();
+  playBeep(760);
+  showToast(tr("userCreated"));
+
+  document.querySelector('[data-tab="login"]').click();
+  document.getElementById("login-username").value = username;
+  document.getElementById("login-password").value = password;
+}
+
+function applyOfflineIncome(user) {
+  const now = Date.now();
+  const diffMs = now - (user.lastSeen || now);
+  const minutesAway = Math.floor(diffMs / 60000);
+
+  if (minutesAway <= 0) return;
+
+  const classPassive = getClassData(user.classKey).passivePerMin;
+  const businessPassive = user.businesses.reduce((sum, id) => {
+    const item = businessCatalog.find(x => x.id === id);
+    return sum + (item ? item.income : 0);
+  }, 0);
+  const realtyPassive = user.realty.reduce((sum, id) => {
+    const item = realtyCatalog.find(x => x.id === id);
+    return sum + (item ? item.income : 0);
+  }, 0);
+
+  const totalPassive = classPassive + businessPassive + realtyPassive;
+  if (totalPassive <= 0) return;
+
+  const offlineIncome = totalPassive * minutesAway;
+  if (offlineIncome > 0) {
+    user.balance += offlineIncome;
+    user.totalEarned += offlineIncome;
+    addHistory(user, `${appState.lang === "uk" ? "Офлайн дохід" : "Offline income"}: +${formatNum(offlineIncome)} грн`);
+  }
+}
+
+function loginUser() {
+  const username = sanitize(document.getElementById("login-username").value).toLowerCase();
+  const password = sanitize(document.getElementById("login-password").value);
+
+  const user = appState.users[username];
+
+  if (!user || user.password !== password) {
+    showToast(tr("loginError"), true);
+    return;
+  }
+
+  if (user.banned) {
+    showToast(tr("accountBanned"), true);
+    return;
+  }
+
+  applyOfflineIncome(user);
+
+  appState.currentUser = username;
+  user.lastSeen = Date.now();
+
+  saveAppState();
+  playBeep(740);
+
+  document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("app-screen").classList.remove("hidden");
+
+  updateHeader();
+  renderProfilePage();
+}
+
+function logoutUser() {
+  appState.currentUser = null;
+  saveAppState();
+
+  document.getElementById("app-screen").classList.add("hidden");
+  document.getElementById("login-screen").classList.remove("hidden");
+}
+
+// -----------------------------
+// CARD ACTIONS
+// -----------------------------
+function changePin() {
+  const user = getCurrentUser();
+  const newCvv = prompt(appState.lang === "uk" ? "Новий CVV (3 цифри)" : "New CVV (3 digits)", user.cardCvv);
+
+  if (newCvv === null) return;
+  if (!/^\d{3}$/.test(newCvv)) {
+    showToast(tr("wrongCode"), true);
+    return;
+  }
+
+  user.cardCvv = newCvv;
+  saveAppState();
+  playBeep(720);
+  showToast(tr("cvvChanged"));
+  renderProfilePage();
+}
+
+function openColorModal() {
+  document.getElementById("color-modal").classList.remove("hidden");
+}
+
+function closeColorModal() {
+  document.getElementById("color-modal").classList.add("hidden");
+}
+
+// -----------------------------
+// CLICK / PASSIVE / PRESENCE / MARKET
+// -----------------------------
+function handleClickIncome() {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const reward = getClickReward(user);
+  addMoney(user, reward, `${tr("click")}: +${formatNum(reward)} грн`);
+  saveAppState();
+  playBeep(540);
+  updateHeader();
 }
 
 function passiveIncomeTick() {
-    if (!currentUser) return;
-    const user = getCurrentUser();
-    if (user.isBanned) return;
+  const user = getCurrentUser();
+  if (!user) return;
 
-    const income = getTotalPassiveIncome(user);
-    if (income <= 0) return;
+  const amount = getPassiveIncome(user);
+  if (amount <= 0) return;
 
-    user.balance += income;
-    addTransaction(currentUser.username, "passive_income", income, "UAH", "Пасивний дохід");
-    saveData();
-    updateUI();
-
-    const active = document.querySelector(".sidebar-nav button.active-page")?.getAttribute("data-page");
-    if (active === "dashboard") renderDashboard();
+  addMoney(user, amount, `${tr("passiveIncome")}: +${formatNum(amount)} грн`);
+  saveAppState();
+  updateHeader();
 }
 
-// ==================== EVENTS ====================
+function marketTick() {
+  Object.values(appState.market.crypto).forEach(item => {
+    const drift = 1 + (Math.random() - 0.5) * 0.06;
+    item.price = Math.max(1, item.price * drift);
+  });
+
+  appState.market.stocks.forEach(item => {
+    const drift = 1 + (Math.random() - 0.5) * 0.04;
+    item.price = Math.max(10, item.price * drift);
+  });
+
+  saveAppState();
+}
+
+function presenceTick() {
+  const user = getCurrentUser();
+  if (!user) return;
+  user.lastSeen = Date.now();
+  saveAppState();
+}
+
+// -----------------------------
+// TAB / NAV / MODALS
+// -----------------------------
 function bindBaseEvents() {
-    document.getElementById("login-btn").addEventListener("click", loginUser);
-    document.getElementById("register-btn").addEventListener("click", registerUser);
-    document.getElementById("logout-btn").addEventListener("click", logoutUser);
+  document.getElementById("login-btn").onclick = loginUser;
+  document.getElementById("register-btn").onclick = registerUser;
+  document.getElementById("logout-btn").onclick = logoutUser;
 
-    document.getElementById("change-pin-btn").addEventListener("click", changePin);
-    document.getElementById("change-card-name-btn").addEventListener("click", changeCardName);
-    document.getElementById("change-card-color-btn").addEventListener("click", openColorModal);
-    document.getElementById("vip-giveaway-btn").addEventListener("click", vipGiveaway);
+  document.querySelectorAll(".tab-btn").forEach(button => {
+    button.onclick = () => {
+      document.querySelectorAll(".tab-btn").forEach(item => item.classList.remove("active"));
+      document.querySelectorAll(".tab-pane").forEach(item => item.classList.remove("active"));
 
-    document.getElementById("lang-toggle-btn").addEventListener("click", () => {
-        currentLang = currentLang === "uk" ? "en" : "uk";
-        saveData();
-        updateStaticTexts();
-        updateUI();
-        const active = document.querySelector(".sidebar-nav button.active-page")?.getAttribute("data-page") || "dashboard";
-        navigate(active);
-        showToast(t("languageSwitched"));
-    });
+      button.classList.add("active");
+      document.getElementById(`${button.dataset.tab}-form`).classList.add("active");
+    };
+  });
 
-    document.getElementById("click-button").addEventListener("click", handleClickReward);
+  document.querySelectorAll(".nav-btn").forEach(button => {
+    button.onclick = () => {
+      renderPage(button.dataset.page);
+      closeSidebar();
+    };
+  });
 
-    document.querySelectorAll(".sidebar-nav button[data-page]").forEach(btn => {
-        btn.addEventListener("click", () => navigate(btn.getAttribute("data-page")));
-    });
+  document.getElementById("click-btn").onclick = handleClickIncome;
+  document.getElementById("change-pin-btn").onclick = changePin;
+  document.getElementById("change-card-name-btn").onclick = () => {
+    const user = getCurrentUser();
+    const newName = prompt(appState.lang === "uk" ? "Нова назва карти" : "New card name", user.cardName);
+    if (!newName) return;
+    user.cardName = newName.slice(0, 24);
+    saveAppState();
+    showToast(tr("cardNameChanged"));
+    renderProfilePage();
+  };
+  document.getElementById("change-card-color-btn").onclick = openColorModal;
+  document.getElementById("vip-giveaway-btn").onclick = handleVipGiveaway;
 
-    document.getElementById("admin-panel-btn").addEventListener("click", () => navigate("admin"));
+  document.getElementById("toggle-sound-btn").onclick = () => {
+    appState.soundEnabled = !appState.soundEnabled;
+    saveAppState();
+    showToast(appState.soundEnabled ? tr("soundOn") : tr("soundOff"));
+    updateHeader();
+  };
 
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
+  document.getElementById("lang-btn").onclick = () => {
+    appState.lang = appState.lang === "uk" ? "en" : "uk";
+    saveAppState();
+    updateHeader();
+    const active = document.querySelector(".nav-btn.active")?.dataset.page || "dashboard";
+    renderPage(active);
+  };
 
-            const tab = btn.getAttribute("data-tab");
-            document.getElementById("login-form").classList.toggle("active", tab === "login");
-            document.getElementById("register-form").classList.toggle("active", tab === "register");
-        });
-    });
+  document.getElementById("sidebar-open").onclick = () => {
+    document.getElementById("sidebar").classList.add("show");
+    document.getElementById("overlay").classList.add("show");
+  };
 
-    document.querySelectorAll(".color-option").forEach(option => {
-        option.addEventListener("click", () => setCardColor(option.getAttribute("data-color")));
-    });
+  document.getElementById("sidebar-close").onclick = closeSidebar;
+  document.getElementById("overlay").onclick = closeSidebar;
 
-    document.getElementById("color-modal-close").addEventListener("click", closeColorModal);
+  document.getElementById("close-color-modal").onclick = closeColorModal;
 
-    document.getElementById("color-modal").addEventListener("click", (e) => {
-        if (e.target.id === "color-modal") closeColorModal();
-    });
-
-    document.getElementById("menu-toggle").addEventListener("click", () => {
-        document.getElementById("sidebar").classList.toggle("open");
-    });
+  document.querySelectorAll(".color-option").forEach(button => {
+    button.onclick = () => {
+      const user = getCurrentUser();
+      user.cardColor = button.dataset.color;
+      saveAppState();
+      closeColorModal();
+      showToast(tr("colorChanged"));
+      renderProfilePage();
+    };
+  });
 }
 
-// ==================== INIT ====================
-function init() {
-    loadData();
-    initStocks();
-    updateStaticTexts();
-    bindBaseEvents();
-    fetchUsdRate();
-    fetchCryptoPrices();
-
-    setInterval(updateLastSeen, 30000);
-    setInterval(fetchUsdRate, 60000);
-    setInterval(fetchCryptoPrices, 60000);
-    setInterval(fluctuateStocks, 30000);
-    setInterval(passiveIncomeTick, 60000);
+function closeSidebar() {
+  document.getElementById("sidebar").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");
 }
 
-document.addEventListener("DOMContentLoaded", init);
+// -----------------------------
+// INIT
+// -----------------------------
+function initApp() {
+  loadAppState();
+  bindBaseEvents();
+
+  if (appState.currentUser && appState.users[appState.currentUser] && !appState.users[appState.currentUser].banned) {
+    document.getElementById("login-screen").classList.add("hidden");
+    document.getElementById("app-screen").classList.remove("hidden");
+    updateHeader();
+    renderProfilePage();
+  }
+
+  setInterval(marketTick, 30000);
+  setInterval(passiveIncomeTick, 60000);
+  setInterval(presenceTick, 15000);
+}
+
+initApp();
