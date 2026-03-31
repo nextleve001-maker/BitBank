@@ -2120,3 +2120,368 @@ function bindEvents() {
   document.getElementById("logout-btn").onclick = logoutUser;
 
   document.querySelectorAll(".tab-btn").
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    const tab = btn.dataset.tab;
+
+    document.querySelectorAll(".tab-pane").forEach(pane => pane.classList.remove("active"));
+    document.getElementById(`${tab}-form`).classList.add("active");
+  };
+});
+
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.onclick = async () => {
+    const page = btn.dataset.page;
+    await renderPage(page);
+    closeSidebar();
+  };
+});
+
+document.getElementById("click-btn").onclick = async () => {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  const reward = getClickReward(user);
+
+  const ok = await updatePlayer(user.username, {
+    balance: Number(user.balance) + reward,
+    total_earned: Number(user.total_earned) + reward,
+    last_seen: new Date().toISOString(),
+    device: currentDeviceType()
+  });
+
+  if (!ok) return;
+
+  await appendHistory(user.username, `${tr("click")}: +${formatNum(reward)} грн`, reward);
+  playBeep(540);
+  await renderProfilePage();
+};
+
+document.getElementById("change-pin-btn").onclick = changePin;
+
+document.getElementById("change-card-name-btn").onclick = async () => {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  const newName = prompt(appState.lang === "uk" ? "Нова назва карти" : "New card name", user.card_name);
+  if (!newName) return;
+
+  const ok = await updatePlayer(user.username, {
+    card_name: newName.slice(0, 24)
+  });
+
+  if (!ok) return;
+
+  showToast(tr("cardNameChanged"));
+  await renderProfilePage();
+};
+
+document.getElementById("change-card-color-btn").onclick = openColorModal;
+document.getElementById("vip-giveaway-btn").onclick = handleVipGiveaway;
+
+document.getElementById("toggle-sound-btn").onclick = () => {
+  appState.soundEnabled = !appState.soundEnabled;
+  saveSession();
+  updateHeader();
+  showToast(appState.soundEnabled ? tr("soundOn") : tr("soundOff"));
+};
+
+document.getElementById("lang-btn").onclick = async () => {
+  appState.lang = appState.lang === "uk" ? "en" : "uk";
+  saveSession();
+  updateHeader();
+  const active = document.querySelector(".nav-btn.active")?.dataset.page || "dashboard";
+  await renderPage(active);
+};
+
+document.getElementById("sidebar-open").onclick = () => {
+  document.getElementById("sidebar").classList.add("show");
+  document.getElementById("overlay").classList.add("show");
+};
+
+document.getElementById("sidebar-close").onclick = closeSidebar;
+document.getElementById("overlay").onclick = closeSidebar;
+document.getElementById("close-color-modal").onclick = closeColorModal;
+
+document.querySelectorAll(".color-option").forEach(button => {
+  button.onclick = async () => {
+    await fetchAllPlayers();
+    const user = getCurrentUserRow();
+    if (!user) return;
+
+    const ok = await updatePlayer(user.username, {
+      card_color: button.dataset.color
+    });
+
+    if (!ok) return;
+
+    closeColorModal();
+    showToast(tr("colorChanged"));
+    await renderProfilePage();
+  };
+});
+}
+
+// -----------------------------------------------------
+// REALTIME
+// -----------------------------------------------------
+function setupRealtime() {
+  supabaseClient
+    .channel("bitbank-live")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "players" },
+      async () => {
+        await fetchAllPlayers();
+        updateHeader();
+
+        const active = document.querySelector(".nav-btn.active")?.dataset.page;
+        if (active === "admin" || active === "top") {
+          await renderPage(active);
+        }
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "game_state" },
+      async () => {
+        await fetchGameState();
+        updateHeader();
+      }
+    )
+    .subscribe();
+}
+
+// -----------------------------------------------------
+// ONLINE / PASSIVE / MARKET
+// -----------------------------------------------------
+async function handleClickIncome() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  const reward = getClickReward(user);
+
+  const ok = await updatePlayer(user.username, {
+    balance: Number(user.balance) + reward,
+    total_earned: Number(user.total_earned) + reward,
+    last_seen: new Date().toISOString(),
+    device: currentDeviceType()
+  });
+
+  if (!ok) return;
+
+  await appendHistory(user.username, `${tr("click")}: +${formatNum(reward)} грн`, reward);
+  playBeep(540);
+  const active = document.querySelector(".nav-btn.active")?.dataset.page || "dashboard";
+  await renderPage(active);
+}
+
+async function passiveIncomeTick() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  const amount = getPassiveIncome(user);
+  if (amount <= 0) return;
+
+  const ok = await updatePlayer(user.username, {
+    balance: Number(user.balance) + amount,
+    total_earned: Number(user.total_earned) + amount
+  });
+
+  if (!ok) return;
+
+  await appendHistory(user.username, `${tr("passiveIncome")}: +${formatNum(amount)} грн`, amount);
+  const active = document.querySelector(".nav-btn.active")?.dataset.page || "dashboard";
+  await renderPage(active);
+}
+
+function marketTick() {
+  Object.values(appState.market.crypto).forEach(item => {
+    const drift = 1 + (Math.random() - 0.5) * 0.06;
+    item.price = Math.max(1, item.price * drift);
+  });
+
+  appState.market.stocks.forEach(item => {
+    const drift = 1 + (Math.random() - 0.5) * 0.04;
+    item.price = Math.max(10, item.price * drift);
+  });
+}
+
+async function presenceTick() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  await updatePlayer(user.username, {
+    last_seen: new Date().toISOString(),
+    device: currentDeviceType()
+  });
+
+  await fetchAllPlayers();
+  updateHeader();
+}
+
+// -----------------------------------------------------
+// AUTH
+// -----------------------------------------------------
+async function registerUser() {
+  const username = sanitize(document.getElementById("reg-username").value).toLowerCase();
+  const password = sanitize(document.getElementById("reg-password").value);
+
+  if (username.length < 3) return showToast(tr("invalidData"), true);
+  if (password.length < 4) return showToast(tr("invalidData"), true);
+  if (["me", "admin"].includes(username)) return showToast(tr("bannedName"), true);
+
+  await fetchAllPlayers();
+
+  if (appState.allPlayers.some(player => player.username === username)) {
+    return showToast(tr("userExists"), true);
+  }
+
+  const ok = await createPlayer(username, password);
+  if (!ok) return;
+
+  playBeep(760);
+  showToast(tr("userCreated"));
+
+  document.querySelector('[data-tab="login"]').click();
+  document.getElementById("login-username").value = username;
+  document.getElementById("login-password").value = password;
+}
+
+async function loginUser() {
+  const username = sanitize(document.getElementById("login-username").value).toLowerCase();
+  const password = sanitize(document.getElementById("login-password").value);
+
+  const result = await loginPlayer(username, password);
+  if (!result) return;
+
+  playBeep(740);
+
+  document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("app-screen").classList.remove("hidden");
+
+  await fetchAllPlayers();
+  await fetchGameState();
+  updateHeader();
+  await renderProfilePage();
+}
+
+function logoutUser() {
+  appState.currentUser = null;
+  saveSession();
+  document.getElementById("app-screen").classList.add("hidden");
+  document.getElementById("login-screen").classList.remove("hidden");
+}
+
+// -----------------------------------------------------
+// CARD ACTIONS
+// -----------------------------------------------------
+async function changePin() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  const newCvv = prompt(appState.lang === "uk" ? "Новий CVV (3 цифри)" : "New CVV (3 digits)", user.card_cvv);
+  if (newCvv === null) return;
+  if (!/^\d{3}$/.test(newCvv)) return showToast(tr("wrongCode"), true);
+
+  const ok = await updatePlayer(user.username, {
+    card_cvv: newCvv
+  });
+
+  if (!ok) return;
+
+  playBeep(720);
+  showToast(tr("cvvChanged"));
+  await renderProfilePage();
+}
+
+// -----------------------------------------------------
+// VIP
+// -----------------------------------------------------
+async function handleVipGiveaway() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  if (!hasVipAccess(user)) return showToast(tr("vipRequiresClass"), true);
+  if (user.vip_giveaway_day === todayString()) return showToast(tr("dailyBonusTaken"), true);
+
+  const amount = Number(prompt("Сума (max 100000)"));
+  if (!amount || amount <= 0 || amount > 100000) return;
+
+  const rawTarget = prompt(`${tr("recipient")} (${tr("meOrNick")})`);
+  const targetName = normalizeRecipient(rawTarget, user.username);
+  const target = appState.allPlayers.find(p => p.username === targetName);
+
+  if (!target) return showToast(tr("invalidUser"), true);
+  if (Number(user.balance) < amount) return showToast(tr("insufficientFunds"), true);
+
+  const ok1 = await updatePlayer(user.username, {
+    balance: Number(user.balance) - amount,
+    vip_giveaway_day: todayString()
+  });
+
+  const ok2 = await updatePlayer(target.username, {
+    balance: Number(target.balance) + amount,
+    total_earned: Number(target.total_earned) + amount
+  });
+
+  if (!ok1 || !ok2) return;
+
+  await appendHistory(user.username, `VIP → ${target.username}: ${formatNum(amount)} грн`, amount);
+  await appendHistory(target.username, `VIP ← ${user.username}: ${formatNum(amount)} грн`, amount);
+
+  playBeep(880);
+  showToast(tr("vipSent"));
+  await renderProfilePage();
+}
+
+// -----------------------------------------------------
+// INIT
+// -----------------------------------------------------
+async function initApp() {
+  loadSession();
+
+  appState.market.crypto = Object.fromEntries(
+    CRYPTO_CATALOG.map(item => [item.symbol, { ...item }])
+  );
+  appState.market.stocks = STOCKS_CATALOG.map(item => ({ ...item }));
+
+  bindEvents();
+  setupRealtime();
+
+  if (appState.currentUser) {
+    document.getElementById("login-screen").classList.add("hidden");
+    document.getElementById("app-screen").classList.remove("hidden");
+
+    await fetchAllPlayers();
+    await fetchGameState();
+
+    const current = getCurrentUserRow();
+    if (!current || current.banned) {
+      appState.currentUser = null;
+      saveSession();
+      document.getElementById("app-screen").classList.add("hidden");
+      document.getElementById("login-screen").classList.remove("hidden");
+      return;
+    }
+
+    updateHeader();
+    await renderProfilePage();
+  }
+
+  setInterval(marketTick, 30000);
+  setInterval(presenceTick, 15000);
+  setInterval(passiveIncomeTick, 60000);
+}
+
+initApp();
