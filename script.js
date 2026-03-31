@@ -1,12 +1,9 @@
-// ======================================================
-// BitBank - FULL script.js
-// Працює з останнім index.html + style.css
-// ======================================================
+const SUPABASE_URL = "https://dznxdbiorjargerkilwf.supabase.co";
+const SUPABASE_KEY = "sb_publishable_9eL4kseNCXHF3d7MFAyj3A_iB8pjYfv";
 
-// -----------------------------
-// GLOBAL STATE
-// -----------------------------
-const STORAGE_KEY = "bitbank_full_game_v2";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const LOCAL_SESSION_KEY = "bitbank_supabase_session_v2";
 
 let appState = {
   currentUser: null,
@@ -16,21 +13,16 @@ let appState = {
   commissionBank: 0,
   supportBank: 0,
   globalMessage: "",
-  users: {},
+  allPlayers: [],
+  onlinePlayers: [],
   market: {
     crypto: {},
     stocks: []
   }
 };
 
-// -----------------------------
-// TRANSLATIONS
-// -----------------------------
 const I18N = {
   uk: {
-    subtitle: "Симулятор фінансової гри",
-    login: "Вхід",
-    register: "Реєстрація",
     profile: "Профіль",
     crypto: "Крипто",
     stocks: "Акції",
@@ -52,7 +44,6 @@ const I18N = {
     buy: "Купити",
     sell: "Продати",
     owned: "Вже куплено",
-    unavailable: "Недоступно",
     onlineOnlyMoney: "Видати всім онлайн гроші",
     onlineOnlyCrypto: "Видати всім онлайн крипту",
     onlineUsers: "Онлайн користувачі",
@@ -67,9 +58,7 @@ const I18N = {
     online: "ONLINE",
     phone: "З телефона",
     desktop: "ПК",
-    allTimeCapital: "Капітал",
     click: "КЛІК",
-    creatorOnly: "Тільки для creator",
     invalidData: "Невірні дані",
     insufficientFunds: "Недостатньо коштів",
     invalidUser: "Невірний користувач",
@@ -78,12 +67,9 @@ const I18N = {
     userCreated: "Акаунт створено",
     loginError: "Невірний логін або пароль",
     accountBanned: "Акаунт заблоковано",
-    bought: "Успішно куплено",
-    sold: "Успішно продано",
     noAccessStocks: "Акції доступні з класу Trader і вище",
     noAccessBusiness: "Бізнес доступний тільки з класу Businessman і вище",
     upgradeSuccess: "Клас успішно придбано",
-    codeNeeded: "Введіть CVV код",
     wrongCode: "Невірний CVV",
     cvvChanged: "CVV змінено",
     cardNameChanged: "Назву карти змінено",
@@ -91,7 +77,7 @@ const I18N = {
     donated: "Дякуємо за підтримку",
     sent: "Переказ успішний",
     historyEmpty: "Історія порожня",
-    rankTitle: "Топ 100 гравців",
+    rankTitle: "Топ 100 за весь час",
     vipSent: "VIP-роздача виконана",
     massDone: "Масова дія виконана",
     soundOn: "Звук увімкнено",
@@ -114,7 +100,6 @@ const I18N = {
     none: "немає",
     buyUsd: "Купити USD",
     sellUsd: "Продати USD",
-    classAccess: "Доступ",
     playerManagement: "Керування гравцем",
     giveMoney: "Видати гроші",
     takeMoney: "Забрати гроші",
@@ -130,14 +115,6 @@ const I18N = {
     sendGlobalMessage: "Надіслати повідомлення всім",
     collectCommission: "Забрати банк комісій",
     collectSupport: "Забрати банк підтримки",
-    adminTools: "Інструменти адміна",
-    choosePlayer: "Оберіть гравця",
-    enterAmountForAllOnline: "Введіть суму для всіх онлайн",
-    enterCryptoSymbol: "Введіть символ крипти",
-    enterCryptoAmount: "Введіть кількість крипти",
-    enterMessage: "Введіть повідомлення",
-    businessLocked: "Бізнес відкривається з класу Businessman",
-    stocksLocked: "Акції відкриваються з класу Trader",
     creatorPanel: "Creator панель",
     purchaseRequiresCvv: "Для покупки потрібен CVV",
     transferRequiresCvv: "Для переказу потрібен CVV",
@@ -149,15 +126,11 @@ const I18N = {
     accountDeleted: "Акаунт видалено",
     classSet: "Клас встановлено",
     deviceType: "Пристрій",
-    lastSeen: "Остання активність",
     totalAssets: "Усього активів",
-    sellFor: "Продати за",
-    buyFor: "Купити за"
+    buyFor: "Купити за",
+    serverError: "Помилка сервера"
   },
   en: {
-    subtitle: "Financial game simulator",
-    login: "Login",
-    register: "Register",
     profile: "Profile",
     crypto: "Crypto",
     stocks: "Stocks",
@@ -178,8 +151,7 @@ const I18N = {
     currentClass: "Current class",
     buy: "Buy",
     sell: "Sell",
-    owned: "Already owned",
-    unavailable: "Unavailable",
+    owned: "Owned",
     onlineOnlyMoney: "Give all online money",
     onlineOnlyCrypto: "Give all online crypto",
     onlineUsers: "Online users",
@@ -194,9 +166,7 @@ const I18N = {
     online: "ONLINE",
     phone: "On phone",
     desktop: "Desktop",
-    allTimeCapital: "Capital",
     click: "CLICK",
-    creatorOnly: "Creator only",
     invalidData: "Invalid data",
     insufficientFunds: "Insufficient funds",
     invalidUser: "Invalid user",
@@ -205,24 +175,21 @@ const I18N = {
     userCreated: "Account created",
     loginError: "Invalid username or password",
     accountBanned: "Account is banned",
-    bought: "Successfully bought",
-    sold: "Successfully sold",
-    noAccessStocks: "Stocks are available from Trader class and above",
-    noAccessBusiness: "Business is available only from Businessman class and above",
-    upgradeSuccess: "Class purchased successfully",
-    codeNeeded: "Enter CVV code",
+    noAccessStocks: "Stocks are available from Trader and above",
+    noAccessBusiness: "Business is available from Businessman and above",
+    upgradeSuccess: "Class purchased",
     wrongCode: "Wrong CVV",
     cvvChanged: "CVV changed",
     cardNameChanged: "Card name changed",
     colorChanged: "Card color changed",
     donated: "Thanks for support",
-    sent: "Transfer successful",
+    sent: "Transfer completed",
     historyEmpty: "History is empty",
-    rankTitle: "Top 100 players",
-    vipSent: "VIP giveaway completed",
-    massDone: "Mass action completed",
-    soundOn: "Sound enabled",
-    soundOff: "Sound disabled",
+    rankTitle: "Top 100 all time",
+    vipSent: "VIP giveaway complete",
+    massDone: "Mass action done",
+    soundOn: "Sound on",
+    soundOff: "Sound off",
     dailyBonusTaken: "Daily bonus already claimed",
     dailyBonusGot: "Daily bonus claimed",
     classBenefits: "Class perks",
@@ -241,7 +208,6 @@ const I18N = {
     none: "none",
     buyUsd: "Buy USD",
     sellUsd: "Sell USD",
-    classAccess: "Access",
     playerManagement: "Player management",
     giveMoney: "Give money",
     takeMoney: "Take money",
@@ -254,21 +220,13 @@ const I18N = {
     giveBusiness: "Give business",
     giveRealty: "Give realty",
     giveCar: "Give car",
-    sendGlobalMessage: "Send message to all",
+    sendGlobalMessage: "Broadcast message",
     collectCommission: "Collect commission bank",
     collectSupport: "Collect support bank",
-    adminTools: "Admin tools",
-    choosePlayer: "Choose player",
-    enterAmountForAllOnline: "Enter amount for all online users",
-    enterCryptoSymbol: "Enter crypto symbol",
-    enterCryptoAmount: "Enter crypto amount",
-    enterMessage: "Enter message",
-    businessLocked: "Business unlocks from Businessman class",
-    stocksLocked: "Stocks unlock from Trader class",
     creatorPanel: "Creator panel",
-    purchaseRequiresCvv: "Purchase requires CVV",
-    transferRequiresCvv: "Transfer requires CVV",
-    classRequiresCvv: "Class purchase requires CVV",
+    purchaseRequiresCvv: "CVV required for purchase",
+    transferRequiresCvv: "CVV required for transfer",
+    classRequiresCvv: "CVV required for class purchase",
     vipRequiresClass: "VIP giveaway requires VIP or higher",
     playerNotFound: "Player not found",
     valueUpdated: "Value updated",
@@ -276,10 +234,9 @@ const I18N = {
     accountDeleted: "Account deleted",
     classSet: "Class set",
     deviceType: "Device",
-    lastSeen: "Last seen",
     totalAssets: "Total assets",
-    sellFor: "Sell for",
-    buyFor: "Buy for"
+    buyFor: "Buy for",
+    serverError: "Server error"
   }
 };
 
@@ -287,9 +244,6 @@ function tr(key) {
   return I18N[appState.lang][key] || key;
 }
 
-// -----------------------------
-// CLASSES
-// -----------------------------
 const classList = [
   {
     key: "none",
@@ -298,7 +252,7 @@ const classList = [
     clickReward: 5,
     passivePerMin: 0,
     perks: {
-      uk: "Базовий старт. Є доступ до профілю, крипти, переказів та історії.",
+      uk: "Базовий старт. Доступ до профілю, крипти, переказів та історії.",
       en: "Basic start. Access to profile, crypto, transfers and history."
     }
   },
@@ -309,8 +263,8 @@ const classList = [
     clickReward: 15,
     passivePerMin: 10,
     perks: {
-      uk: "Трохи більше грошей за клік і невеликий пасивний дохід.",
-      en: "More money per click and a small passive income."
+      uk: "Більше грошей за клік і маленький пасивний дохід.",
+      en: "More money per click and small passive income."
     }
   },
   {
@@ -320,8 +274,8 @@ const classList = [
     clickReward: 45,
     passivePerMin: 45,
     perks: {
-      uk: "Сильніший пасивний дохід і швидший ріст балансу.",
-      en: "Stronger passive income and faster balance growth."
+      uk: "Сильніший пасивний дохід і швидший ріст.",
+      en: "Stronger passive income and faster growth."
     }
   },
   {
@@ -331,8 +285,8 @@ const classList = [
     clickReward: 110,
     passivePerMin: 110,
     perks: {
-      uk: "Дає доступ до розділу акцій. Усі класи вище теж мають доступ до акцій.",
-      en: "Unlocks stocks. All higher classes also have access to stocks."
+      uk: "Відкриває доступ до акцій. Усі класи вище теж бачать акції.",
+      en: "Unlocks stocks. All higher classes also unlock stocks."
     }
   },
   {
@@ -342,8 +296,8 @@ const classList = [
     clickReward: 250,
     passivePerMin: 260,
     perks: {
-      uk: "Відкриває VIP-роздачу, золотий колір картки і більший дохід.",
-      en: "Unlocks VIP giveaway, gold card color and better income."
+      uk: "VIP-роздача, золотий колір картки, кращий дохід.",
+      en: "VIP giveaway, gold card, better income."
     }
   },
   {
@@ -353,8 +307,8 @@ const classList = [
     clickReward: 600,
     passivePerMin: 700,
     perks: {
-      uk: "Відкриває бізнеси та великий пасивний дохід.",
-      en: "Unlocks businesses and large passive income."
+      uk: "Відкриває бізнеси та сильний пасивний дохід.",
+      en: "Unlocks businesses and strong passive income."
     }
   },
   {
@@ -365,7 +319,7 @@ const classList = [
     passivePerMin: 2200,
     perks: {
       uk: "Максимально сильний дохід і всі плюшки нижчих класів.",
-      en: "Very strong income and all perks from lower classes."
+      en: "Very strong income and all lower class perks."
     }
   },
   {
@@ -375,21 +329,15 @@ const classList = [
     clickReward: 50000,
     passivePerMin: 25000,
     perks: {
-      uk: "Повний контроль, адмінка, бачить усіх гравців і їхню активність.",
-      en: "Full control, admin panel, sees all players and activity."
+      uk: "Повний контроль, адмінка, бачить усіх гравців.",
+      en: "Full control, admin panel, sees all players."
     }
   }
 ];
 
-const classMap = {};
-classList.forEach((item, index) => {
-  classMap[item.key] = { ...item, index };
-});
+const CLASS_MAP = Object.fromEntries(classList.map((c, i) => [c.key, { ...c, index: i }]));
 
-// -----------------------------
-// CATALOGS
-// -----------------------------
-const cryptoCatalog = [
+const CRYPTO_CATALOG = [
   { symbol: "BTC", name: "Bitcoin", price: 2800000, img: "https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=032" },
   { symbol: "ETH", name: "Ethereum", price: 145000, img: "https://cryptologos.cc/logos/ethereum-eth-logo.png?v=032" },
   { symbol: "BNB", name: "BNB", price: 24500, img: "https://cryptologos.cc/logos/bnb-bnb-logo.png?v=032" },
@@ -397,7 +345,7 @@ const cryptoCatalog = [
   { symbol: "XRP", name: "XRP", price: 24, img: "https://cryptologos.cc/logos/xrp-xrp-logo.png?v=032" }
 ];
 
-const stocksCatalog = [
+const STOCKS_CATALOG = [
   { id: "apple", name: "Apple", price: 8100, img: "https://logo.clearbit.com/apple.com" },
   { id: "microsoft", name: "Microsoft", price: 16800, img: "https://logo.clearbit.com/microsoft.com" },
   { id: "google", name: "Google", price: 7200, img: "https://logo.clearbit.com/google.com" },
@@ -406,15 +354,20 @@ const stocksCatalog = [
   { id: "nvidia", name: "NVIDIA", price: 25000, img: "https://logo.clearbit.com/nvidia.com" }
 ];
 
-const businessCatalog = [
+const BUSINESS_CATALOG = [
   { id: "coffee", name: "Кав'ярня", price: 40000, income: 90, img: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&auto=format&fit=crop" },
   { id: "shop", name: "Магазин", price: 95000, income: 220, img: "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=400&auto=format&fit=crop" },
   { id: "gym", name: "Фітнес-клуб", price: 180000, income: 430, img: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&auto=format&fit=crop" },
   { id: "hotel", name: "Готель", price: 550000, income: 1500, img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&auto=format&fit=crop" },
-  { id: "it", name: "IT Студія", price: 800000, income: 2600, img: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=400&auto=format&fit=crop" }
+  { id: "it", name: "IT Студія", price: 800000, income: 2600, img: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=400&auto=format&fit=crop" },
+  { id: "restaurant", name: "Ресторан", price: 1200000, income: 3800, img: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&auto=format&fit=crop" },
+  { id: "mall", name: "Торговий центр", price: 2200000, income: 7200, img: "https://images.unsplash.com/photo-1481437156560-3205f6a55735?w=400&auto=format&fit=crop" },
+  { id: "factory", name: "Фабрика", price: 3500000, income: 12000, img: "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=400&auto=format&fit=crop" },
+  { id: "airline", name: "Авіакомпанія", price: 7000000, income: 22000, img: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&auto=format&fit=crop" },
+  { id: "bank", name: "Банк", price: 12000000, income: 38000, img: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&auto=format&fit=crop" }
 ];
 
-const realtyCatalog = [
+const REALTY_CATALOG = [
   { id: "palm", name: "🌴 Пальмовий острів", price: 25000, income: 60, img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&auto=format&fit=crop" },
   { id: "volcano", name: "🌋 Вулканічний острів", price: 45000, income: 120, img: "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=400&auto=format&fit=crop" },
   { id: "paradise", name: "🏝 Райський острів", price: 80000, income: 200, img: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=400&auto=format&fit=crop" },
@@ -423,7 +376,7 @@ const realtyCatalog = [
   { id: "oceanhome", name: "🌊 Ocean Home", price: 520000, income: 1700, img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&auto=format&fit=crop" }
 ];
 
-const carCatalog = [
+const CAR_CATALOG = [
   { id: "corolla", name: "Toyota Corolla", priceUsd: 22000, img: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&auto=format&fit=crop" },
   { id: "civic", name: "Honda Civic", priceUsd: 24000, img: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&auto=format&fit=crop" },
   { id: "bmw3", name: "BMW 3 Series", priceUsd: 42000, img: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400&auto=format&fit=crop" },
@@ -432,38 +385,27 @@ const carCatalog = [
   { id: "huracan", name: "Lamborghini Huracan", priceUsd: 250000, img: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&auto=format&fit=crop" }
 ];
 
-// -----------------------------
-// AUDIO
-// -----------------------------
 let audioContext = null;
 
 function playBeep(freq = 440, duration = 0.05, volume = 0.02) {
   if (!appState.soundEnabled) return;
   try {
     if (!audioContext) {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      audioContext = new Ctx();
+      const ACtx = window.AudioContext || window.webkitAudioContext;
+      audioContext = new ACtx();
     }
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
-
     oscillator.type = "sine";
     oscillator.frequency.value = freq;
     gain.gain.value = volume;
-
     oscillator.connect(gain);
     gain.connect(audioContext.destination);
-
     oscillator.start();
     oscillator.stop(audioContext.currentTime + duration);
-  } catch (error) {
-    // ignore
-  }
+  } catch (error) {}
 }
 
-// -----------------------------
-// HELPERS
-// -----------------------------
 function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -475,7 +417,11 @@ function formatNum(value) {
 }
 
 function sanitize(value) {
-  return String(value || "").trim().replace(/[<>]/g, "");
+  return String(value || "").replace(/[<>]/g, "").trim();
+}
+
+function currentDeviceType() {
+  return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? "phone" : "desktop";
 }
 
 function generateCardNumber() {
@@ -494,224 +440,23 @@ function todayString() {
   return new Date().toDateString();
 }
 
-function saveAppState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+function saveSession() {
+  localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({
+    username: appState.currentUser,
+    lang: appState.lang,
+    soundEnabled: appState.soundEnabled
+  }));
 }
 
-function makeUser(password, isCreator = false) {
-  const deviceType = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? "phone" : "desktop";
-
-  return {
-    password,
-    balance: isCreator ? 1000000 : 500,
-    usd: isCreator ? 5000 : 0,
-    crypto: {},
-    stocks: {},
-    businesses: [],
-    realty: [],
-    cars: [],
-    history: [],
-    classKey: isCreator ? "creator" : "none",
-    cardName: isCreator ? "Creator Card" : "BitBank Card",
-    cardColor: isCreator ? "gold" : "black",
-    cardCvv: String(rand(100, 999)),
-    cardNumber: generateCardNumber(),
-    cardExpiry: generateCardExpiry(),
-    totalEarned: isCreator ? 1000000 : 500,
-    lastSeen: Date.now(),
-    deviceType,
-    banned: false,
-    lastBonusDay: "",
-    vipGiveawayDay: ""
-  };
-}
-
-function loadAppState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-
-  if (raw) {
-    try {
-      appState = JSON.parse(raw);
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  if (!appState.users || typeof appState.users !== "object") {
-    appState.users = {};
-  }
-
-  if (!appState.market) {
-    appState.market = { crypto: {}, stocks: [] };
-  }
-
-  if (!appState.market.crypto || Object.keys(appState.market.crypto).length === 0) {
-    appState.market.crypto = {};
-    cryptoCatalog.forEach(item => {
-      appState.market.crypto[item.symbol] = { ...item };
-    });
-  }
-
-  if (!appState.market.stocks || appState.market.stocks.length === 0) {
-    appState.market.stocks = stocksCatalog.map(item => ({ ...item }));
-  }
-
-  if (!appState.users.creator) {
-    appState.users.creator = makeUser("9creator9", true);
-  }
-
-  Object.entries(appState.users).forEach(([username, user]) => {
-    if (!user.crypto) user.crypto = {};
-    if (!user.stocks) user.stocks = {};
-    if (!user.businesses) user.businesses = [];
-    if (!user.realty) user.realty = [];
-    if (!user.cars) user.cars = [];
-    if (!user.history) user.history = [];
-    if (!user.cardName) user.cardName = "BitBank Card";
-    if (!user.cardColor) user.cardColor = "black";
-    if (!user.cardCvv) user.cardCvv = String(rand(100, 999));
-    if (!user.cardNumber) user.cardNumber = generateCardNumber();
-    if (!user.cardExpiry) user.cardExpiry = generateCardExpiry();
-    if (!user.classKey) user.classKey = username === "creator" ? "creator" : "none";
-    if (!user.totalEarned) user.totalEarned = user.balance || 0;
-    if (!user.lastSeen) user.lastSeen = Date.now();
-    if (!user.deviceType) user.deviceType = "desktop";
-    if (!user.lastBonusDay) user.lastBonusDay = "";
-    if (!user.vipGiveawayDay) user.vipGiveawayDay = "";
-    if (typeof user.banned !== "boolean") user.banned = false;
-  });
-
-  saveAppState();
-}
-
-function getCurrentUser() {
-  if (!appState.currentUser) return null;
-  return appState.users[appState.currentUser] || null;
-}
-
-function getClassData(classKey) {
-  return classMap[classKey];
-}
-
-function classIndex(classKey) {
-  return getClassData(classKey).index;
-}
-
-function hasStocksAccess(user) {
-  return classIndex(user.classKey) >= classIndex("trader");
-}
-
-function hasBusinessAccess(user) {
-  return classIndex(user.classKey) >= classIndex("businessman");
-}
-
-function hasVipAccess(user) {
-  return classIndex(user.classKey) >= classIndex("vip");
-}
-
-function isCreator(user) {
-  return user && user.classKey === "creator";
-}
-
-function getClickReward(user) {
-  return getClassData(user.classKey).clickReward;
-}
-
-function getPassiveIncome(user) {
-  let total = getClassData(user.classKey).passivePerMin;
-
-  user.businesses.forEach(id => {
-    const business = businessCatalog.find(item => item.id === id);
-    if (business) total += business.income;
-  });
-
-  user.realty.forEach(id => {
-    const realty = realtyCatalog.find(item => item.id === id);
-    if (realty) total += realty.income;
-  });
-
-  return total;
-}
-
-function calculateCapitalUsd(user) {
-  let totalUah = user.balance + user.usd * appState.usdRate;
-
-  Object.entries(user.crypto).forEach(([symbol, amount]) => {
-    const crypto = appState.market.crypto[symbol];
-    if (crypto) totalUah += amount * crypto.price;
-  });
-
-  Object.entries(user.stocks).forEach(([stockId, amount]) => {
-    const stock = appState.market.stocks.find(item => item.id === stockId);
-    if (stock) totalUah += amount * stock.price;
-  });
-
-  user.businesses.forEach(id => {
-    const business = businessCatalog.find(item => item.id === id);
-    if (business) totalUah += business.price;
-  });
-
-  user.realty.forEach(id => {
-    const realty = realtyCatalog.find(item => item.id === id);
-    if (realty) totalUah += realty.price;
-  });
-
-  user.cars.forEach(id => {
-    const car = carCatalog.find(item => item.id === id);
-    if (car) totalUah += car.priceUsd * appState.usdRate;
-  });
-
-  return totalUah / appState.usdRate;
-}
-
-function addHistory(user, text, amount = null) {
-  user.history.unshift({
-    text,
-    amount,
-    time: Date.now()
-  });
-  user.history = user.history.slice(0, 140);
-}
-
-function addMoney(user, amount, historyText = "") {
-  user.balance += amount;
-  if (amount > 0) {
-    user.totalEarned += amount;
-  }
-  if (historyText) {
-    addHistory(user, historyText, amount);
-  }
-}
-
-function normalizeRecipient(input, currentNickname) {
-  const value = sanitize(input).toLowerCase();
-  if (!value) return "";
-  if (value === "me" || value === currentNickname.toLowerCase()) {
-    return currentNickname;
-  }
-  return value;
-}
-
-function getOnlinePlayersDetailed() {
-  const now = Date.now();
-
-  return Object.entries(appState.users)
-    .filter(([, user]) => !user.banned && now - user.lastSeen < 120000)
-    .map(([name, user]) => ({
-      name,
-      ...user
-    }));
-}
-
-function promptCvv(user, reasonText = "") {
-  const promptText = reasonText || tr("codeNeeded");
-  const entered = prompt(`${promptText} (CVV)`);
-  if (entered === null) return false;
-  if (String(entered) !== String(user.cardCvv)) {
-    showToast(tr("wrongCode"), true);
-    return false;
-  }
-  return true;
+function loadSession() {
+  const raw = localStorage.getItem(LOCAL_SESSION_KEY);
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    appState.currentUser = parsed.username || null;
+    appState.lang = parsed.lang || "uk";
+    appState.soundEnabled = parsed.soundEnabled !== false;
+  } catch (error) {}
 }
 
 function imageTag(src, alt) {
@@ -739,27 +484,315 @@ function showToast(text, isError = false) {
   toast.style.zIndex = "9999";
   toast.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
+  setTimeout(() => toast.remove(), 2600);
 }
 
-// -----------------------------
-// UI UPDATE
-// -----------------------------
+function parseJsonField(value, fallback) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizePlayer(row) {
+  return {
+    ...row,
+    crypto: parseJsonField(row.crypto, {}),
+    stocks: parseJsonField(row.stocks, {}),
+    businesses: parseJsonField(row.businesses, []),
+    realty: parseJsonField(row.realty, []),
+    cars: parseJsonField(row.cars, []),
+    history_cache: parseJsonField(row.history_cache, [])
+  };
+}
+
+function getCurrentUserRow() {
+  return appState.allPlayers.find(p => p.username === appState.currentUser) || null;
+}
+
+function getClassData(key) {
+  return CLASS_MAP[key];
+}
+
+function classIndex(key) {
+  return getClassData(key).index;
+}
+
+function hasStocksAccess(user) {
+  return classIndex(user.class) >= classIndex("trader");
+}
+
+function hasBusinessAccess(user) {
+  return classIndex(user.class) >= classIndex("businessman");
+}
+
+function hasVipAccess(user) {
+  return classIndex(user.class) >= classIndex("vip");
+}
+
+function isCreator(user) {
+  return user && user.class === "creator";
+}
+
+function getClickReward(user) {
+  return getClassData(user.class).clickReward;
+}
+
+function getPassiveIncome(user) {
+  let total = getClassData(user.class).passivePerMin;
+
+  user.businesses.forEach(id => {
+    const business = BUSINESS_CATALOG.find(item => item.id === id);
+    if (business) total += business.income;
+  });
+
+  user.realty.forEach(id => {
+    const realty = REALTY_CATALOG.find(item => item.id === id);
+    if (realty) total += realty.income;
+  });
+
+  return total;
+}
+
+function calculateCapitalUsd(user) {
+  let totalUah = Number(user.balance || 0) + Number(user.usd || 0) * appState.usdRate;
+
+  Object.entries(user.crypto || {}).forEach(([symbol, amount]) => {
+    const item = appState.market.crypto[symbol];
+    if (item) totalUah += Number(amount) * Number(item.price);
+  });
+
+  Object.entries(user.stocks || {}).forEach(([stockId, amount]) => {
+    const item = appState.market.stocks.find(stock => stock.id === stockId);
+    if (item) totalUah += Number(amount) * Number(item.price);
+  });
+
+  (user.businesses || []).forEach(id => {
+    const item = BUSINESS_CATALOG.find(x => x.id === id);
+    if (item) totalUah += item.price;
+  });
+
+  (user.realty || []).forEach(id => {
+    const item = REALTY_CATALOG.find(x => x.id === id);
+    if (item) totalUah += item.price;
+  });
+
+  (user.cars || []).forEach(id => {
+    const item = CAR_CATALOG.find(x => x.id === id);
+    if (item) totalUah += item.priceUsd * appState.usdRate;
+  });
+
+  return totalUah / appState.usdRate;
+}
+
+function promptCvv(user, label) {
+  const entered = prompt(`${label || tr("purchaseRequiresCvv")} (CVV)`);
+  if (entered === null) return false;
+  if (String(entered) !== String(user.card_cvv)) {
+    showToast(tr("wrongCode"), true);
+    return false;
+  }
+  return true;
+}
+
+function normalizeRecipient(value, currentNickname) {
+  const clean = sanitize(value).toLowerCase();
+  if (!clean) return "";
+  if (clean === "me" || clean === currentNickname.toLowerCase()) return currentNickname;
+  return clean;
+}
+
+async function fetchAllPlayers() {
+  const { data, error } = await supabaseClient.from("players").select("*");
+  if (error) {
+    console.error(error);
+    showToast(tr("serverError"), true);
+    return [];
+  }
+  appState.allPlayers = (data || []).map(normalizePlayer);
+  appState.onlinePlayers = appState.allPlayers.filter(player => Date.now() - new Date(player.last_seen).getTime() < 120000 && !player.banned);
+  return appState.allPlayers;
+}
+
+async function fetchGameState() {
+  const { data, error } = await supabaseClient
+    .from("game_state")
+    .select("*")
+    .eq("id", 1)
+    .single();
+
+  if (!error && data) {
+    appState.supportBank = Number(data.support_bank || 0);
+    appState.commissionBank = Number(data.commission_bank || 0);
+    appState.globalMessage = data.global_message || "";
+  }
+}
+
+async function saveGameState() {
+  await supabaseClient.from("game_state").upsert({
+    id: 1,
+    support_bank: appState.supportBank,
+    commission_bank: appState.commissionBank,
+    global_message: appState.globalMessage
+  });
+}
+
+async function appendHistory(username, text, amount = null) {
+  await supabaseClient.from("history").insert({
+    username,
+    text,
+    amount
+  });
+}
+
+async function fetchHistory(username) {
+  const { data, error } = await supabaseClient
+    .from("history")
+    .select("*")
+    .eq("username", username)
+    .order("created_at", { ascending: false })
+    .limit(120);
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return data || [];
+}
+
+async function updatePlayer(username, patch) {
+  const prepared = { ...patch };
+
+  if (prepared.crypto && typeof prepared.crypto === "object") prepared.crypto = JSON.stringify(prepared.crypto);
+  if (prepared.stocks && typeof prepared.stocks === "object") prepared.stocks = JSON.stringify(prepared.stocks);
+  if (prepared.businesses && Array.isArray(prepared.businesses)) prepared.businesses = JSON.stringify(prepared.businesses);
+  if (prepared.realty && Array.isArray(prepared.realty)) prepared.realty = JSON.stringify(prepared.realty);
+  if (prepared.cars && Array.isArray(prepared.cars)) prepared.cars = JSON.stringify(prepared.cars);
+  if (prepared.history_cache && Array.isArray(prepared.history_cache)) prepared.history_cache = JSON.stringify(prepared.history_cache);
+
+  const { error } = await supabaseClient
+    .from("players")
+    .update(prepared)
+    .eq("username", username);
+
+  if (error) {
+    console.error(error);
+    showToast(tr("serverError"), true);
+    return false;
+  }
+
+  return true;
+}
+
+async function createPlayer(username, password) {
+  const player = {
+    username,
+    password,
+    balance: 500,
+    usd: 0,
+    total_earned: 500,
+    class: "none",
+    device: currentDeviceType(),
+    crypto: JSON.stringify({}),
+    stocks: JSON.stringify({}),
+    businesses: JSON.stringify([]),
+    realty: JSON.stringify([]),
+    cars: JSON.stringify([]),
+    history_cache: JSON.stringify([]),
+    card_name: "BitBank Card",
+    card_color: "black",
+    card_cvv: String(rand(100, 999)),
+    card_number: generateCardNumber(),
+    card_expiry: generateCardExpiry(),
+    banned: false,
+    last_bonus_day: "",
+    vip_giveaway_day: "",
+    last_seen: new Date().toISOString()
+  };
+
+  const { error } = await supabaseClient.from("players").insert(player);
+
+  if (error) {
+    console.error(error);
+    showToast(tr("userExists"), true);
+    return false;
+  }
+
+  await appendHistory(username, tr("userCreated"));
+  return true;
+}
+
+async function applyOfflineIncome(user) {
+  const previous = new Date(user.last_seen).getTime();
+  const now = Date.now();
+  const minutesAway = Math.floor((now - previous) / 60000);
+
+  if (minutesAway <= 0) return;
+
+  const passive = getPassiveIncome(user);
+  if (passive <= 0) return;
+
+  const income = passive * minutesAway;
+
+  await updatePlayer(user.username, {
+    balance: Number(user.balance) + income,
+    total_earned: Number(user.total_earned) + income
+  });
+
+  await appendHistory(user.username, `${appState.lang === "uk" ? "Офлайн дохід" : "Offline income"}: +${formatNum(income)} грн`, income);
+}
+
+async function loginPlayer(username, password) {
+  const { data, error } = await supabaseClient
+    .from("players")
+    .select("*")
+    .eq("username", username)
+    .eq("password", password)
+    .maybeSingle();
+
+  if (error || !data) {
+    showToast(tr("loginError"), true);
+    return null;
+  }
+
+  const user = normalizePlayer(data);
+
+  if (user.banned) {
+    showToast(tr("accountBanned"), true);
+    return null;
+  }
+
+  await applyOfflineIncome(user);
+
+  await updatePlayer(username, {
+    last_seen: new Date().toISOString(),
+    device: currentDeviceType()
+  });
+
+  appState.currentUser = username;
+  saveSession();
+
+  return user;
+}
+
 function updateHeader() {
-  const user = getCurrentUser();
+  const user = getCurrentUserRow();
   if (!user) return;
 
-  document.getElementById("header-username").textContent = appState.currentUser;
-  document.getElementById("header-status").textContent = getClassData(user.classKey).title.toUpperCase();
+  document.getElementById("header-username").textContent = user.username;
+  document.getElementById("header-status").textContent = getClassData(user.class).title.toUpperCase();
   document.getElementById("header-online").textContent = tr("online");
-  document.getElementById("header-device").textContent = user.deviceType === "phone"
-    ? `📱 ${tr("phone")}`
-    : `🖥 ${tr("desktop")}`;
+  document.getElementById("header-device").textContent = user.device === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`;
   document.getElementById("balance-uah").textContent = formatNum(user.balance);
   document.getElementById("balance-usd").textContent = formatNum(user.usd);
-
   document.getElementById("vip-giveaway-btn").classList.toggle("hidden", !hasVipAccess(user));
   document.getElementById("admin-nav").classList.toggle("hidden", !isCreator(user));
+  document.getElementById("lang-btn").textContent = appState.lang === "uk" ? "EN" : "UA";
+  document.getElementById("toggle-sound-btn").textContent = appState.soundEnabled ? "🔊 Звук" : "🔇 Звук";
 
   const globalMessageBox = document.getElementById("global-message");
   if (appState.globalMessage) {
@@ -769,9 +802,6 @@ function updateHeader() {
     globalMessageBox.classList.add("hidden");
     globalMessageBox.textContent = "";
   }
-
-  document.getElementById("lang-btn").textContent = appState.lang === "uk" ? "EN" : "UA";
-  document.getElementById("toggle-sound-btn").textContent = appState.soundEnabled ? "🔊 Звук" : "🔇 Звук";
 }
 
 function setActivePage(page) {
@@ -780,32 +810,47 @@ function setActivePage(page) {
   });
 }
 
-// -----------------------------
-// PROFILE
-// -----------------------------
-function renderProfilePage() {
-  const user = getCurrentUser();
-  const classData = getClassData(user.classKey);
+function openColorModal() {
+  document.getElementById("color-modal").classList.remove("hidden");
+}
+
+function closeColorModal() {
+  document.getElementById("color-modal").classList.add("hidden");
+}
+
+function closeSidebar() {
+  document.getElementById("sidebar").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");
+}
+
+async function renderProfilePage() {
+  await fetchAllPlayers();
+  await fetchGameState();
+
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  const classData = getClassData(user.class);
 
   const titles = [];
-  if (user.classKey === "creator") titles.push("👑 Creator");
-  if (user.realty.includes("paradise")) titles.push("🏝 Island Lord");
-  if (user.businesses.includes("it")) titles.push("💻 Tech Boss");
-  if (user.cars.includes("huracan")) titles.push("🔥 Supercar Owner");
+  if (user.class === "creator") titles.push("👑 Creator");
+  if ((user.realty || []).includes("paradise")) titles.push("🏝 Island Lord");
+  if ((user.businesses || []).includes("it")) titles.push("💻 Tech Boss");
+  if ((user.cars || []).includes("huracan")) titles.push("🔥 Supercar Owner");
 
-  const profileHtml = `
+  document.getElementById("page-content").innerHTML = `
     <h2 class="page-title">🏠 ${tr("profile")}</h2>
 
     <div class="profile-layout">
       <div class="panel">
-        <div class="card-visual ${cardColorClass(user.cardColor)}">
+        <div class="card-visual ${cardColorClass(user.card_color)}">
           <div class="card-chip"></div>
-          <div class="card-number">${user.cardNumber}</div>
+          <div class="card-number">${user.card_number}</div>
           <div class="card-bottom">
-            <span>CVV: ${user.cardCvv}</span>
-            <span>${user.cardExpiry}</span>
+            <span>CVV: ${user.card_cvv}</span>
+            <span>${user.card_expiry}</span>
           </div>
-          <div class="card-brand">${user.cardName}</div>
+          <div class="card-brand">${user.card_name}</div>
         </div>
 
         <h3>${tr("profileCardActions")}</h3>
@@ -832,7 +877,7 @@ function renderProfilePage() {
           </div>
 
           <div class="stat-card">
-            <div class="label">${tr("allTimeCapital")}</div>
+            <div class="label">${tr("totalAssets")}</div>
             <div class="value">${formatNum(calculateCapitalUsd(user))} USD</div>
           </div>
 
@@ -855,12 +900,12 @@ function renderProfilePage() {
         <div class="top-extra">
           <div class="stat-card">
             <div class="label">${tr("lifetimeEarned")}</div>
-            <div class="value">${formatNum(user.totalEarned)} грн</div>
+            <div class="value">${formatNum(user.total_earned)} грн</div>
           </div>
 
           <div class="stat-card">
             <div class="label">${tr("deviceType")}</div>
-            <div class="value">${user.deviceType === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`}</div>
+            <div class="value">${user.device === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`}</div>
           </div>
 
           <div class="stat-card">
@@ -894,104 +939,94 @@ function renderProfilePage() {
     </div>
   `;
 
-  document.getElementById("page-content").innerHTML = profileHtml;
+  updateHeader();
 
   document.getElementById("profile-go-classes-btn").onclick = () => renderClassesPage();
 
-  document.getElementById("profile-change-name-btn").onclick = () => {
-    const newName = prompt(appState.lang === "uk" ? "Нова назва карти" : "New card name", user.cardName);
+  document.getElementById("profile-change-name-btn").onclick = async () => {
+    const newName = prompt(appState.lang === "uk" ? "Нова назва карти" : "New card name", user.card_name);
     if (!newName) return;
-    user.cardName = newName.slice(0, 24);
-    saveAppState();
+    const ok = await updatePlayer(user.username, { card_name: newName.slice(0, 24) });
+    if (!ok) return;
     playBeep(640);
     showToast(tr("cardNameChanged"));
-    renderProfilePage();
+    await renderProfilePage();
   };
 
-  document.getElementById("profile-change-color-btn").onclick = () => {
-    document.getElementById("color-modal").classList.remove("hidden");
-  };
+  document.getElementById("profile-change-color-btn").onclick = openColorModal;
 
-  document.getElementById("profile-daily-bonus-btn").onclick = () => {
-    const today = todayString();
-    if (user.lastBonusDay === today) {
+  document.getElementById("profile-daily-bonus-btn").onclick = async () => {
+    if (user.last_bonus_day === todayString()) {
       showToast(tr("dailyBonusTaken"), true);
       return;
     }
+
     const bonus = rand(150, 650);
-    user.lastBonusDay = today;
-    addMoney(user, bonus, `${tr("dailyBonus")}: +${formatNum(bonus)} грн`);
-    saveAppState();
+    const ok = await updatePlayer(user.username, {
+      balance: Number(user.balance) + bonus,
+      total_earned: Number(user.total_earned) + bonus,
+      last_bonus_day: todayString()
+    });
+
+    if (!ok) return;
+
+    await appendHistory(user.username, `${tr("dailyBonus")}: +${formatNum(bonus)} грн`, bonus);
     playBeep(760);
     showToast(`${tr("dailyBonusGot")} +${bonus}`);
-    updateHeader();
-    renderProfilePage();
+    await renderProfilePage();
   };
 
-  document.getElementById("buy-usd-btn").onclick = () => {
+  document.getElementById("buy-usd-btn").onclick = async () => {
     const amountUah = Number(document.getElementById("buy-usd-uah").value);
-    if (!amountUah || amountUah <= 0) {
-      showToast(tr("invalidData"), true);
-      return;
-    }
+    if (!amountUah || amountUah <= 0) return showToast(tr("invalidData"), true);
     if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
-    if (user.balance < amountUah) {
-      showToast(tr("insufficientFunds"), true);
-      return;
-    }
+    if (Number(user.balance) < amountUah) return showToast(tr("insufficientFunds"), true);
 
     const usdAmount = amountUah / appState.usdRate;
-    user.balance -= amountUah;
-    user.usd += usdAmount;
-    addHistory(user, `${tr("buyUsd")}: ${formatNum(usdAmount)} USD`);
-    saveAppState();
+    const ok = await updatePlayer(user.username, {
+      balance: Number(user.balance) - amountUah,
+      usd: Number(user.usd) + usdAmount
+    });
+    if (!ok) return;
+
+    await appendHistory(user.username, `${tr("buyUsd")}: ${formatNum(usdAmount)} USD`);
     playBeep(560);
-    updateHeader();
-    renderProfilePage();
+    await renderProfilePage();
   };
 
-  document.getElementById("sell-usd-btn").onclick = () => {
+  document.getElementById("sell-usd-btn").onclick = async () => {
     const usdAmount = Number(document.getElementById("sell-usd-amount").value);
-    if (!usdAmount || usdAmount <= 0) {
-      showToast(tr("invalidData"), true);
-      return;
-    }
+    if (!usdAmount || usdAmount <= 0) return showToast(tr("invalidData"), true);
     if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
-    if (user.usd < usdAmount) {
-      showToast(tr("insufficientFunds"), true);
-      return;
-    }
+    if (Number(user.usd) < usdAmount) return showToast(tr("insufficientFunds"), true);
 
     const uahAmount = usdAmount * appState.usdRate;
-    user.usd -= usdAmount;
-    user.balance += uahAmount;
-    addHistory(user, `${tr("sellUsd")}: +${formatNum(uahAmount)} грн`);
-    saveAppState();
+    const ok = await updatePlayer(user.username, {
+      usd: Number(user.usd) - usdAmount,
+      balance: Number(user.balance) + uahAmount
+    });
+    if (!ok) return;
+
+    await appendHistory(user.username, `${tr("sellUsd")}: +${formatNum(uahAmount)} грн`);
     playBeep(520);
-    updateHeader();
-    renderProfilePage();
+    await renderProfilePage();
   };
 }
 
-// -----------------------------
-// CLASSES
-// -----------------------------
-function renderClassesPage() {
-  const user = getCurrentUser();
+async function renderClassesPage() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
 
-  const classesHtml = classList
+  const html = classList
     .filter(item => item.key !== "creator")
     .map(item => {
-      const currentIndex = classIndex(user.classKey);
-      const targetIndex = classIndex(item.key);
-
-      const alreadyOwnedOrHigher = currentIndex >= targetIndex;
-      const canBuy = targetIndex === currentIndex + 1;
+      const ownedOrHigher = classIndex(user.class) >= classIndex(item.key);
+      const canBuy = classIndex(item.key) === classIndex(user.class) + 1;
 
       return `
         <div class="class-card">
           <h4>${item.title}</h4>
-          <div class="sub">${tr("classAccess")}</div>
           <div class="class-price">${formatNum(item.price)} грн</div>
           <div class="class-benefit">
             <b>${tr("classBenefits")}:</b><br>
@@ -999,9 +1034,8 @@ function renderClassesPage() {
             <b>+${formatNum(item.clickReward)} грн</b> ${appState.lang === "uk" ? "за клік" : "per click"}<br>
             <b>+${formatNum(item.passivePerMin)} грн</b> ${appState.lang === "uk" ? "пасивно/хв" : "passive/min"}
           </div>
-
           ${
-            alreadyOwnedOrHigher
+            ownedOrHigher
               ? `<button class="class-buy-btn" disabled>${tr("owned")}</button>`
               : canBuy
                 ? `<button class="class-buy-btn" data-buy-class="${item.key}">${tr("buyClass")}</button>`
@@ -1013,62 +1047,54 @@ function renderClassesPage() {
 
   document.getElementById("page-content").innerHTML = `
     <h2 class="page-title">⭐ ${tr("classes")}</h2>
-    <div class="grid cards">${classesHtml}</div>
+    <div class="grid cards">${html}</div>
   `;
 
   document.querySelectorAll("[data-buy-class]").forEach(button => {
-    button.onclick = () => {
+    button.onclick = async () => {
       const targetKey = button.dataset.buyClass;
-      const targetClass = getClassData(targetKey);
+      const target = getClassData(targetKey);
 
       if (!promptCvv(user, tr("classRequiresCvv"))) return;
-      if (user.balance < targetClass.price) {
-        showToast(tr("insufficientFunds"), true);
-        return;
-      }
+      if (Number(user.balance) < target.price) return showToast(tr("insufficientFunds"), true);
+      if (classIndex(targetKey) !== classIndex(user.class) + 1) return showToast(tr("invalidData"), true);
 
-      if (classIndex(targetKey) !== classIndex(user.classKey) + 1) {
-        showToast(tr("invalidData"), true);
-        return;
-      }
+      const ok = await updatePlayer(user.username, {
+        balance: Number(user.balance) - target.price,
+        class: targetKey
+      });
+      if (!ok) return;
 
-      user.balance -= targetClass.price;
-      user.classKey = targetKey;
-      addHistory(user, `${tr("buyClass")}: ${targetClass.title}`);
-      saveAppState();
+      await appendHistory(user.username, `${tr("buyClass")}: ${target.title}`);
       playBeep(820);
       showToast(tr("upgradeSuccess"));
-      updateHeader();
-      renderClassesPage();
+      await renderClassesPage();
     };
   });
 }
 
-// -----------------------------
-// CRYPTO
-// -----------------------------
-function renderCryptoPage() {
-  const user = getCurrentUser();
+async function renderCryptoPage() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
 
-  const html = Object.values(appState.market.crypto).map(crypto => {
-    const own = user.crypto[crypto.symbol] || 0;
-
+  const html = Object.values(appState.market.crypto).map(item => {
+    const own = Number(user.crypto[item.symbol] || 0);
     return `
       <div class="asset-card">
         <div class="asset-head">
-          ${imageTag(crypto.img, crypto.name)}
+          ${imageTag(item.img, item.name)}
           <div>
-            <h4>${crypto.name} (${crypto.symbol})</h4>
-            <div class="sub">${tr("buyFor")}: ${formatNum(crypto.price)} грн</div>
+            <h4>${item.name} (${item.symbol})</h4>
+            <div class="sub">${tr("buyFor")}: ${formatNum(item.price)} грн</div>
           </div>
         </div>
 
         <div class="sub">${tr("balance")}: ${formatNum(own)}</div>
-        <input id="crypto-amount-${crypto.symbol}" type="number" step="0.0001" placeholder="${tr("amount")}">
-
+        <input id="crypto-amount-${item.symbol}" type="number" step="0.0001" placeholder="${tr("amount")}">
         <div class="asset-actions">
-          <button data-buy-crypto="${crypto.symbol}">${tr("buy")}</button>
-          <button data-sell-crypto="${crypto.symbol}">${tr("sell")}</button>
+          <button data-buy-crypto="${item.symbol}">${tr("buy")}</button>
+          <button data-sell-crypto="${item.symbol}">${tr("sell")}</button>
         </div>
       </div>
     `;
@@ -1080,82 +1106,67 @@ function renderCryptoPage() {
   `;
 
   document.querySelectorAll("[data-buy-crypto]").forEach(button => {
-    button.onclick = () => {
+    button.onclick = async () => {
       const symbol = button.dataset.buyCrypto;
-      const crypto = appState.market.crypto[symbol];
+      const item = appState.market.crypto[symbol];
       const amount = Number(document.getElementById(`crypto-amount-${symbol}`).value);
-
-      if (!amount || amount <= 0) {
-        showToast(tr("invalidData"), true);
-        return;
-      }
-
+      if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
       if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
 
-      const totalCost = amount * crypto.price;
-      if (user.balance < totalCost) {
-        showToast(tr("insufficientFunds"), true);
-        return;
-      }
+      const totalCost = amount * item.price;
+      if (Number(user.balance) < totalCost) return showToast(tr("insufficientFunds"), true);
 
-      user.balance -= totalCost;
-      user.crypto[symbol] = (user.crypto[symbol] || 0) + amount;
-      addHistory(user, `${tr("buy")} ${formatNum(amount)} ${symbol}`);
-      saveAppState();
+      const newCrypto = { ...user.crypto, [symbol]: Number(user.crypto[symbol] || 0) + amount };
+      const ok = await updatePlayer(user.username, {
+        balance: Number(user.balance) - totalCost,
+        crypto: newCrypto
+      });
+      if (!ok) return;
+
+      await appendHistory(user.username, `${tr("buy")} ${formatNum(amount)} ${symbol}`);
       playBeep(640);
-      updateHeader();
-      renderCryptoPage();
+      await renderCryptoPage();
     };
   });
 
   document.querySelectorAll("[data-sell-crypto]").forEach(button => {
-    button.onclick = () => {
+    button.onclick = async () => {
       const symbol = button.dataset.sellCrypto;
-      const crypto = appState.market.crypto[symbol];
+      const item = appState.market.crypto[symbol];
       const amount = Number(document.getElementById(`crypto-amount-${symbol}`).value);
-
-      if (!amount || amount <= 0) {
-        showToast(tr("invalidData"), true);
-        return;
-      }
-
+      if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
       if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+      if (Number(user.crypto[symbol] || 0) < amount) return showToast(tr("insufficientFunds"), true);
 
-      if ((user.crypto[symbol] || 0) < amount) {
-        showToast(tr("notEnoughCrypto"), true);
-        return;
-      }
+      const newCrypto = { ...user.crypto, [symbol]: Number(user.crypto[symbol] || 0) - amount };
+      const ok = await updatePlayer(user.username, {
+        balance: Number(user.balance) + amount * item.price,
+        crypto: newCrypto
+      });
+      if (!ok) return;
 
-      user.crypto[symbol] -= amount;
-      user.balance += amount * crypto.price;
-      addHistory(user, `${tr("sell")} ${formatNum(amount)} ${symbol}`);
-      saveAppState();
+      await appendHistory(user.username, `${tr("sell")} ${formatNum(amount)} ${symbol}`);
       playBeep(560);
-      updateHeader();
-      renderCryptoPage();
+      await renderCryptoPage();
     };
   });
 }
 
-// -----------------------------
-// STOCKS
-// -----------------------------
-function renderStocksPage() {
-  const user = getCurrentUser();
+async function renderStocksPage() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
 
   if (!hasStocksAccess(user)) {
     document.getElementById("page-content").innerHTML = `
       <h2 class="page-title">📈 ${tr("stocks")}</h2>
-      <div class="panel">
-        <p>${tr("stocksLocked")}</p>
-      </div>
+      <div class="panel"><p>${tr("noAccessStocks")}</p></div>
     `;
     return;
   }
 
   const html = appState.market.stocks.map(stock => {
-    const own = user.stocks[stock.id] || 0;
-
+    const own = Number(user.stocks[stock.id] || 0);
     return `
       <div class="asset-card">
         <div class="asset-head">
@@ -1168,7 +1179,6 @@ function renderStocksPage() {
 
         <div class="sub">${tr("balance")}: ${formatNum(own)}</div>
         <input id="stock-amount-${stock.id}" type="number" step="0.01" placeholder="${tr("amount")}">
-
         <div class="asset-actions">
           <button data-buy-stock="${stock.id}">${tr("buy")}</button>
           <button data-sell-stock="${stock.id}">${tr("sell")}</button>
@@ -1183,98 +1193,80 @@ function renderStocksPage() {
   `;
 
   document.querySelectorAll("[data-buy-stock]").forEach(button => {
-    button.onclick = () => {
+    button.onclick = async () => {
       const id = button.dataset.buyStock;
       const stock = appState.market.stocks.find(item => item.id === id);
       const amount = Number(document.getElementById(`stock-amount-${id}`).value);
 
-      if (!amount || amount <= 0) {
-        showToast(tr("invalidData"), true);
-        return;
-      }
-
+      if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
       if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
 
       const totalCost = amount * stock.price;
-      if (user.balance < totalCost) {
-        showToast(tr("insufficientFunds"), true);
-        return;
-      }
+      if (Number(user.balance) < totalCost) return showToast(tr("insufficientFunds"), true);
 
-      user.balance -= totalCost;
-      user.stocks[id] = (user.stocks[id] || 0) + amount;
-      addHistory(user, `${tr("buy")} ${formatNum(amount)} ${stock.name}`);
-      saveAppState();
+      const newStocks = { ...user.stocks, [id]: Number(user.stocks[id] || 0) + amount };
+      const ok = await updatePlayer(user.username, {
+        balance: Number(user.balance) - totalCost,
+        stocks: newStocks
+      });
+      if (!ok) return;
+
+      await appendHistory(user.username, `${tr("buy")} ${formatNum(amount)} ${stock.name}`);
       playBeep(670);
-      updateHeader();
-      renderStocksPage();
+      await renderStocksPage();
     };
   });
 
   document.querySelectorAll("[data-sell-stock]").forEach(button => {
-    button.onclick = () => {
+    button.onclick = async () => {
       const id = button.dataset.sellStock;
       const stock = appState.market.stocks.find(item => item.id === id);
       const amount = Number(document.getElementById(`stock-amount-${id}`).value);
 
-      if (!amount || amount <= 0) {
-        showToast(tr("invalidData"), true);
-        return;
-      }
-
+      if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
       if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+      if (Number(user.stocks[id] || 0) < amount) return showToast(tr("insufficientFunds"), true);
 
-      if ((user.stocks[id] || 0) < amount) {
-        showToast(tr("insufficientFunds"), true);
-        return;
-      }
+      const newStocks = { ...user.stocks, [id]: Number(user.stocks[id] || 0) - amount };
+      const ok = await updatePlayer(user.username, {
+        balance: Number(user.balance) + amount * stock.price,
+        stocks: newStocks
+      });
+      if (!ok) return;
 
-      user.stocks[id] -= amount;
-      user.balance += amount * stock.price;
-      addHistory(user, `${tr("sell")} ${formatNum(amount)} ${stock.name}`);
-      saveAppState();
+      await appendHistory(user.username, `${tr("sell")} ${formatNum(amount)} ${stock.name}`);
       playBeep(590);
-      updateHeader();
-      renderStocksPage();
+      await renderStocksPage();
     };
   });
 }
 
-// -----------------------------
-// BUSINESS
-// -----------------------------
-function renderBusinessPage() {
-  const user = getCurrentUser();
+async function renderBusinessPage() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
 
   if (!hasBusinessAccess(user)) {
     document.getElementById("page-content").innerHTML = `
       <h2 class="page-title">🏢 ${tr("business")}</h2>
-      <div class="panel">
-        <p>${tr("businessLocked")}</p>
-      </div>
+      <div class="panel"><p>${tr("noAccessBusiness")}</p></div>
     `;
     return;
   }
 
-  const html = businessCatalog.map(business => {
-    const owned = user.businesses.includes(business.id);
-
+  const html = BUSINESS_CATALOG.map(item => {
+    const owned = user.businesses.includes(item.id);
     return `
       <div class="asset-card">
         <div class="asset-head">
-          ${imageTag(business.img, business.name)}
+          ${imageTag(item.img, item.name)}
           <div>
-            <h4>${business.name}</h4>
-            <div class="sub">${tr("buyFor")}: ${formatNum(business.price)} грн • ${business.income}/хв</div>
+            <h4>${item.name}</h4>
+            <div class="sub">${tr("buyFor")}: ${formatNum(item.price)} грн • ${item.income}/хв</div>
           </div>
         </div>
-
         <div class="asset-actions">
-          ${
-            owned
-              ? `<button disabled>${tr("owned")}</button>`
-              : `<button data-buy-business="${business.id}">${tr("buy")}</button>`
-          }
+          ${owned ? `<button disabled>${tr("owned")}</button>` : `<button data-buy-business="${item.id}">${tr("buy")}</button>`}
         </div>
       </div>
     `;
@@ -1286,53 +1278,45 @@ function renderBusinessPage() {
   `;
 
   document.querySelectorAll("[data-buy-business]").forEach(button => {
-    button.onclick = () => {
+    button.onclick = async () => {
       const id = button.dataset.buyBusiness;
-      const business = businessCatalog.find(item => item.id === id);
+      const item = BUSINESS_CATALOG.find(x => x.id === id);
 
       if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+      if (Number(user.balance) < item.price) return showToast(tr("insufficientFunds"), true);
 
-      if (user.balance < business.price) {
-        showToast(tr("insufficientFunds"), true);
-        return;
-      }
+      const updated = [...user.businesses, id];
+      const ok = await updatePlayer(user.username, {
+        balance: Number(user.balance) - item.price,
+        businesses: updated
+      });
+      if (!ok) return;
 
-      user.balance -= business.price;
-      user.businesses.push(id);
-      addHistory(user, `${tr("buy")} ${business.name}`);
-      saveAppState();
+      await appendHistory(user.username, `${tr("buy")} ${item.name}`);
       playBeep(700);
-      updateHeader();
-      renderBusinessPage();
+      await renderBusinessPage();
     };
   });
 }
 
-// -----------------------------
-// REALTY
-// -----------------------------
-function renderRealtyPage() {
-  const user = getCurrentUser();
+async function renderRealtyPage() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
 
-  const html = realtyCatalog.map(realty => {
-    const owned = user.realty.includes(realty.id);
-
+  const html = REALTY_CATALOG.map(item => {
+    const owned = user.realty.includes(item.id);
     return `
       <div class="asset-card">
         <div class="asset-head">
-          ${imageTag(realty.img, realty.name)}
+          ${imageTag(item.img, item.name)}
           <div>
-            <h4>${realty.name}</h4>
-            <div class="sub">${tr("buyFor")}: ${formatNum(realty.price)} грн • ${realty.income}/хв</div>
+            <h4>${item.name}</h4>
+            <div class="sub">${tr("buyFor")}: ${formatNum(item.price)} грн • ${item.income}/хв</div>
           </div>
         </div>
-
         <div class="asset-actions">
-          ${
-            owned
-              ? `<button disabled>${tr("owned")}</button>`
-              : `<button data-buy-realty="${realty.id}">${tr("buy")}</button>`
-          }
+          ${owned ? `<button disabled>${tr("owned")}</button>` : `<button data-buy-realty="${item.id}">${tr("buy")}</button>`}
         </div>
       </div>
     `;
@@ -1344,53 +1328,45 @@ function renderRealtyPage() {
   `;
 
   document.querySelectorAll("[data-buy-realty]").forEach(button => {
-    button.onclick = () => {
+    button.onclick = async () => {
       const id = button.dataset.buyRealty;
-      const realty = realtyCatalog.find(item => item.id === id);
+      const item = REALTY_CATALOG.find(x => x.id === id);
 
       if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+      if (Number(user.balance) < item.price) return showToast(tr("insufficientFunds"), true);
 
-      if (user.balance < realty.price) {
-        showToast(tr("insufficientFunds"), true);
-        return;
-      }
+      const updated = [...user.realty, id];
+      const ok = await updatePlayer(user.username, {
+        balance: Number(user.balance) - item.price,
+        realty: updated
+      });
+      if (!ok) return;
 
-      user.balance -= realty.price;
-      user.realty.push(id);
-      addHistory(user, `${tr("buy")} ${realty.name}`);
-      saveAppState();
+      await appendHistory(user.username, `${tr("buy")} ${item.name}`);
       playBeep(710);
-      updateHeader();
-      renderRealtyPage();
+      await renderRealtyPage();
     };
   });
 }
 
-// -----------------------------
-// CARS
-// -----------------------------
-function renderCarsPage() {
-  const user = getCurrentUser();
+async function renderCarsPage() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
 
-  const html = carCatalog.map(car => {
-    const owned = user.cars.includes(car.id);
-
+  const html = CAR_CATALOG.map(item => {
+    const owned = user.cars.includes(item.id);
     return `
       <div class="asset-card">
         <div class="asset-head">
-          ${imageTag(car.img, car.name)}
+          ${imageTag(item.img, item.name)}
           <div>
-            <h4>${car.name}</h4>
-            <div class="sub">${tr("buyFor")}: ${formatNum(car.priceUsd)} USD</div>
+            <h4>${item.name}</h4>
+            <div class="sub">${tr("buyFor")}: ${formatNum(item.priceUsd)} USD</div>
           </div>
         </div>
-
         <div class="asset-actions">
-          ${
-            owned
-              ? `<button disabled>${tr("owned")}</button>`
-              : `<button data-buy-car="${car.id}">${tr("buy")}</button>`
-          }
+          ${owned ? `<button disabled>${tr("owned")}</button>` : `<button data-buy-car="${item.id}">${tr("buy")}</button>`}
         </div>
       </div>
     `;
@@ -1402,33 +1378,32 @@ function renderCarsPage() {
   `;
 
   document.querySelectorAll("[data-buy-car]").forEach(button => {
-    button.onclick = () => {
+    button.onclick = async () => {
       const id = button.dataset.buyCar;
-      const car = carCatalog.find(item => item.id === id);
+      const item = CAR_CATALOG.find(x => x.id === id);
 
       if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+      if (Number(user.usd) < item.priceUsd) return showToast(tr("insufficientFunds"), true);
 
-      if (user.usd < car.priceUsd) {
-        showToast(tr("insufficientFunds"), true);
-        return;
-      }
+      const updated = [...user.cars, id];
+      const ok = await updatePlayer(user.username, {
+        usd: Number(user.usd) - item.priceUsd,
+        cars: updated
+      });
+      if (!ok) return;
 
-      user.usd -= car.priceUsd;
-      user.cars.push(id);
-      addHistory(user, `${tr("buy")} ${car.name}`);
-      saveAppState();
+      await appendHistory(user.username, `${tr("buy")} ${item.name}`);
       playBeep(680);
-      updateHeader();
-      renderCarsPage();
+      await renderCarsPage();
     };
   });
 }
 
-// -----------------------------
-// TRANSFERS
-// -----------------------------
-function renderTransfersPage() {
-  const user = getCurrentUser();
+async function renderTransfersPage() {
+  await fetchAllPlayers();
+  await fetchGameState();
+  const user = getCurrentUserRow();
+  if (!user) return;
 
   document.getElementById("page-content").innerHTML = `
     <h2 class="page-title">💸 ${tr("transfer")}</h2>
@@ -1465,140 +1440,104 @@ function renderTransfersPage() {
     </div>
   `;
 
-  document.getElementById("transfer-uah-btn").onclick = () => {
-    const recipient = normalizeRecipient(document.getElementById("transfer-uah-to").value, appState.currentUser);
+  document.getElementById("transfer-uah-btn").onclick = async () => {
+    const recipientName = normalizeRecipient(document.getElementById("transfer-uah-to").value, user.username);
     const amount = Number(document.getElementById("transfer-uah-amount").value);
+    const recipient = appState.allPlayers.find(p => p.username === recipientName);
 
-    if (!recipient || !appState.users[recipient]) {
-      showToast(tr("invalidUser"), true);
-      return;
-    }
-
-    if (!amount || amount <= 0) {
-      showToast(tr("invalidData"), true);
-      return;
-    }
-
+    if (!recipient) return showToast(tr("invalidUser"), true);
+    if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
     if (!promptCvv(user, tr("transferRequiresCvv"))) return;
 
     const fee = amount * 0.05;
     const total = amount + fee;
+    if (Number(user.balance) < total) return showToast(tr("insufficientFunds"), true);
 
-    if (user.balance < total) {
-      showToast(tr("insufficientFunds"), true);
-      return;
-    }
+    const ok1 = await updatePlayer(user.username, { balance: Number(user.balance) - total });
+    const ok2 = await updatePlayer(recipient.username, { balance: Number(recipient.balance) + amount });
+    if (!ok1 || !ok2) return;
 
-    user.balance -= total;
-    appState.users[recipient].balance += amount;
     appState.commissionBank += fee;
-
-    addHistory(user, `${tr("transferUah")} → ${recipient}: ${formatNum(amount)} грн`);
-    addHistory(appState.users[recipient], `${tr("transferUah")} ← ${appState.currentUser}: ${formatNum(amount)} грн`);
-
-    saveAppState();
+    await saveGameState();
+    await appendHistory(user.username, `${tr("transferUah")} → ${recipient.username}: ${formatNum(amount)} грн`, amount);
+    await appendHistory(recipient.username, `${tr("transferUah")} ← ${user.username}: ${formatNum(amount)} грн`, amount);
     playBeep(620);
     showToast(tr("sent"));
-    updateHeader();
+    await renderTransfersPage();
   };
 
-  document.getElementById("transfer-usd-btn").onclick = () => {
-    const recipient = normalizeRecipient(document.getElementById("transfer-usd-to").value, appState.currentUser);
+  document.getElementById("transfer-usd-btn").onclick = async () => {
+    const recipientName = normalizeRecipient(document.getElementById("transfer-usd-to").value, user.username);
     const amount = Number(document.getElementById("transfer-usd-amount").value);
+    const recipient = appState.allPlayers.find(p => p.username === recipientName);
 
-    if (!recipient || !appState.users[recipient]) {
-      showToast(tr("invalidUser"), true);
-      return;
-    }
-
-    if (!amount || amount <= 0) {
-      showToast(tr("invalidData"), true);
-      return;
-    }
-
+    if (!recipient) return showToast(tr("invalidUser"), true);
+    if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
     if (!promptCvv(user, tr("transferRequiresCvv"))) return;
 
     const fee = amount * 0.05;
     const total = amount + fee;
+    if (Number(user.usd) < total) return showToast(tr("insufficientFunds"), true);
 
-    if (user.usd < total) {
-      showToast(tr("insufficientFunds"), true);
-      return;
-    }
+    const ok1 = await updatePlayer(user.username, { usd: Number(user.usd) - total });
+    const ok2 = await updatePlayer(recipient.username, { usd: Number(recipient.usd) + amount });
+    if (!ok1 || !ok2) return;
 
-    user.usd -= total;
-    appState.users[recipient].usd += amount;
     appState.commissionBank += fee * appState.usdRate;
-
-    addHistory(user, `${tr("transferUsd")} → ${recipient}: ${formatNum(amount)} USD`);
-    addHistory(appState.users[recipient], `${tr("transferUsd")} ← ${appState.currentUser}: ${formatNum(amount)} USD`);
-
-    saveAppState();
-    playBeep(630);
+    await saveGameState();
+    await appendHistory(user.username, `${tr("transferUsd")} → ${recipient.username}: ${formatNum(amount)} USD`, amount);
+    await appendHistory(recipient.username, `${tr("transferUsd")} ← ${user.username}: ${formatNum(amount)} USD`, amount);
+    playBeep(620);
     showToast(tr("sent"));
-    updateHeader();
+    await renderTransfersPage();
   };
 
-  document.getElementById("transfer-crypto-btn").onclick = () => {
-    const recipient = normalizeRecipient(document.getElementById("transfer-crypto-to").value, appState.currentUser);
+  document.getElementById("transfer-crypto-btn").onclick = async () => {
+    const recipientName = normalizeRecipient(document.getElementById("transfer-crypto-to").value, user.username);
     const symbol = sanitize(document.getElementById("transfer-crypto-symbol").value).toUpperCase();
     const amount = Number(document.getElementById("transfer-crypto-amount").value);
+    const recipient = appState.allPlayers.find(p => p.username === recipientName);
 
-    if (!recipient || !appState.users[recipient]) {
-      showToast(tr("invalidUser"), true);
-      return;
-    }
-
-    if (!symbol || !appState.market.crypto[symbol]) {
-      showToast(tr("invalidData"), true);
-      return;
-    }
-
-    if (!amount || amount <= 0) {
-      showToast(tr("invalidData"), true);
-      return;
-    }
-
+    if (!recipient) return showToast(tr("invalidUser"), true);
+    if (!symbol || !appState.market.crypto[symbol]) return showToast(tr("invalidData"), true);
+    if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
     if (!promptCvv(user, tr("transferRequiresCvv"))) return;
 
     const fee = amount * 0.01;
     const total = amount + fee;
+    if (Number(user.crypto[symbol] || 0) < total) return showToast(tr("insufficientFunds"), true);
 
-    if ((user.crypto[symbol] || 0) < total) {
-      showToast(tr("notEnoughCrypto"), true);
-      return;
-    }
+    const senderCrypto = { ...user.crypto, [symbol]: Number(user.crypto[symbol] || 0) - total };
+    const recipientCrypto = { ...recipient.crypto, [symbol]: Number(recipient.crypto[symbol] || 0) + amount };
 
-    user.crypto[symbol] -= total;
-    appState.users[recipient].crypto[symbol] = (appState.users[recipient].crypto[symbol] || 0) + amount;
+    const ok1 = await updatePlayer(user.username, { crypto: senderCrypto });
+    const ok2 = await updatePlayer(recipient.username, { crypto: recipientCrypto });
+    if (!ok1 || !ok2) return;
+
     appState.commissionBank += fee * appState.market.crypto[symbol].price;
-
-    addHistory(user, `${tr("transferCrypto")} → ${recipient}: ${formatNum(amount)} ${symbol}`);
-    addHistory(appState.users[recipient], `${tr("transferCrypto")} ← ${appState.currentUser}: ${formatNum(amount)} ${symbol}`);
-
-    saveAppState();
-    playBeep(640);
+    await saveGameState();
+    await appendHistory(user.username, `${tr("transferCrypto")} → ${recipient.username}: ${formatNum(amount)} ${symbol}`, amount);
+    await appendHistory(recipient.username, `${tr("transferCrypto")} ← ${user.username}: ${formatNum(amount)} ${symbol}`, amount);
+    playBeep(620);
     showToast(tr("sent"));
-    updateHeader();
+    await renderTransfersPage();
   };
 }
 
-// -----------------------------
-// HISTORY
-// -----------------------------
-function renderHistoryPage() {
-  const user = getCurrentUser();
+async function renderHistoryPage() {
+  const user = getCurrentUserRow();
+  if (!user) return;
 
-  const html = user.history.map(item => {
-    return `
-      <div class="history-item">
-        <div class="history-top">
-          <b>${item.text}</b>
-          <span class="sub">${new Date(item.time).toLocaleString()}</span>
-        </div>
+  const history = await fetchHistory(user.username);
+
+  const html = history.map(item => `
+    <div class="history-item">
+      <div class="history-top">
+        <b>${item.text}</b>
+        <span class="sub">${new Date(item.created_at).toLocaleString()}</span>
       </div>
-    `;
-  }).join("");
+    </div>
+  `).join("");
 
   document.getElementById("page-content").innerHTML = `
     <h2 class="page-title">🕓 ${tr("history")}</h2>
@@ -1608,45 +1547,36 @@ function renderHistoryPage() {
   `;
 }
 
-// -----------------------------
-// TOP 100
-// -----------------------------
-function renderTopPage() {
-  const ranking = Object.entries(appState.users)
-    .filter(([, user]) => !user.banned)
-    .map(([name, user]) => {
-      const online = Date.now() - user.lastSeen < 120000;
-      return {
-        name,
-        classKey: user.classKey,
-        online,
-        deviceType: user.deviceType,
-        capitalUsd: calculateCapitalUsd(user),
-        totalEarned: user.totalEarned
-      };
-    })
-    .sort((a, b) => b.capitalUsd - a.capitalUsd)
+async function renderTopPage() {
+  await fetchAllPlayers();
+
+  const ranking = [...appState.allPlayers]
+    .filter(player => !player.banned)
+    .map(player => ({
+      ...player,
+      capitalUsd: calculateCapitalUsd(player),
+      onlineNow: Date.now() - new Date(player.last_seen).getTime() < 120000
+    }))
+    .sort((a, b) => Number(b.total_earned) - Number(a.total_earned))
     .slice(0, 100);
 
-  const html = ranking.map((item, index) => {
-    return `
-      <div class="rank-item">
-        <div class="rank-badge">#${index + 1}</div>
-        <div>
-          <div><b>${item.name}</b></div>
-          <div class="sub">${getClassData(item.classKey).title}</div>
-          <div class="sub">
-            ${item.online ? `🟢 ${tr("online")}` : ""}
-            ${item.deviceType === "phone" ? ` • 📱 ${tr("phone")}` : ` • 🖥 ${tr("desktop")}`}
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div><b>${formatNum(item.capitalUsd)} USD</b></div>
-          <div class="sub">${tr("lifetimeEarned")}: ${formatNum(item.totalEarned)} грн</div>
+  const html = ranking.map((item, index) => `
+    <div class="rank-item">
+      <div class="rank-badge">#${index + 1}</div>
+      <div>
+        <div><b>${item.username}</b></div>
+        <div class="sub">${getClassData(item.class).title}</div>
+        <div class="sub">
+          ${item.onlineNow ? `🟢 ${tr("online")}` : ""}
+          ${item.device === "phone" ? ` • 📱 ${tr("phone")}` : ` • 🖥 ${tr("desktop")}`}
         </div>
       </div>
-    `;
-  }).join("");
+      <div style="text-align:right">
+        <div><b>${formatNum(item.total_earned)} грн</b></div>
+        <div class="sub">${tr("totalAssets")}: ${formatNum(item.capitalUsd)} USD</div>
+      </div>
+    </div>
+  `).join("");
 
   document.getElementById("page-content").innerHTML = `
     <h2 class="page-title">🏆 ${tr("rankTitle")}</h2>
@@ -1654,11 +1584,10 @@ function renderTopPage() {
   `;
 }
 
-// -----------------------------
-// SUPPORT / DONATE
-// -----------------------------
-function renderSupportPage() {
-  const user = getCurrentUser();
+async function renderSupportPage() {
+  await fetchGameState();
+  const user = getCurrentUserRow();
+  if (!user) return;
 
   document.getElementById("page-content").innerHTML = `
     <h2 class="page-title">❤️ ${tr("support")}</h2>
@@ -1671,155 +1600,101 @@ function renderSupportPage() {
     </div>
   `;
 
-  document.getElementById("support-send-btn").onclick = () => {
+  document.getElementById("support-send-btn").onclick = async () => {
     const amount = Number(document.getElementById("support-amount").value);
-
-    if (!amount || amount <= 0) {
-      showToast(tr("invalidData"), true);
-      return;
-    }
-
+    if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
     if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+    if (Number(user.balance) < amount) return showToast(tr("insufficientFunds"), true);
 
-    if (user.balance < amount) {
-      showToast(tr("insufficientFunds"), true);
-      return;
-    }
+    const ok = await updatePlayer(user.username, { balance: Number(user.balance) - amount });
+    if (!ok) return;
 
-    user.balance -= amount;
     appState.supportBank += amount;
-    addHistory(user, `${tr("donate")}: ${formatNum(amount)} грн`);
-    saveAppState();
+    await saveGameState();
+    await appendHistory(user.username, `${tr("donate")}: ${formatNum(amount)} грн`, amount);
     playBeep(600);
     showToast(tr("donated"));
-    updateHeader();
-    renderSupportPage();
+    await renderSupportPage();
   };
 }
 
-// -----------------------------
-// VIP GIVEAWAY
-// -----------------------------
-function handleVipGiveaway() {
-  const user = getCurrentUser();
+async function handleVipGiveaway() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
 
-  if (!hasVipAccess(user)) {
-    showToast(tr("vipRequiresClass"), true);
-    return;
-  }
-
-  const today = todayString();
-  if (user.vipGiveawayDay === today) {
-    showToast(tr("vipDailyLimit"), true);
-    return;
-  }
+  if (!hasVipAccess(user)) return showToast(tr("vipRequiresClass"), true);
+  if (user.vip_giveaway_day === todayString()) return showToast(tr("dailyBonusTaken"), true);
 
   const amount = Number(prompt("Сума (max 100000)"));
   if (!amount || amount <= 0 || amount > 100000) return;
 
   const rawTarget = prompt(`${tr("recipient")} (${tr("meOrNick")})`);
-  const target = normalizeRecipient(rawTarget, appState.currentUser);
+  const targetName = normalizeRecipient(rawTarget, user.username);
+  const target = appState.allPlayers.find(p => p.username === targetName);
 
-  if (!target || !appState.users[target]) {
-    showToast(tr("invalidUser"), true);
-    return;
-  }
+  if (!target) return showToast(tr("invalidUser"), true);
+  if (Number(user.balance) < amount) return showToast(tr("insufficientFunds"), true);
 
-  if (user.balance < amount) {
-    showToast(tr("insufficientFunds"), true);
-    return;
-  }
+  const ok1 = await updatePlayer(user.username, {
+    balance: Number(user.balance) - amount,
+    vip_giveaway_day: todayString()
+  });
+  const ok2 = await updatePlayer(target.username, {
+    balance: Number(target.balance) + amount,
+    total_earned: Number(target.total_earned) + amount
+  });
 
-  user.balance -= amount;
-  appState.users[target].balance += amount;
-  appState.users[target].totalEarned += amount;
-  user.vipGiveawayDay = today;
+  if (!ok1 || !ok2) return;
 
-  addHistory(user, `VIP → ${target}: ${formatNum(amount)} грн`);
-  addHistory(appState.users[target], `VIP ← ${appState.currentUser}: ${formatNum(amount)} грн`);
-
-  saveAppState();
+  await appendHistory(user.username, `VIP → ${target.username}: ${formatNum(amount)} грн`, amount);
+  await appendHistory(target.username, `VIP ← ${user.username}: ${formatNum(amount)} грн`, amount);
   playBeep(880);
-  updateHeader();
   showToast(tr("vipSent"));
+  await renderProfilePage();
 }
 
-// -----------------------------
-// ADMIN PANEL
-// 5+ functions added:
-// 1 give money
-// 2 take money
-// 3 set balance
-// 4 set class
-// 5 ban/unban
-// 6 reset account
-// 7 delete account
-// 8 give business
-// 9 give realty
-// 10 give car
-// 11 mass money online
-// 12 mass crypto online
-// 13 broadcast message
-// 14 collect commission bank
-// 15 collect support bank
-// -----------------------------
-function renderAdminPage() {
-  const user = getCurrentUser();
+async function renderAdminPage() {
+  await fetchAllPlayers();
+  await fetchGameState();
+  const user = getCurrentUserRow();
 
-  if (!isCreator(user)) {
-    document.getElementById("page-content").innerHTML = `<div class="panel">${tr("creatorOnly")}</div>`;
+  if (!user || !isCreator(user)) {
+    document.getElementById("page-content").innerHTML = `<div class="panel">${tr("creatorPanel")}</div>`;
     return;
   }
 
-  const players = Object.keys(appState.users)
-    .filter(name => !appState.users[name].banned)
-    .sort();
-
-  const onlinePlayers = getOnlinePlayersDetailed();
-
-  const playerOptions = players.map(name => `<option value="${name}">${name}</option>`).join("");
-  const classOptions = classList.filter(item => item.key !== "creator").map(item => `<option value="${item.key}">${item.title}</option>`).join("");
-  const businessOptions = businessCatalog.map(item => `<option value="${item.id}">${item.name}</option>`).join("");
-  const realtyOptions = realtyCatalog.map(item => `<option value="${item.id}">${item.name}</option>`).join("");
-  const carOptions = carCatalog.map(item => `<option value="${item.id}">${item.name}</option>`).join("");
-
-  const onlineHtml = onlinePlayers.map(item => {
-    return `
-      <div class="rank-item">
-        <div class="rank-badge">●</div>
-        <div>
-          <div><b>${item.name}</b></div>
-          <div class="sub">${getClassData(item.classKey).title}</div>
-        </div>
-        <div class="sub">
-          ${item.deviceType === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`}
-        </div>
+  const players = appState.allPlayers.filter(player => !player.banned).map(player => player.username).sort();
+  const onlineHtml = appState.onlinePlayers.map(player => `
+    <div class="rank-item">
+      <div class="rank-badge">●</div>
+      <div>
+        <div><b>${player.username}</b></div>
+        <div class="sub">${getClassData(player.class).title}</div>
       </div>
-    `;
-  }).join("");
+      <div class="sub">${player.device === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`}</div>
+    </div>
+  `).join("");
 
   document.getElementById("page-content").innerHTML = `
     <h2 class="page-title">👑 ${tr("creatorPanel")}</h2>
 
     <div class="grid" style="gap:16px">
-
       <div class="admin-card">
         <h3>${tr("adminAnalytics")}</h3>
         <p>${tr("totalPlayers")}: <b>${players.length}</b></p>
-        <p>${tr("onlineUsers")}: <b>${onlinePlayers.length}</b></p>
+        <p>${tr("onlineUsers")}: <b>${appState.onlinePlayers.length}</b></p>
         <p>${tr("supportBank")}: <b>${formatNum(appState.supportBank)} грн</b></p>
         <p>${tr("commissionBank")}: <b>${formatNum(appState.commissionBank)} грн</b></p>
       </div>
 
       <div class="admin-card">
         <h3>${tr("onlinePlayersList")}</h3>
-        <div class="rank-list">
-          ${onlineHtml || `<div class="sub">0</div>`}
-        </div>
+        <div class="rank-list">${onlineHtml || `<div class="sub">0</div>`}</div>
       </div>
 
       <div class="admin-card">
-        <h3>${tr("adminMassTitle")}</h3>
+        <h3>${tr("onlineOnlyMoney")}</h3>
         <div class="admin-actions">
           <button id="admin-mass-money-btn">${tr("onlineOnlyMoney")}</button>
           <button id="admin-mass-crypto-btn">${tr("onlineOnlyCrypto")}</button>
@@ -1831,20 +1706,35 @@ function renderAdminPage() {
       <div class="admin-card">
         <h3>${tr("sendGlobalMessage")}</h3>
         <div class="transfer-row">
-          <input id="admin-global-message-input" placeholder="${tr("enterMessage")}">
-          <button id="admin-send-message-btn">${tr("send")}</button>
+          <input id="admin-global-message-input" placeholder="${tr("sendGlobalMessage")}">
+          <button id="admin-send-message-btn">${tr("sendGlobalMessage")}</button>
         </div>
       </div>
 
       <div class="admin-card">
         <h3>${tr("playerManagement")}</h3>
         <div class="grid" style="gap:12px">
-          <select id="admin-player-select">${playerOptions}</select>
+          <select id="admin-player-select">
+            ${players.map(name => `<option value="${name}">${name}</option>`).join("")}
+          </select>
+
           <input id="admin-amount-input" type="number" placeholder="${tr("amount")}">
-          <select id="admin-class-select">${classOptions}</select>
-          <select id="admin-business-select">${businessOptions}</select>
-          <select id="admin-realty-select">${realtyOptions}</select>
-          <select id="admin-car-select">${carOptions}</select>
+
+          <select id="admin-class-select">
+            ${classList.filter(c => c.key !== "creator").map(c => `<option value="${c.key}">${c.title}</option>`).join("")}
+          </select>
+
+          <select id="admin-business-select">
+            ${BUSINESS_CATALOG.map(item => `<option value="${item.id}">${item.name}</option>`).join("")}
+          </select>
+
+          <select id="admin-realty-select">
+            ${REALTY_CATALOG.map(item => `<option value="${item.id}">${item.name}</option>`).join("")}
+          </select>
+
+          <select id="admin-car-select">
+            ${CAR_CATALOG.map(item => `<option value="${item.id}">${item.name}</option>`).join("")}
+          </select>
         </div>
 
         <div class="admin-actions">
@@ -1861,231 +1751,225 @@ function renderAdminPage() {
           <button id="admin-give-car-btn">${tr("giveCar")}</button>
         </div>
       </div>
-
     </div>
   `;
 
-  // Mass money
-  document.getElementById("admin-mass-money-btn").onclick = () => {
-    const amount = Number(prompt(tr("enterAmountForAllOnline")));
-    if (!amount || amount <= 0) return;
-
-    getOnlinePlayersDetailed().forEach(item => {
-      appState.users[item.name].balance += amount;
-      appState.users[item.name].totalEarned += amount;
-      addHistory(appState.users[item.name], `${tr("onlineOnlyMoney")}: +${formatNum(amount)} грн`);
-    });
-
-    saveAppState();
-    playBeep(840);
-    showToast(tr("massDone"));
-    renderAdminPage();
-  };
-
-  // Mass crypto
-  document.getElementById("admin-mass-crypto-btn").onclick = () => {
-    const symbol = sanitize(prompt(tr("enterCryptoSymbol"))).toUpperCase();
-    const amount = Number(prompt(tr("enterCryptoAmount")));
-
-    if (!symbol || !appState.market.crypto[symbol]) {
-      showToast(tr("invalidData"), true);
-      return;
-    }
-    if (!amount || amount <= 0) {
-      showToast(tr("invalidData"), true);
-      return;
-    }
-
-    getOnlinePlayersDetailed().forEach(item => {
-      appState.users[item.name].crypto[symbol] = (appState.users[item.name].crypto[symbol] || 0) + amount;
-      addHistory(appState.users[item.name], `${tr("onlineOnlyCrypto")}: +${formatNum(amount)} ${symbol}`);
-    });
-
-    saveAppState();
-    playBeep(850);
-    showToast(tr("massDone"));
-    renderAdminPage();
-  };
-
-  document.getElementById("admin-collect-commission-btn").onclick = () => {
-    const creator = getCurrentUser();
-    creator.balance += appState.commissionBank;
-    creator.totalEarned += appState.commissionBank;
-    addHistory(creator, `${tr("collectCommission")}: +${formatNum(appState.commissionBank)} грн`);
-    appState.commissionBank = 0;
-    saveAppState();
-    showToast(tr("valueUpdated"));
-    updateHeader();
-    renderAdminPage();
-  };
-
-  document.getElementById("admin-collect-support-btn").onclick = () => {
-    const creator = getCurrentUser();
-    creator.balance += appState.supportBank;
-    creator.totalEarned += appState.supportBank;
-    addHistory(creator, `${tr("collectSupport")}: +${formatNum(appState.supportBank)} грн`);
-    appState.supportBank = 0;
-    saveAppState();
-    showToast(tr("valueUpdated"));
-    updateHeader();
-    renderAdminPage();
-  };
-
-  document.getElementById("admin-send-message-btn").onclick = () => {
-    const message = sanitize(document.getElementById("admin-global-message-input").value);
-    appState.globalMessage = message;
-    saveAppState();
-    showToast(tr("sent"));
-    updateHeader();
-  };
-
   const getSelectedPlayer = () => {
-    const nickname = document.getElementById("admin-player-select").value;
-    const player = appState.users[nickname];
+    const username = document.getElementById("admin-player-select").value;
+    const player = appState.allPlayers.find(p => p.username === username);
     if (!player) {
       showToast(tr("playerNotFound"), true);
       return null;
     }
-    return { nickname, player };
+    return player;
   };
 
-  document.getElementById("admin-give-money-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
-    const amount = Number(document.getElementById("admin-amount-input").value);
+  document.getElementById("admin-mass-money-btn").onclick = async () => {
+    const amount = Number(prompt(tr("amount")));
+    if (!amount || amount <= 0) return;
+
+    for (const player of appState.onlinePlayers) {
+      await updatePlayer(player.username, {
+        balance: Number(player.balance) + amount,
+        total_earned: Number(player.total_earned) + amount
+      });
+      await appendHistory(player.username, `${tr("onlineOnlyMoney")}: +${formatNum(amount)} грн`, amount);
+    }
+
+    playBeep(840);
+    showToast(tr("massDone"));
+    await renderAdminPage();
+  };
+
+  document.getElementById("admin-mass-crypto-btn").onclick = async () => {
+    const symbol = sanitize(prompt(tr("symbol"))).toUpperCase();
+    const amount = Number(prompt(tr("amount")));
+    if (!symbol || !appState.market.crypto[symbol]) return showToast(tr("invalidData"), true);
     if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
 
-    target.player.balance += amount;
-    target.player.totalEarned += amount;
-    addHistory(target.player, `${tr("giveMoney")}: +${formatNum(amount)} грн`);
-    saveAppState();
-    showToast(tr("valueUpdated"));
-    renderAdminPage();
+    for (const player of appState.onlinePlayers) {
+      const newCrypto = { ...(player.crypto || {}), [symbol]: Number(player.crypto?.[symbol] || 0) + amount };
+      await updatePlayer(player.username, { crypto: newCrypto });
+      await appendHistory(player.username, `${tr("onlineOnlyCrypto")}: +${formatNum(amount)} ${symbol}`, amount);
+    }
+
+    playBeep(850);
+    showToast(tr("massDone"));
+    await renderAdminPage();
   };
 
-  document.getElementById("admin-take-money-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
+  document.getElementById("admin-collect-commission-btn").onclick = async () => {
+    const creator = getCurrentUserRow();
+    const amount = Number(appState.commissionBank);
+    await updatePlayer(creator.username, {
+      balance: Number(creator.balance) + amount,
+      total_earned: Number(creator.total_earned) + amount
+    });
+    await appendHistory(creator.username, `${tr("collectCommission")}: +${formatNum(amount)} грн`, amount);
+    appState.commissionBank = 0;
+    await saveGameState();
+    showToast(tr("valueUpdated"));
+    await renderAdminPage();
+  };
+
+  document.getElementById("admin-collect-support-btn").onclick = async () => {
+    const creator = getCurrentUserRow();
+    const amount = Number(appState.supportBank);
+    await updatePlayer(creator.username, {
+      balance: Number(creator.balance) + amount,
+      total_earned: Number(creator.total_earned) + amount
+    });
+    await appendHistory(creator.username, `${tr("collectSupport")}: +${formatNum(amount)} грн`, amount);
+    appState.supportBank = 0;
+    await saveGameState();
+    showToast(tr("valueUpdated"));
+    await renderAdminPage();
+  };
+
+  document.getElementById("admin-send-message-btn").onclick = async () => {
+    appState.globalMessage = sanitize(document.getElementById("admin-global-message-input").value);
+    await saveGameState();
+    showToast(tr("valueUpdated"));
+    updateHeader();
+  };
+
+  document.getElementById("admin-give-money-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player) return;
     const amount = Number(document.getElementById("admin-amount-input").value);
     if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
-
-    target.player.balance = Math.max(0, target.player.balance - amount);
-    addHistory(target.player, `${tr("takeMoney")}: -${formatNum(amount)} грн`);
-    saveAppState();
+    await updatePlayer(player.username, {
+      balance: Number(player.balance) + amount,
+      total_earned: Number(player.total_earned) + amount
+    });
+    await appendHistory(player.username, `${tr("giveMoney")}: +${formatNum(amount)} грн`, amount);
     showToast(tr("valueUpdated"));
-    renderAdminPage();
+    await renderAdminPage();
   };
 
-  document.getElementById("admin-set-balance-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
+  document.getElementById("admin-take-money-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player) return;
     const amount = Number(document.getElementById("admin-amount-input").value);
-    if (amount < 0 || Number.isNaN(amount)) return showToast(tr("invalidData"), true);
-
-    target.player.balance = amount;
-    addHistory(target.player, `${tr("setBalance")}: ${formatNum(amount)} грн`);
-    saveAppState();
+    if (!amount || amount <= 0) return showToast(tr("invalidData"), true);
+    await updatePlayer(player.username, {
+      balance: Math.max(0, Number(player.balance) - amount)
+    });
+    await appendHistory(player.username, `${tr("takeMoney")}: -${formatNum(amount)} грн`, -amount);
     showToast(tr("valueUpdated"));
-    renderAdminPage();
+    await renderAdminPage();
   };
 
-  document.getElementById("admin-set-class-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
+  document.getElementById("admin-set-balance-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player) return;
+    const amount = Number(document.getElementById("admin-amount-input").value);
+    if (Number.isNaN(amount) || amount < 0) return showToast(tr("invalidData"), true);
+    await updatePlayer(player.username, { balance: amount });
+    await appendHistory(player.username, `${tr("setBalance")}: ${formatNum(amount)} грн`, amount);
+    showToast(tr("valueUpdated"));
+    await renderAdminPage();
+  };
+
+  document.getElementById("admin-set-class-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player) return;
     const classKey = document.getElementById("admin-class-select").value;
-
-    target.player.classKey = classKey;
-    addHistory(target.player, `${tr("setClass")}: ${getClassData(classKey).title}`);
-    saveAppState();
+    await updatePlayer(player.username, { class: classKey });
+    await appendHistory(player.username, `${tr("setClass")}: ${getClassData(classKey).title}`);
     showToast(tr("classSet"));
-    renderAdminPage();
+    await renderAdminPage();
   };
 
-  document.getElementById("admin-ban-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
-    if (target.nickname === "creator") return;
-    target.player.banned = true;
-    saveAppState();
+  document.getElementById("admin-ban-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player || player.username === "creator") return;
+    await updatePlayer(player.username, { banned: true });
     showToast(tr("valueUpdated"));
-    renderAdminPage();
+    await renderAdminPage();
   };
 
-  document.getElementById("admin-unban-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
-    target.player.banned = false;
-    saveAppState();
+  document.getElementById("admin-unban-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player) return;
+    await updatePlayer(player.username, { banned: false });
     showToast(tr("valueUpdated"));
-    renderAdminPage();
+    await renderAdminPage();
   };
 
-  document.getElementById("admin-reset-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
-    if (target.nickname === "creator") return;
-    const oldPassword = target.player.password;
-    appState.users[target.nickname] = makeUser(oldPassword, false);
-    appState.users[target.nickname].deviceType = target.player.deviceType || "desktop";
-    saveAppState();
+  document.getElementById("admin-reset-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player || player.username === "creator") return;
+
+    await updatePlayer(player.username, {
+      balance: 500,
+      usd: 0,
+      total_earned: 500,
+      class: "none",
+      crypto: {},
+      stocks: {},
+      businesses: [],
+      realty: [],
+      cars: [],
+      card_name: "BitBank Card",
+      card_color: "black",
+      card_cvv: String(rand(100, 999)),
+      card_number: generateCardNumber(),
+      card_expiry: generateCardExpiry(),
+      last_bonus_day: "",
+      vip_giveaway_day: "",
+      banned: false
+    });
+
+    await appendHistory(player.username, tr("accountReset"));
     showToast(tr("accountReset"));
-    renderAdminPage();
+    await renderAdminPage();
   };
 
-  document.getElementById("admin-delete-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
-    if (target.nickname === "creator") return;
-    delete appState.users[target.nickname];
-    saveAppState();
+  document.getElementById("admin-delete-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player || player.username === "creator") return;
+    await supabaseClient.from("history").delete().eq("username", player.username);
+    await supabaseClient.from("players").delete().eq("username", player.username);
     showToast(tr("accountDeleted"));
-    renderAdminPage();
+    await renderAdminPage();
   };
 
-  document.getElementById("admin-give-business-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
+  document.getElementById("admin-give-business-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player) return;
     const businessId = document.getElementById("admin-business-select").value;
-    if (!target.player.businesses.includes(businessId)) {
-      target.player.businesses.push(businessId);
-      addHistory(target.player, `${tr("giveBusiness")}: ${businessCatalog.find(item => item.id === businessId)?.name || businessId}`);
-      saveAppState();
-      showToast(tr("valueUpdated"));
-      renderAdminPage();
-    }
+    const updated = Array.from(new Set([...(player.businesses || []), businessId]));
+    await updatePlayer(player.username, { businesses: updated });
+    await appendHistory(player.username, `${tr("giveBusiness")}: ${BUSINESS_CATALOG.find(x => x.id === businessId)?.name || businessId}`);
+    showToast(tr("valueUpdated"));
+    await renderAdminPage();
   };
 
-  document.getElementById("admin-give-realty-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
+  document.getElementById("admin-give-realty-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player) return;
     const realtyId = document.getElementById("admin-realty-select").value;
-    if (!target.player.realty.includes(realtyId)) {
-      target.player.realty.push(realtyId);
-      addHistory(target.player, `${tr("giveRealty")}: ${realtyCatalog.find(item => item.id === realtyId)?.name || realtyId}`);
-      saveAppState();
-      showToast(tr("valueUpdated"));
-      renderAdminPage();
-    }
+    const updated = Array.from(new Set([...(player.realty || []), realtyId]));
+    await updatePlayer(player.username, { realty: updated });
+    await appendHistory(player.username, `${tr("giveRealty")}: ${REALTY_CATALOG.find(x => x.id === realtyId)?.name || realtyId}`);
+    showToast(tr("valueUpdated"));
+    await renderAdminPage();
   };
 
-  document.getElementById("admin-give-car-btn").onclick = () => {
-    const target = getSelectedPlayer();
-    if (!target) return;
+  document.getElementById("admin-give-car-btn").onclick = async () => {
+    const player = getSelectedPlayer();
+    if (!player) return;
     const carId = document.getElementById("admin-car-select").value;
-    if (!target.player.cars.includes(carId)) {
-      target.player.cars.push(carId);
-      addHistory(target.player, `${tr("giveCar")}: ${carCatalog.find(item => item.id === carId)?.name || carId}`);
-      saveAppState();
-      showToast(tr("valueUpdated"));
-      renderAdminPage();
-    }
+    const updated = Array.from(new Set([...(player.cars || []), carId]));
+    await updatePlayer(player.username, { cars: updated });
+    await appendHistory(player.username, `${tr("giveCar")}: ${CAR_CATALOG.find(x => x.id === carId)?.name || carId}`);
+    showToast(tr("valueUpdated"));
+    await renderAdminPage();
   };
 }
 
-// -----------------------------
-// NAVIGATION
-// -----------------------------
-function renderPage(page) {
+async function renderPage(page) {
   setActivePage(page);
 
   if (page === "dashboard") return renderProfilePage();
@@ -2102,162 +1986,104 @@ function renderPage(page) {
   if (page === "admin") return renderAdminPage();
 }
 
-// -----------------------------
-// AUTH
-// -----------------------------
-function registerUser() {
+async function registerUser() {
   const username = sanitize(document.getElementById("reg-username").value).toLowerCase();
   const password = sanitize(document.getElementById("reg-password").value);
 
-  if (username.length < 3) {
-    showToast(tr("usernameTooShort"), true);
-    return;
+  if (username.length < 3) return showToast(tr("invalidData"), true);
+  if (password.length < 4) return showToast(tr("invalidData"), true);
+  if (["me", "admin"].includes(username)) return showToast(tr("bannedName"), true);
+
+  await fetchAllPlayers();
+  if (appState.allPlayers.some(player => player.username === username)) {
+    return showToast(tr("userExists"), true);
   }
 
-  if (password.length < 4) {
-    showToast(tr("passwordTooShort"), true);
-    return;
-  }
+  const ok = await createPlayer(username, password);
+  if (!ok) return;
 
-  if (["me", "admin"].includes(username)) {
-    showToast(tr("bannedName"), true);
-    return;
-  }
-
-  if (appState.users[username]) {
-    showToast(tr("userExists"), true);
-    return;
-  }
-
-  appState.users[username] = makeUser(password, false);
-  saveAppState();
   playBeep(760);
   showToast(tr("userCreated"));
-
   document.querySelector('[data-tab="login"]').click();
   document.getElementById("login-username").value = username;
   document.getElementById("login-password").value = password;
 }
 
-function applyOfflineIncome(user) {
-  const now = Date.now();
-  const diffMs = now - (user.lastSeen || now);
-  const minutesAway = Math.floor(diffMs / 60000);
-
-  if (minutesAway <= 0) return;
-
-  const classPassive = getClassData(user.classKey).passivePerMin;
-  const businessPassive = user.businesses.reduce((sum, id) => {
-    const item = businessCatalog.find(x => x.id === id);
-    return sum + (item ? item.income : 0);
-  }, 0);
-  const realtyPassive = user.realty.reduce((sum, id) => {
-    const item = realtyCatalog.find(x => x.id === id);
-    return sum + (item ? item.income : 0);
-  }, 0);
-
-  const totalPassive = classPassive + businessPassive + realtyPassive;
-  if (totalPassive <= 0) return;
-
-  const offlineIncome = totalPassive * minutesAway;
-  if (offlineIncome > 0) {
-    user.balance += offlineIncome;
-    user.totalEarned += offlineIncome;
-    addHistory(user, `${appState.lang === "uk" ? "Офлайн дохід" : "Offline income"}: +${formatNum(offlineIncome)} грн`);
-  }
-}
-
-function loginUser() {
+async function loginUser() {
   const username = sanitize(document.getElementById("login-username").value).toLowerCase();
   const password = sanitize(document.getElementById("login-password").value);
 
-  const user = appState.users[username];
+  const result = await loginPlayer(username, password);
+  if (!result) return;
 
-  if (!user || user.password !== password) {
-    showToast(tr("loginError"), true);
-    return;
-  }
-
-  if (user.banned) {
-    showToast(tr("accountBanned"), true);
-    return;
-  }
-
-  applyOfflineIncome(user);
-
-  appState.currentUser = username;
-  user.lastSeen = Date.now();
-
-  saveAppState();
   playBeep(740);
-
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("app-screen").classList.remove("hidden");
-
+  await fetchAllPlayers();
+  await fetchGameState();
   updateHeader();
-  renderProfilePage();
+  await renderProfilePage();
 }
 
 function logoutUser() {
   appState.currentUser = null;
-  saveAppState();
-
+  saveSession();
   document.getElementById("app-screen").classList.add("hidden");
   document.getElementById("login-screen").classList.remove("hidden");
 }
 
-// -----------------------------
-// CARD ACTIONS
-// -----------------------------
-function changePin() {
-  const user = getCurrentUser();
-  const newCvv = prompt(appState.lang === "uk" ? "Новий CVV (3 цифри)" : "New CVV (3 digits)", user.cardCvv);
+async function changePin() {
+  const user = getCurrentUserRow();
+  if (!user) return;
 
+  const newCvv = prompt(appState.lang === "uk" ? "Новий CVV (3 цифри)" : "New CVV (3 digits)", user.card_cvv);
   if (newCvv === null) return;
-  if (!/^\d{3}$/.test(newCvv)) {
-    showToast(tr("wrongCode"), true);
-    return;
-  }
+  if (!/^\d{3}$/.test(newCvv)) return showToast(tr("wrongCode"), true);
 
-  user.cardCvv = newCvv;
-  saveAppState();
+  const ok = await updatePlayer(user.username, { card_cvv: newCvv });
+  if (!ok) return;
+
   playBeep(720);
   showToast(tr("cvvChanged"));
-  renderProfilePage();
+  await renderProfilePage();
 }
 
-function openColorModal() {
-  document.getElementById("color-modal").classList.remove("hidden");
-}
-
-function closeColorModal() {
-  document.getElementById("color-modal").classList.add("hidden");
-}
-
-// -----------------------------
-// CLICK / PASSIVE / PRESENCE / MARKET
-// -----------------------------
-function handleClickIncome() {
-  const user = getCurrentUser();
+async function handleClickIncome() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
   if (!user) return;
 
   const reward = getClickReward(user);
-  addMoney(user, reward, `${tr("click")}: +${formatNum(reward)} грн`);
-  saveAppState();
+  const ok = await updatePlayer(user.username, {
+    balance: Number(user.balance) + reward,
+    total_earned: Number(user.total_earned) + reward,
+    last_seen: new Date().toISOString(),
+    device: currentDeviceType()
+  });
+  if (!ok) return;
+
+  await appendHistory(user.username, `${tr("click")}: +${formatNum(reward)} грн`, reward);
   playBeep(540);
-  updateHeader();
+
+  const active = document.querySelector(".nav-btn.active")?.dataset.page || "dashboard";
+  await renderPage(active);
 }
 
-function passiveIncomeTick() {
-  const user = getCurrentUser();
+async function passiveIncomeTick() {
+  const user = getCurrentUserRow();
   if (!user) return;
-
   const amount = getPassiveIncome(user);
   if (amount <= 0) return;
 
-  addMoney(user, amount, `${tr("passiveIncome")}: +${formatNum(amount)} грн`);
-  saveAppState();
-  updateHeader();
+  await updatePlayer(user.username, {
+    balance: Number(user.balance) + amount,
+    total_earned: Number(user.total_earned) + amount
+  });
+
+  await appendHistory(user.username, `${tr("passiveIncome")}: +${formatNum(amount)} грн`, amount);
+
+  const active = document.querySelector(".nav-btn.active")?.dataset.page || "dashboard";
+  await renderPage(active);
 }
 
 function marketTick() {
@@ -2270,115 +2096,27 @@ function marketTick() {
     const drift = 1 + (Math.random() - 0.5) * 0.04;
     item.price = Math.max(10, item.price * drift);
   });
-
-  saveAppState();
 }
 
-function presenceTick() {
-  const user = getCurrentUser();
+async function presenceTick() {
+  const user = getCurrentUserRow();
   if (!user) return;
-  user.lastSeen = Date.now();
-  saveAppState();
+  await updatePlayer(user.username, {
+    last_seen: new Date().toISOString(),
+    device: currentDeviceType()
+  });
+  await fetchAllPlayers();
+  updateHeader();
 }
 
-// -----------------------------
-// TAB / NAV / MODALS
-// -----------------------------
-function bindBaseEvents() {
+function bindEvents() {
   document.getElementById("login-btn").onclick = loginUser;
   document.getElementById("register-btn").onclick = registerUser;
   document.getElementById("logout-btn").onclick = logoutUser;
 
-  document.querySelectorAll(".tab-btn").forEach(button => {
-    button.onclick = () => {
-      document.querySelectorAll(".tab-btn").forEach(item => item.classList.remove("active"));
-      document.querySelectorAll(".tab-pane").forEach(item => item.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").
+    document.getElementById("login-btn").onclick = loginUser;
+  document.getElementById("register-btn").onclick = registerUser;
+  document.getElementById("logout-btn").onclick = logoutUser;
 
-      button.classList.add("active");
-      document.getElementById(`${button.dataset.tab}-form`).classList.add("active");
-    };
-  });
-
-  document.querySelectorAll(".nav-btn").forEach(button => {
-    button.onclick = () => {
-      renderPage(button.dataset.page);
-      closeSidebar();
-    };
-  });
-
-  document.getElementById("click-btn").onclick = handleClickIncome;
-  document.getElementById("change-pin-btn").onclick = changePin;
-  document.getElementById("change-card-name-btn").onclick = () => {
-    const user = getCurrentUser();
-    const newName = prompt(appState.lang === "uk" ? "Нова назва карти" : "New card name", user.cardName);
-    if (!newName) return;
-    user.cardName = newName.slice(0, 24);
-    saveAppState();
-    showToast(tr("cardNameChanged"));
-    renderProfilePage();
-  };
-  document.getElementById("change-card-color-btn").onclick = openColorModal;
-  document.getElementById("vip-giveaway-btn").onclick = handleVipGiveaway;
-
-  document.getElementById("toggle-sound-btn").onclick = () => {
-    appState.soundEnabled = !appState.soundEnabled;
-    saveAppState();
-    showToast(appState.soundEnabled ? tr("soundOn") : tr("soundOff"));
-    updateHeader();
-  };
-
-  document.getElementById("lang-btn").onclick = () => {
-    appState.lang = appState.lang === "uk" ? "en" : "uk";
-    saveAppState();
-    updateHeader();
-    const active = document.querySelector(".nav-btn.active")?.dataset.page || "dashboard";
-    renderPage(active);
-  };
-
-  document.getElementById("sidebar-open").onclick = () => {
-    document.getElementById("sidebar").classList.add("show");
-    document.getElementById("overlay").classList.add("show");
-  };
-
-  document.getElementById("sidebar-close").onclick = closeSidebar;
-  document.getElementById("overlay").onclick = closeSidebar;
-
-  document.getElementById("close-color-modal").onclick = closeColorModal;
-
-  document.querySelectorAll(".color-option").forEach(button => {
-    button.onclick = () => {
-      const user = getCurrentUser();
-      user.cardColor = button.dataset.color;
-      saveAppState();
-      closeColorModal();
-      showToast(tr("colorChanged"));
-      renderProfilePage();
-    };
-  });
-}
-
-function closeSidebar() {
-  document.getElementById("sidebar").classList.remove("show");
-  document.getElementById("overlay").classList.remove("show");
-}
-
-// -----------------------------
-// INIT
-// -----------------------------
-function initApp() {
-  loadAppState();
-  bindBaseEvents();
-
-  if (appState.currentUser && appState.users[appState.currentUser] && !appState.users[appState.currentUser].banned) {
-    document.getElementById("login-screen").classList.add("hidden");
-    document.getElementById("app-screen").classList.remove("hidden");
-    updateHeader();
-    renderProfilePage();
-  }
-
-  setInterval(marketTick, 30000);
-  setInterval(passiveIncomeTick, 60000);
-  setInterval(presenceTick, 15000);
-}
-
-initApp();
+  document.querySelectorAll(".tab-btn").
