@@ -253,6 +253,99 @@ const I18N = {
     friendsTitle: "Friends"
   }
 };
+async function registerUser() {
+  const usernameInput = document.getElementById("reg-username");
+  const passwordInput = document.getElementById("reg-password");
+
+  if (!usernameInput || !passwordInput) {
+    showToast("UI error", true);
+    return;
+  }
+
+  let username = usernameInput.value.trim().toLowerCase();
+  let password = passwordInput.value.trim();
+
+  // перевірки
+  if (username.length < 3) return showToast("Мінімум 3 символи", true);
+  if (password.length < 4) return showToast("Мінімум 4 символи", true);
+
+  if (["me", "admin", "creator"].includes(username)) {
+    return showToast("Цей нік заборонений", true);
+  }
+
+  // загрузити всіх
+  await fetchAllPlayers();
+
+  if (appState.allPlayers.some(u => u.username === username)) {
+    return showToast("Користувач вже існує", true);
+  }
+
+  // генерація даних
+  const newPlayer = {
+    username: username,
+    password: password,
+
+    balance: 500,
+    usd: 0,
+    total_earned: 500,
+
+    class: "none",
+
+    crypto: {},
+    stocks: {},
+    businesses: [],
+    business_levels: {},
+    realty: [],
+    cars: [],
+
+    titles: [],
+    friends: [],
+
+    card_name: "BitBank Card",
+    card_color: "black",
+    card_cvv: String(rand(100, 999)),
+    card_number: "4444 5555 6666 7777",
+    card_expiry: "12/30",
+
+    last_seen: new Date().toISOString(),
+    device: currentDeviceType(),
+
+    last_bonus_day: "",
+    vip_giveaway_day: "",
+
+    banned: false
+  };
+
+  // запис в базу
+  const { error } = await supabaseClient
+    .from("players")
+    .insert(newPlayer);
+
+  if (error) {
+    console.error(error);
+    return showToast("Помилка сервера", true);
+  }
+
+  // історія
+  await appendHistory(username, "Реєстрація акаунта", 0);
+
+  // авто логін
+  appState.currentUser = username;
+  saveSession();
+
+  // UI
+  document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("app-screen").classList.remove("hidden");
+
+  await fetchAllPlayers();
+  await fetchGameState();
+
+  playBeep(800);
+  showToast("Акаунт створено");
+
+  updateHeader();
+  await renderProfilePage();
+}
 
 function tr(key) {
   return I18N[appState.lang][key] || key;
