@@ -3,7 +3,7 @@
 // =====================================================
 const SUPABASE_URL = "https://dznxdbiorjargerkilwf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_9eL4kseNCXHF3d7MFAyj3A_iB8pjYfv";
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 const LOCAL_SESSION_KEY = "bitbank_rebuild_session_v1";
 
