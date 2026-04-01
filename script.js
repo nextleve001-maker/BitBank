@@ -1,13 +1,11 @@
 // =====================================================
 // BitBank - FULL Supabase script.js
 // =====================================================
-
 const SUPABASE_URL = "https://dznxdbiorjargerkilwf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_9eL4kseNCXHF3d7MFAyj3A_iB8pjYfv";
-
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const LOCAL_SESSION_KEY = "bitbank_supabase_session_v1";
+const LOCAL_SESSION_KEY = "bitbank_rebuild_session_v1";
 
 let appState = {
   currentUser: null,
@@ -25,12 +23,23 @@ let appState = {
   }
 };
 
-// =====================================================
-// TRANSLATIONS
-// =====================================================
-
 const I18N = {
   uk: {
+    menu_profile: "Профіль",
+    menu_crypto: "Крипто",
+    menu_stocks: "Акції",
+    menu_business: "Бізнес",
+    menu_realty: "Нерухомість",
+    menu_cars: "Авто",
+    menu_classes: "Класи",
+    menu_friends: "Друзі",
+    menu_battle: "Дуель",
+    menu_casino: "Казино",
+    menu_transfer: "Перекази",
+    menu_history: "Історія",
+    menu_top: "Топ 100",
+    menu_support: "Підтримка",
+    menu_admin: "Адмін",
     profile: "Профіль",
     crypto: "Крипто",
     stocks: "Акції",
@@ -38,6 +47,9 @@ const I18N = {
     realty: "Нерухомість",
     cars: "Авто",
     classes: "Класи",
+    friends: "Друзі",
+    battle: "Дуель",
+    casino: "Казино",
     transfer: "Перекази",
     history: "Історія",
     top: "Топ 100",
@@ -52,22 +64,6 @@ const I18N = {
     buy: "Купити",
     sell: "Продати",
     owned: "Вже куплено",
-    unavailable: "Недоступно",
-    onlineOnlyMoney: "Видати всім онлайн гроші",
-    onlineOnlyCrypto: "Видати всім онлайн крипту",
-    onlineUsers: "Онлайн користувачі",
-    totalPlayers: "Всього гравців",
-    donate: "Підтримати",
-    transferUah: "Переказ гривень",
-    transferUsd: "Переказ USD",
-    transferCrypto: "Переказ крипти",
-    recipient: "Отримувач",
-    amount: "Сума",
-    symbol: "Символ",
-    online: "ONLINE",
-    phone: "З телефона",
-    desktop: "ПК",
-    click: "КЛІК",
     invalidData: "Невірні дані",
     insufficientFunds: "Недостатньо коштів",
     invalidUser: "Невірний користувач",
@@ -138,10 +134,26 @@ const I18N = {
     totalAssets: "Усього активів",
     buyFor: "Купити за",
     serverError: "Помилка сервера",
-    needAuthForm: "Форми логіну не знайдені",
-    activePlayers: "Активні гравці"
+    tapBattleTitle: "Тап-дуель",
+    casinoTitle: "Казино",
+    friendsTitle: "Друзі"
   },
   en: {
+    menu_profile: "Profile",
+    menu_crypto: "Crypto",
+    menu_stocks: "Stocks",
+    menu_business: "Business",
+    menu_realty: "Realty",
+    menu_cars: "Cars",
+    menu_classes: "Classes",
+    menu_friends: "Friends",
+    menu_battle: "Battle",
+    menu_casino: "Casino",
+    menu_transfer: "Transfers",
+    menu_history: "History",
+    menu_top: "Top 100",
+    menu_support: "Support",
+    menu_admin: "Admin",
     profile: "Profile",
     crypto: "Crypto",
     stocks: "Stocks",
@@ -149,6 +161,9 @@ const I18N = {
     realty: "Realty",
     cars: "Cars",
     classes: "Classes",
+    friends: "Friends",
+    battle: "Battle",
+    casino: "Casino",
     transfer: "Transfers",
     history: "History",
     top: "Top 100",
@@ -163,22 +178,6 @@ const I18N = {
     buy: "Buy",
     sell: "Sell",
     owned: "Owned",
-    unavailable: "Unavailable",
-    onlineOnlyMoney: "Give all online money",
-    onlineOnlyCrypto: "Give all online crypto",
-    onlineUsers: "Online users",
-    totalPlayers: "Total players",
-    donate: "Donate",
-    transferUah: "UAH transfer",
-    transferUsd: "USD transfer",
-    transferCrypto: "Crypto transfer",
-    recipient: "Recipient",
-    amount: "Amount",
-    symbol: "Symbol",
-    online: "ONLINE",
-    phone: "On phone",
-    desktop: "Desktop",
-    click: "CLICK",
     invalidData: "Invalid data",
     insufficientFunds: "Insufficient funds",
     invalidUser: "Invalid user",
@@ -249,18 +248,15 @@ const I18N = {
     totalAssets: "Total assets",
     buyFor: "Buy for",
     serverError: "Server error",
-    needAuthForm: "Login forms not found",
-    activePlayers: "Active players"
+    tapBattleTitle: "Tap battle",
+    casinoTitle: "Casino",
+    friendsTitle: "Friends"
   }
 };
 
 function tr(key) {
   return I18N[appState.lang][key] || key;
 }
-
-// =====================================================
-// CLASSES
-// =====================================================
 
 const classList = [
   { key: "none", title: "Starter", price: 0, clickReward: 5, passivePerMin: 0, perks: { uk: "Базовий старт. Доступ до профілю, крипти, переказів та історії.", en: "Basic start. Access to profile, crypto, transfers and history." } },
@@ -274,10 +270,6 @@ const classList = [
 ];
 
 const CLASS_MAP = Object.fromEntries(classList.map((c, i) => [c.key, { ...c, index: i }]));
-
-// =====================================================
-// CATALOGS
-// =====================================================
 
 const CRYPTO_CATALOG = [
   { symbol: "BTC", name: "Bitcoin", price: 2800000, img: "https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=032" },
@@ -327,18 +319,14 @@ const CAR_CATALOG = [
   { id: "huracan", name: "Lamborghini Huracan", priceUsd: 250000, img: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&auto=format&fit=crop" }
 ];
 
-// =====================================================
-// AUDIO
-// =====================================================
-
 let audioContext = null;
 
 function playBeep(freq = 440, duration = 0.05, volume = 0.02) {
   if (!appState.soundEnabled) return;
   try {
     if (!audioContext) {
-      const ACtx = window.AudioContext || window.webkitAudioContext;
-      audioContext = new ACtx();
+      const A = window.AudioContext || window.webkitAudioContext;
+      audioContext = new A();
     }
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
@@ -349,12 +337,8 @@ function playBeep(freq = 440, duration = 0.05, volume = 0.02) {
     gain.connect(audioContext.destination);
     oscillator.start();
     oscillator.stop(audioContext.currentTime + duration);
-  } catch (error) {}
+  } catch (e) {}
 }
-
-// =====================================================
-// HELPERS
-// =====================================================
 
 function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -374,22 +358,6 @@ function currentDeviceType() {
   return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? "phone" : "desktop";
 }
 
-function generateCardNumber() {
-  let raw = "4";
-  while (raw.length < 16) raw += String(rand(0, 9));
-  return raw.replace(/(.{4})/g, "$1 ").trim();
-}
-
-function generateCardExpiry() {
-  const mm = String(rand(1, 12)).padStart(2, "0");
-  const yy = String((new Date().getFullYear() + rand(2, 6))).slice(-2);
-  return `${mm}/${yy}`;
-}
-
-function todayString() {
-  return new Date().toDateString();
-}
-
 function saveSession() {
   localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({
     username: appState.currentUser,
@@ -406,45 +374,17 @@ function loadSession() {
     appState.currentUser = parsed.username || null;
     appState.lang = parsed.lang || "uk";
     appState.soundEnabled = parsed.soundEnabled !== false;
-  } catch (error) {}
+  } catch (e) {}
 }
 
 function imageTag(src, alt) {
   return `<img class="asset-thumb" src="${src}" alt="${alt}" onerror="this.src='https://via.placeholder.com/72x72/0e1624/ffffff?text=BB'">`;
 }
 
-function cardColorClass(color) {
-  if (color === "white") return "card-white";
-  if (color === "yellow") return "card-yellow";
-  if (color === "gold") return "card-gold";
-  return "card-black";
-}
-
-function showToast(text, isError = false) {
-  const toast = document.createElement("div");
-  toast.textContent = text;
-  toast.style.position = "fixed";
-  toast.style.left = "50%";
-  toast.style.bottom = "130px";
-  toast.style.transform = "translateX(-50%)";
-  toast.style.background = isError ? "#b33939" : "#20344d";
-  toast.style.color = "#fff";
-  toast.style.padding = "10px 16px";
-  toast.style.borderRadius = "999px";
-  toast.style.zIndex = "9999";
-  toast.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2600);
-}
-
 function parseJsonField(value, fallback) {
   if (value === null || value === undefined) return fallback;
   if (typeof value === "object") return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
+  try { return JSON.parse(value); } catch { return fallback; }
 }
 
 function normalizePlayer(row) {
@@ -453,8 +393,11 @@ function normalizePlayer(row) {
     crypto: parseJsonField(row.crypto, {}),
     stocks: parseJsonField(row.stocks, {}),
     businesses: parseJsonField(row.businesses, []),
+    business_levels: parseJsonField(row.business_levels, {}),
     realty: parseJsonField(row.realty, []),
-    cars: parseJsonField(row.cars, [])
+    cars: parseJsonField(row.cars, []),
+    titles: parseJsonField(row.titles, []),
+    friends: parseJsonField(row.friends, [])
   };
 }
 
@@ -490,22 +433,32 @@ function getClickReward(user) {
   return getClassData(user.class).clickReward;
 }
 
-function getPassiveIncome(user) {
-  let total = getClassData(user.class).passivePerMin;
-
+function getBusinessIncome(user) {
+  let total = 0;
   (user.businesses || []).forEach(id => {
-    const business = BUSINESS_CATALOG.find(item => item.id === id);
-    if (business) total += business.income;
+    const item = BUSINESS_CATALOG.find(x => x.id === id);
+    const level = Number(user.business_levels?.[id] || 1);
+    if (item) total += item.income * level;
   });
-
-  (user.realty || []).forEach(id => {
-    const realty = REALTY_CATALOG.find(item => item.id === id);
-    if (realty) total += realty.income;
-  });
-
   return total;
 }
 
+function getPassiveIncome(user) {
+  let total = getClassData(user.class).passivePerMin;
+  total += getBusinessIncome(user);
+  (user.realty || []).forEach(id => {
+    const item = REALTY_CATALOG.find(x => x.id === id);
+    if (item) total += item.income;
+  });
+  return total;
+}
+
+function updateLeftMenuText() {
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    el.textContent = tr(key);
+  });
+}
 function calculateCapitalUsd(user) {
   let totalUah = Number(user.balance || 0) + Number(user.usd || 0) * appState.usdRate;
 
@@ -521,7 +474,8 @@ function calculateCapitalUsd(user) {
 
   (user.businesses || []).forEach(id => {
     const item = BUSINESS_CATALOG.find(x => x.id === id);
-    if (item) totalUah += item.price;
+    const level = Number(user.business_levels?.[id] || 1);
+    if (item) totalUah += item.price * level;
   });
 
   (user.realty || []).forEach(id => {
@@ -554,12 +508,96 @@ function normalizeRecipient(value, currentNickname) {
   return clean;
 }
 
-// =====================================================
-// SUPABASE
-// =====================================================
+function cardColorClass(color) {
+  if (color === "white") return "card-white";
+  if (color === "yellow") return "card-yellow";
+  if (color === "gold") return "card-gold";
+  return "card-black";
+}
+
+function openColorModal() {
+  const modal = document.getElementById("color-modal");
+  if (modal) modal.classList.remove("hidden");
+}
+
+function closeColorModal() {
+  const modal = document.getElementById("color-modal");
+  if (modal) modal.classList.add("hidden");
+}
+
+function closeSidebar() {
+  document.getElementById("sidebar")?.classList.remove("show");
+  document.getElementById("overlay")?.classList.remove("show");
+}
+
+function setActivePage(page) {
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.page === page);
+  });
+}
+
+function showToast(text, isError = false) {
+  const toast = document.createElement("div");
+  toast.textContent = text;
+  toast.style.position = "fixed";
+  toast.style.left = "50%";
+  toast.style.bottom = "130px";
+  toast.style.transform = "translateX(-50%)";
+  toast.style.background = isError ? "#b33939" : "#20344d";
+  toast.style.color = "#fff";
+  toast.style.padding = "10px 16px";
+  toast.style.borderRadius = "999px";
+  toast.style.zIndex = "9999";
+  toast.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2600);
+}
+
+function updateHeader() {
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  const usernameEl = document.getElementById("header-username");
+  const statusEl = document.getElementById("header-status");
+  const onlineEl = document.getElementById("header-online");
+  const deviceEl = document.getElementById("header-device");
+  const balanceUahEl = document.getElementById("balance-uah");
+  const balanceUsdEl = document.getElementById("balance-usd");
+  const vipBtn = document.getElementById("vip-giveaway-btn");
+  const adminNav = document.getElementById("admin-nav");
+  const langBtn = document.getElementById("lang-btn");
+  const soundBtn = document.getElementById("toggle-sound-btn");
+  const globalMessageBox = document.getElementById("global-message");
+
+  if (usernameEl) usernameEl.textContent = user.username;
+  if (statusEl) statusEl.textContent = getClassData(user.class).title.toUpperCase();
+  if (onlineEl) onlineEl.textContent = tr("online");
+  if (deviceEl) deviceEl.textContent = user.device === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`;
+  if (balanceUahEl) balanceUahEl.textContent = formatNum(user.balance);
+  if (balanceUsdEl) balanceUsdEl.textContent = formatNum(user.usd);
+  if (vipBtn) vipBtn.classList.toggle("hidden", !hasVipAccess(user));
+  if (adminNav) adminNav.classList.toggle("hidden", !isCreator(user));
+  if (langBtn) langBtn.textContent = appState.lang === "uk" ? "EN" : "UA";
+  if (soundBtn) soundBtn.textContent = appState.soundEnabled ? "🔊 Звук" : "🔇 Звук";
+
+  if (globalMessageBox) {
+    if (appState.globalMessage) {
+      globalMessageBox.classList.remove("hidden");
+      globalMessageBox.textContent = appState.globalMessage;
+    } else {
+      globalMessageBox.classList.add("hidden");
+      globalMessageBox.textContent = "";
+    }
+  }
+
+  updateLeftMenuText();
+}
 
 async function fetchAllPlayers() {
-  const { data, error } = await supabaseClient.from("players").select("*");
+  const { data, error } = await supabaseClient
+    .from("players")
+    .select("*");
+
   if (error) {
     console.error(error);
     showToast(tr("serverError"), true);
@@ -590,20 +628,36 @@ async function fetchGameState() {
 }
 
 async function saveGameState() {
-  await supabaseClient.from("game_state").upsert({
-    id: 1,
-    support_bank: appState.supportBank,
-    commission_bank: appState.commissionBank,
-    global_message: appState.globalMessage
-  });
+  const { error } = await supabaseClient
+    .from("game_state")
+    .upsert({
+      id: 1,
+      support_bank: appState.supportBank,
+      commission_bank: appState.commissionBank,
+      global_message: appState.globalMessage
+    });
+
+  if (error) {
+    console.error(error);
+    showToast(tr("serverError"), true);
+    return false;
+  }
+
+  return true;
 }
 
 async function appendHistory(username, text, amount = null) {
-  await supabaseClient.from("history").insert({
-    username,
-    text,
-    amount
-  });
+  const { error } = await supabaseClient
+    .from("history")
+    .insert({
+      username,
+      text,
+      amount
+    });
+
+  if (error) {
+    console.error(error);
+  }
 }
 
 async function fetchHistory(username) {
@@ -628,10 +682,16 @@ async function updatePlayer(username, patch) {
   if (prepared.crypto && typeof prepared.crypto === "object") prepared.crypto = JSON.stringify(prepared.crypto);
   if (prepared.stocks && typeof prepared.stocks === "object") prepared.stocks = JSON.stringify(prepared.stocks);
   if (prepared.businesses && Array.isArray(prepared.businesses)) prepared.businesses = JSON.stringify(prepared.businesses);
+  if (prepared.business_levels && typeof prepared.business_levels === "object") prepared.business_levels = JSON.stringify(prepared.business_levels);
   if (prepared.realty && Array.isArray(prepared.realty)) prepared.realty = JSON.stringify(prepared.realty);
   if (prepared.cars && Array.isArray(prepared.cars)) prepared.cars = JSON.stringify(prepared.cars);
+  if (prepared.titles && Array.isArray(prepared.titles)) prepared.titles = JSON.stringify(prepared.titles);
+  if (prepared.friends && Array.isArray(prepared.friends)) prepared.friends = JSON.stringify(prepared.friends);
 
-  const { error } = await supabaseClient.from("players").update(prepared).eq("username", username);
+  const { error } = await supabaseClient
+    .from("players")
+    .update(prepared)
+    .eq("username", username);
 
   if (error) {
     console.error(error);
@@ -646,28 +706,34 @@ async function createPlayer(username, password) {
   const payload = {
     username,
     password,
+    class: "none",
     balance: 500,
     usd: 0,
     total_earned: 500,
-    class: "none",
-    device: currentDeviceType(),
-    crypto: JSON.stringify({}),
-    stocks: JSON.stringify({}),
-    businesses: JSON.stringify([]),
-    realty: JSON.stringify([]),
-    cars: JSON.stringify([]),
     card_name: "BitBank Card",
     card_color: "black",
     card_cvv: String(rand(100, 999)),
     card_number: generateCardNumber(),
     card_expiry: generateCardExpiry(),
+    device: currentDeviceType(),
     banned: false,
+    last_seen: new Date().toISOString(),
     last_bonus_day: "",
     vip_giveaway_day: "",
-    last_seen: new Date().toISOString()
+    crypto: JSON.stringify({}),
+    stocks: JSON.stringify({}),
+    businesses: JSON.stringify([]),
+    business_levels: JSON.stringify({}),
+    realty: JSON.stringify([]),
+    cars: JSON.stringify([]),
+    titles: JSON.stringify([]),
+    friends: JSON.stringify([])
   };
 
-  const { error } = await supabaseClient.from("players").insert(payload);
+  const { error } = await supabaseClient
+    .from("players")
+    .insert(payload);
+
   if (error) {
     console.error(error);
     showToast(tr("serverError"), true);
@@ -676,6 +742,31 @@ async function createPlayer(username, password) {
 
   await appendHistory(username, tr("userCreated"));
   return true;
+}
+
+async function applyOfflineIncome(user) {
+  const prev = new Date(user.last_seen).getTime();
+  const now = Date.now();
+  const minutesAway = Math.floor((now - prev) / 60000);
+  if (minutesAway <= 0) return;
+
+  const passive = getPassiveIncome(user);
+  if (passive <= 0) return;
+
+  const income = passive * minutesAway;
+
+  const ok = await updatePlayer(user.username, {
+    balance: Number(user.balance) + income,
+    total_earned: Number(user.total_earned) + income
+  });
+
+  if (!ok) return;
+
+  await appendHistory(
+    user.username,
+    `${appState.lang === "uk" ? "Офлайн дохід" : "Offline income"}: +${formatNum(income)} грн`,
+    income
+  );
 }
 
 async function loginPlayer(username, password) {
@@ -692,6 +783,7 @@ async function loginPlayer(username, password) {
   }
 
   const normalized = normalizePlayer(data);
+
   if (normalized.banned) {
     showToast(tr("accountBanned"), true);
     return null;
@@ -699,109 +791,48 @@ async function loginPlayer(username, password) {
 
   await applyOfflineIncome(normalized);
 
-  await updatePlayer(username, {
+  const ok = await updatePlayer(username, {
     last_seen: new Date().toISOString(),
     device: currentDeviceType()
   });
+
+  if (!ok) return null;
 
   appState.currentUser = username;
   saveSession();
   return normalized;
 }
 
-async function applyOfflineIncome(user) {
-  const prev = new Date(user.last_seen).getTime();
-  const now = Date.now();
-  const minutesAway = Math.floor((now - prev) / 60000);
-  if (minutesAway <= 0) return;
-
-  const passive = getPassiveIncome(user);
-  if (passive <= 0) return;
-
-  const income = passive * minutesAway;
-
-  await updatePlayer(user.username, {
-    balance: Number(user.balance) + income,
-    total_earned: Number(user.total_earned) + income
-  });
-
-  await appendHistory(
-    user.username,
-    `${appState.lang === "uk" ? "Офлайн дохід" : "Offline income"}: +${formatNum(income)} грн`,
-    income
-  );
+function grantTitleLocally(user, titleText) {
+  const currentTitles = Array.isArray(user.titles) ? [...user.titles] : [];
+  if (!currentTitles.includes(titleText)) currentTitles.push(titleText);
+  return currentTitles;
 }
 
-// =====================================================
-// UI HELPERS
-// =====================================================
-
-function updateHeader() {
-  const user = getCurrentUserRow();
+async function checkAndGrantTitles(username) {
+  await fetchAllPlayers();
+  const user = appState.allPlayers.find(p => p.username === username);
   if (!user) return;
 
-  const usernameEl = document.getElementById("header-username");
-  const statusEl = document.getElementById("header-status");
-  const onlineEl = document.getElementById("header-online");
-  const deviceEl = document.getElementById("header-device");
-  const balanceUahEl = document.getElementById("balance-uah");
-  const balanceUsdEl = document.getElementById("balance-usd");
-  const vipBtn = document.getElementById("vip-giveaway-btn");
-  const adminNav = document.getElementById("admin-nav");
-  const langBtn = document.getElementById("lang-btn");
-  const soundBtn = document.getElementById("toggle-sound-btn");
-  const globalMessageBox = document.getElementById("global-message");
+  let titles = Array.isArray(user.titles) ? [...user.titles] : [];
 
-  if (usernameEl) usernameEl.textContent = user.username;
-  if (statusEl) statusEl.textContent = getClassData(user.class).title.toUpperCase();
-  if (onlineEl) onlineEl.textContent = tr("online");
-  if (deviceEl) deviceEl.textContent = user.device === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`;
-  if (balanceUahEl) balanceUahEl.textContent = formatNum(user.balance);
-  if (balanceUsdEl) balanceUsdEl.textContent = formatNum(user.usd);
+  if (Number(user.total_earned) >= 10000 && !titles.includes("💸 10K Earned")) titles.push("💸 10K Earned");
+  if (Number(user.total_earned) >= 100000 && !titles.includes("🏆 100K Earned")) titles.push("🏆 100K Earned");
+  if ((user.businesses || []).length >= 3 && !titles.includes("🏢 Бізнесмен")) titles.push("🏢 Бізнесмен");
+  if ((user.realty || []).length >= 2 && !titles.includes("🏝 Магнат")) titles.push("🏝 Магнат");
+  if ((user.cars || []).length >= 2 && !titles.includes("🚗 Колекціонер")) titles.push("🚗 Колекціонер");
 
-  if (vipBtn) vipBtn.classList.toggle("hidden", !hasVipAccess(user));
-  if (adminNav) adminNav.classList.toggle("hidden", !isCreator(user));
-  if (langBtn) langBtn.textContent = appState.lang === "uk" ? "EN" : "UA";
-  if (soundBtn) soundBtn.textContent = appState.soundEnabled ? "🔊 Звук" : "🔇 Звук";
-
-  if (globalMessageBox) {
-    if (appState.globalMessage) {
-      globalMessageBox.classList.remove("hidden");
-      globalMessageBox.textContent = appState.globalMessage;
-    } else {
-      globalMessageBox.classList.add("hidden");
-      globalMessageBox.textContent = "";
-    }
+  if (JSON.stringify(titles) !== JSON.stringify(user.titles || [])) {
+    await updatePlayer(username, { titles });
   }
 }
 
-function setActivePage(page) {
-  document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.page === page);
-  });
+function battleIsActive(battle) {
+  if (!battle) return false;
+  if (battle.status !== "active") return false;
+  if (!battle.ends_at) return false;
+  return Date.now() < new Date(battle.ends_at).getTime();
 }
-
-function openColorModal() {
-  const el = document.getElementById("color-modal");
-  if (el) el.classList.remove("hidden");
-}
-
-function closeColorModal() {
-  const el = document.getElementById("color-modal");
-  if (el) el.classList.add("hidden");
-}
-
-function closeSidebar() {
-  const sidebar = document.getElementById("sidebar");
-  const overlay = document.getElementById("overlay");
-  if (sidebar) sidebar.classList.remove("show");
-  if (overlay) overlay.classList.remove("show");
-}
-
-// =====================================================
-// RENDER PROFILE
-// =====================================================
-
 async function renderProfilePage() {
   await fetchAllPlayers();
   await fetchGameState();
@@ -810,12 +841,6 @@ async function renderProfilePage() {
   if (!user) return;
 
   const classData = getClassData(user.class);
-
-  const titles = [];
-  if (user.class === "creator") titles.push("👑 Creator");
-  if ((user.realty || []).includes("paradise")) titles.push("🏝 Island Lord");
-  if ((user.businesses || []).includes("it")) titles.push("💻 Tech Boss");
-  if ((user.cars || []).includes("huracan")) titles.push("🔥 Supercar Owner");
 
   document.getElementById("page-content").innerHTML = `
     <h2 class="page-title">🏠 ${tr("profile")}</h2>
@@ -894,6 +919,17 @@ async function renderProfilePage() {
         </div>
 
         <div style="margin-top:18px">
+          <h3>${tr("titles")}</h3>
+          <div>
+            ${
+              (user.titles || []).length
+                ? user.titles.map(title => `<span class="badge-title">${title}</span>`).join("")
+                : `<span class="sub">${tr("none")}</span>`
+            }
+          </div>
+        </div>
+
+        <div style="margin-top:18px">
           <h3>${tr("exchange")}</h3>
           <p>1 USD = ${formatNum(appState.usdRate)} грн</p>
 
@@ -905,13 +941,6 @@ async function renderProfilePage() {
           <div class="transfer-row">
             <input id="sell-usd-amount" type="number" placeholder="${tr("amount")} USD">
             <button id="sell-usd-btn">${tr("sellUsd")}</button>
-          </div>
-        </div>
-
-        <div style="margin-top:18px">
-          <h3>${tr("titles")}</h3>
-          <div>
-            ${titles.length ? titles.map(item => `<span class="badge-title">${item}</span>`).join("") : `<span class="sub">${tr("none")}</span>`}
           </div>
         </div>
       </div>
@@ -937,7 +966,7 @@ async function renderProfilePage() {
   document.getElementById("profile-change-color-btn").onclick = openColorModal;
 
   document.getElementById("profile-daily-bonus-btn").onclick = async () => {
-    if (user.last_bonus_day === todayString()) {
+    if (user.last_bonus_day === new Date().toDateString()) {
       showToast(tr("dailyBonusTaken"), true);
       return;
     }
@@ -946,11 +975,12 @@ async function renderProfilePage() {
     const ok = await updatePlayer(user.username, {
       balance: Number(user.balance) + bonus,
       total_earned: Number(user.total_earned) + bonus,
-      last_bonus_day: todayString()
+      last_bonus_day: new Date().toDateString()
     });
     if (!ok) return;
 
     await appendHistory(user.username, `${tr("dailyBonus")}: +${formatNum(bonus)} грн`, bonus);
+    await checkAndGrantTitles(user.username);
     playBeep(760);
     showToast(`${tr("dailyBonusGot")} +${bonus}`);
     await renderProfilePage();
@@ -994,10 +1024,6 @@ async function renderProfilePage() {
     await renderProfilePage();
   };
 }
-
-// =====================================================
-// RENDER CLASSES
-// =====================================================
 
 async function renderClassesPage() {
   await fetchAllPlayers();
@@ -1052,16 +1078,13 @@ async function renderClassesPage() {
       if (!ok) return;
 
       await appendHistory(user.username, `${tr("buyClass")}: ${target.title}`);
+      await checkAndGrantTitles(user.username);
       playBeep(820);
       showToast(tr("upgradeSuccess"));
       await renderClassesPage();
     };
   });
 }
-
-// =====================================================
-// RENDER CRYPTO
-// =====================================================
 
 async function renderCryptoPage() {
   await fetchAllPlayers();
@@ -1116,6 +1139,7 @@ async function renderCryptoPage() {
       if (!ok) return;
 
       await appendHistory(user.username, `${tr("buy")} ${formatNum(amount)} ${symbol}`);
+      await checkAndGrantTitles(user.username);
       playBeep(640);
       await renderCryptoPage();
     };
@@ -1145,10 +1169,6 @@ async function renderCryptoPage() {
     };
   });
 }
-
-// =====================================================
-// RENDER STOCKS
-// =====================================================
 
 async function renderStocksPage() {
   await fetchAllPlayers();
@@ -1211,6 +1231,7 @@ async function renderStocksPage() {
       if (!ok) return;
 
       await appendHistory(user.username, `${tr("buy")} ${formatNum(amount)} ${stock.name}`);
+      await checkAndGrantTitles(user.username);
       playBeep(670);
       await renderStocksPage();
     };
@@ -1240,11 +1261,6 @@ async function renderStocksPage() {
     };
   });
 }
-
-// =====================================================
-// RENDER BUSINESS
-// =====================================================
-
 async function renderBusinessPage() {
   await fetchAllPlayers();
   const user = getCurrentUserRow();
@@ -1253,26 +1269,40 @@ async function renderBusinessPage() {
   if (!hasBusinessAccess(user)) {
     document.getElementById("page-content").innerHTML = `
       <h2 class="page-title">🏢 ${tr("business")}</h2>
-      <div class="panel"><p>${tr("noAccessBusiness")}</p></div>
+      <div class="panel">
+        <p>${tr("noAccessBusiness")}</p>
+      </div>
     `;
     return;
   }
 
   const html = BUSINESS_CATALOG.map(item => {
-    const owned = user.businesses.includes(item.id);
+    const owned = (user.businesses || []).includes(item.id);
+    const level = Number(user.business_levels?.[item.id] || 0);
+    const nextLevel = level + 1;
+    const upgradePrice = Math.floor(item.price * 0.45 * nextLevel);
+
     return `
       <div class="asset-card">
         <div class="asset-head">
           ${imageTag(item.img, item.name)}
           <div>
             <h4>${item.name}</h4>
-            <div class="sub">${tr("buyFor")}: ${formatNum(item.price)} грн • ${item.income}/хв</div>
+            <div class="sub">${tr("buyFor")}: ${formatNum(item.price)} грн</div>
+            <div class="sub">+${formatNum(item.income)} грн/хв</div>
+            <div class="sub">${appState.lang === "uk" ? "Рівень" : "Level"}: ${level}</div>
           </div>
         </div>
+
         <div class="asset-actions">
           ${
             owned
-              ? `<button disabled>${tr("owned")}</button>`
+              ? `
+                <button disabled>${tr("owned")}</button>
+                <button data-upgrade-business="${item.id}">
+                  ${appState.lang === "uk" ? "Прокачати" : "Upgrade"} (${formatNum(upgradePrice)} грн)
+                </button>
+              `
               : `<button data-buy-business="${item.id}">${tr("buy")}</button>`
           }
         </div>
@@ -1289,28 +1319,68 @@ async function renderBusinessPage() {
     button.onclick = async () => {
       const id = button.dataset.buyBusiness;
       const item = BUSINESS_CATALOG.find(x => x.id === id);
+      if (!item) return;
 
       if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
       if (Number(user.balance) < item.price) return showToast(tr("insufficientFunds"), true);
 
-      const updated = [...user.businesses, id];
+      const updatedBusinesses = Array.from(new Set([...(user.businesses || []), id]));
+      const updatedLevels = { ...(user.business_levels || {}), [id]: 1 };
 
       const ok = await updatePlayer(user.username, {
         balance: Number(user.balance) - item.price,
-        businesses: updated
+        businesses: updatedBusinesses,
+        business_levels: updatedLevels
       });
+
       if (!ok) return;
 
-      await appendHistory(user.username, `${tr("buy")} ${item.name}`);
+      await appendHistory(user.username, `${tr("buy")} ${item.name}`, -item.price);
+      await checkAndGrantTitles(user.username);
       playBeep(700);
+      showToast(tr("bought"));
+      await renderBusinessPage();
+    };
+  });
+
+  document.querySelectorAll("[data-upgrade-business]").forEach(button => {
+    button.onclick = async () => {
+      const id = button.dataset.upgradeBusiness;
+      const item = BUSINESS_CATALOG.find(x => x.id === id);
+      if (!item) return;
+
+      const currentLevel = Number(user.business_levels?.[id] || 1);
+      const nextLevel = currentLevel + 1;
+      const upgradePrice = Math.floor(item.price * 0.45 * nextLevel);
+
+      if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+      if (Number(user.balance) < upgradePrice) return showToast(tr("insufficientFunds"), true);
+
+      const updatedLevels = {
+        ...(user.business_levels || {}),
+        [id]: nextLevel
+      };
+
+      const ok = await updatePlayer(user.username, {
+        balance: Number(user.balance) - upgradePrice,
+        business_levels: updatedLevels
+      });
+
+      if (!ok) return;
+
+      await appendHistory(
+        user.username,
+        `${appState.lang === "uk" ? "Прокачка бізнесу" : "Business upgrade"}: ${item.name} → ${nextLevel}`,
+        -upgradePrice
+      );
+
+      await checkAndGrantTitles(user.username);
+      playBeep(760);
+      showToast(appState.lang === "uk" ? "Бізнес прокачано" : "Business upgraded");
       await renderBusinessPage();
     };
   });
 }
-
-// =====================================================
-// RENDER REALTY
-// =====================================================
 
 async function renderRealtyPage() {
   await fetchAllPlayers();
@@ -1318,16 +1388,19 @@ async function renderRealtyPage() {
   if (!user) return;
 
   const html = REALTY_CATALOG.map(item => {
-    const owned = user.realty.includes(item.id);
+    const owned = (user.realty || []).includes(item.id);
+
     return `
       <div class="asset-card">
         <div class="asset-head">
           ${imageTag(item.img, item.name)}
           <div>
             <h4>${item.name}</h4>
-            <div class="sub">${tr("buyFor")}: ${formatNum(item.price)} грн • ${item.income}/хв</div>
+            <div class="sub">${tr("buyFor")}: ${formatNum(item.price)} грн</div>
+            <div class="sub">+${formatNum(item.income)} грн/хв</div>
           </div>
         </div>
+
         <div class="asset-actions">
           ${
             owned
@@ -1348,28 +1421,28 @@ async function renderRealtyPage() {
     button.onclick = async () => {
       const id = button.dataset.buyRealty;
       const item = REALTY_CATALOG.find(x => x.id === id);
+      if (!item) return;
 
       if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
       if (Number(user.balance) < item.price) return showToast(tr("insufficientFunds"), true);
 
-      const updated = [...user.realty, id];
+      const updatedRealty = Array.from(new Set([...(user.realty || []), id]));
 
       const ok = await updatePlayer(user.username, {
         balance: Number(user.balance) - item.price,
-        realty: updated
+        realty: updatedRealty
       });
+
       if (!ok) return;
 
-      await appendHistory(user.username, `${tr("buy")} ${item.name}`);
+      await appendHistory(user.username, `${tr("buy")} ${item.name}`, -item.price);
+      await checkAndGrantTitles(user.username);
       playBeep(710);
+      showToast(tr("bought"));
       await renderRealtyPage();
     };
   });
 }
-
-// =====================================================
-// RENDER CARS
-// =====================================================
 
 async function renderCarsPage() {
   await fetchAllPlayers();
@@ -1377,7 +1450,8 @@ async function renderCarsPage() {
   if (!user) return;
 
   const html = CAR_CATALOG.map(item => {
-    const owned = user.cars.includes(item.id);
+    const owned = (user.cars || []).includes(item.id);
+
     return `
       <div class="asset-card">
         <div class="asset-head">
@@ -1387,6 +1461,7 @@ async function renderCarsPage() {
             <div class="sub">${tr("buyFor")}: ${formatNum(item.priceUsd)} USD</div>
           </div>
         </div>
+
         <div class="asset-actions">
           ${
             owned
@@ -1407,31 +1482,96 @@ async function renderCarsPage() {
     button.onclick = async () => {
       const id = button.dataset.buyCar;
       const item = CAR_CATALOG.find(x => x.id === id);
+      if (!item) return;
 
       if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
       if (Number(user.usd) < item.priceUsd) return showToast(tr("insufficientFunds"), true);
 
-      const updated = [...user.cars, id];
+      const updatedCars = Array.from(new Set([...(user.cars || []), id]));
 
       const ok = await updatePlayer(user.username, {
         usd: Number(user.usd) - item.priceUsd,
-        cars: updated
+        cars: updatedCars
       });
+
       if (!ok) return;
 
-      await appendHistory(user.username, `${tr("buy")} ${item.name}`);
+      await appendHistory(user.username, `${tr("buy")} ${item.name}`, -item.priceUsd);
+      await checkAndGrantTitles(user.username);
       playBeep(680);
+      showToast(tr("bought"));
       await renderCarsPage();
     };
   });
 }
 
-// =====================================================
-// RENDER TRANSFERS
-// =====================================================
+async function renderFriendsPage() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  const myId = user.id;
+  const myFriends = (user.friends || []).map(id => appState.allPlayers.find(p => p.id === id)).filter(Boolean);
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">👥 ${tr("friendsTitle")}</h2>
+
+    <div class="panel">
+      <p><b>${appState.lang === "uk" ? "Твій ID" : "Your ID"}:</b> ${myId}</p>
+      <div class="transfer-row">
+        <input id="friend-id-input" placeholder="${appState.lang === "uk" ? "Введи ID друга" : "Enter friend ID"}">
+        <button id="add-friend-btn">${appState.lang === "uk" ? "Додати в друзі" : "Add friend"}</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h3>${appState.lang === "uk" ? "Список друзів" : "Friends list"}</h3>
+      <div class="rank-list">
+        ${
+          myFriends.length
+            ? myFriends.map(friend => `
+              <div class="rank-item">
+                <div class="rank-badge">👤</div>
+                <div>
+                  <div><b>${friend.username}</b></div>
+                  <div class="sub">${friend.device === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`}</div>
+                </div>
+                <div class="sub">${getClassData(friend.class).title}</div>
+              </div>
+            `).join("")
+            : `<div class="sub">${tr("none")}</div>`
+        }
+      </div>
+    </div>
+  `;
+
+  document.getElementById("add-friend-btn").onclick = async () => {
+    const friendId = sanitize(document.getElementById("friend-id-input").value);
+    if (!friendId) return showToast(tr("invalidData"), true);
+    if (friendId === user.id) return showToast(tr("invalidData"), true);
+
+    const friend = appState.allPlayers.find(p => p.id === friendId);
+    if (!friend) return showToast(tr("playerNotFound"), true);
+
+    const updatedMine = Array.from(new Set([...(user.friends || []), friend.id]));
+    const updatedFriend = Array.from(new Set([...(friend.friends || []), user.id]));
+
+    const ok1 = await updatePlayer(user.username, { friends: updatedMine });
+    const ok2 = await updatePlayer(friend.username, { friends: updatedFriend });
+
+    if (!ok1 || !ok2) return;
+
+    await appendHistory(user.username, `${appState.lang === "uk" ? "Додав у друзі" : "Added friend"}: ${friend.username}`);
+    await appendHistory(friend.username, `${appState.lang === "uk" ? "Новий друг" : "New friend"}: ${user.username}`);
+
+    showToast(appState.lang === "uk" ? "Друг доданий" : "Friend added");
+    await renderFriendsPage();
+  };
+}
 
 async function renderTransfersPage() {
   await fetchAllPlayers();
+  await fetchGameState();
   const user = getCurrentUserRow();
   if (!user) return;
 
@@ -1485,6 +1625,7 @@ async function renderTransfersPage() {
 
     const ok1 = await updatePlayer(user.username, { balance: Number(user.balance) - total });
     const ok2 = await updatePlayer(recipient.username, { balance: Number(recipient.balance) + amount });
+
     if (!ok1 || !ok2) return;
 
     appState.commissionBank += fee;
@@ -1513,6 +1654,7 @@ async function renderTransfersPage() {
 
     const ok1 = await updatePlayer(user.username, { usd: Number(user.usd) - total });
     const ok2 = await updatePlayer(recipient.username, { usd: Number(recipient.usd) + amount });
+
     if (!ok1 || !ok2) return;
 
     appState.commissionBank += fee * appState.usdRate;
@@ -1546,6 +1688,7 @@ async function renderTransfersPage() {
 
     const ok1 = await updatePlayer(user.username, { crypto: senderCrypto });
     const ok2 = await updatePlayer(recipient.username, { crypto: recipientCrypto });
+
     if (!ok1 || !ok2) return;
 
     appState.commissionBank += fee * appState.market.crypto[symbol].price;
@@ -1559,10 +1702,6 @@ async function renderTransfersPage() {
     await renderTransfersPage();
   };
 }
-
-// =====================================================
-// RENDER HISTORY
-// =====================================================
 
 async function renderHistoryPage() {
   const user = getCurrentUserRow();
@@ -1586,11 +1725,6 @@ async function renderHistoryPage() {
     </div>
   `;
 }
-
-// =====================================================
-// RENDER TOP
-// =====================================================
-
 async function renderTopPage() {
   await fetchAllPlayers();
 
@@ -1614,6 +1748,13 @@ async function renderTopPage() {
           ${item.onlineNow ? `🟢 ${tr("online")}` : ""}
           ${item.device === "phone" ? ` • 📱 ${tr("phone")}` : ` • 🖥 ${tr("desktop")}`}
         </div>
+        <div>
+          ${
+            (item.titles || []).length
+              ? item.titles.map(t => `<span class="badge-title">${t}</span>`).join("")
+              : ""
+          }
+        </div>
       </div>
       <div style="text-align:right">
         <div><b>${formatNum(item.total_earned)} грн</b></div>
@@ -1628,11 +1769,475 @@ async function renderTopPage() {
   `;
 }
 
-// =====================================================
-// RENDER SUPPORT
-// =====================================================
+async function createBattle(creatorUsername, stake) {
+  const now = new Date();
+  const end = new Date(now.getTime() + 60000);
+
+  const { data, error } = await supabaseClient
+    .from("tap_battles")
+    .insert({
+      creator_username: creatorUsername,
+      stake,
+      status: "waiting",
+      created_at: now.toISOString(),
+      started_at: null,
+      ends_at: end.toISOString()
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    showToast(tr("serverError"), true);
+    return null;
+  }
+
+  return data;
+}
+
+async function joinBattle(battleId, opponentUsername) {
+  const now = new Date();
+  const end = new Date(now.getTime() + 60000);
+
+  const { error } = await supabaseClient
+    .from("tap_battles")
+    .update({
+      opponent_username: opponentUsername,
+      status: "active",
+      started_at: now.toISOString(),
+      ends_at: end.toISOString()
+    })
+    .eq("id", battleId);
+
+  if (error) {
+    console.error(error);
+    showToast(tr("serverError"), true);
+    return false;
+  }
+
+  return true;
+}
+
+async function fetchOpenBattles() {
+  const { data, error } = await supabaseClient
+    .from("tap_battles")
+    .select("*")
+    .in("status", ["waiting", "active"])
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return data || [];
+}
+
+async function fetchMyActiveBattle(username) {
+  const { data, error } = await supabaseClient
+    .from("tap_battles")
+    .select("*")
+    .or(`creator_username.eq.${username},opponent_username.eq.${username}`)
+    .in("status", ["waiting", "active"])
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error(error);
+    return null;
+  }
+
+  return (data || [])[0] || null;
+}
+
+async function addBattleTap(battle, username) {
+  if (!battleIsActive(battle)) return false;
+
+  const patch = {};
+  if (battle.creator_username === username) {
+    patch.creator_taps = Number(battle.creator_taps || 0) + 1;
+  } else if (battle.opponent_username === username) {
+    patch.opponent_taps = Number(battle.opponent_taps || 0) + 1;
+  } else {
+    return false;
+  }
+
+  const { error } = await supabaseClient
+    .from("tap_battles")
+    .update(patch)
+    .eq("id", battle.id);
+
+  if (error) {
+    console.error(error);
+    return false;
+  }
+
+  return true;
+}
+
+async function finishBattleIfNeeded(battle) {
+  if (!battle) return;
+  if (battle.status !== "active") return;
+  if (!battle.ends_at) return;
+  if (Date.now() < new Date(battle.ends_at).getTime()) return;
+
+  let winner = null;
+  const creatorTaps = Number(battle.creator_taps || 0);
+  const opponentTaps = Number(battle.opponent_taps || 0);
+  const totalPot = Number(battle.stake || 0) * 2;
+
+  if (creatorTaps > opponentTaps) winner = battle.creator_username;
+  if (opponentTaps > creatorTaps) winner = battle.opponent_username;
+
+  if (winner) {
+    const winnerPlayer = appState.allPlayers.find(p => p.username === winner);
+    if (winnerPlayer) {
+      await updatePlayer(winner, {
+        balance: Number(winnerPlayer.balance) + totalPot,
+        total_earned: Number(winnerPlayer.total_earned) + totalPot
+      });
+      await appendHistory(winner, `${appState.lang === "uk" ? "Перемога в дуелі" : "Battle win"}: +${formatNum(totalPot)} грн`, totalPot);
+      await checkAndGrantTitles(winner);
+    }
+  } else {
+    const creator = appState.allPlayers.find(p => p.username === battle.creator_username);
+    const opponent = appState.allPlayers.find(p => p.username === battle.opponent_username);
+
+    if (creator) {
+      await updatePlayer(creator.username, { balance: Number(creator.balance) + Number(battle.stake || 0) });
+      await appendHistory(creator.username, `${appState.lang === "uk" ? "Повернення ставки за нічию" : "Battle draw refund"}: +${formatNum(battle.stake)} грн`, battle.stake);
+    }
+
+    if (opponent) {
+      await updatePlayer(opponent.username, { balance: Number(opponent.balance) + Number(battle.stake || 0) });
+      await appendHistory(opponent.username, `${appState.lang === "uk" ? "Повернення ставки за нічию" : "Battle draw refund"}: +${formatNum(battle.stake)} грн`, battle.stake);
+    }
+  }
+
+  await supabaseClient
+    .from("tap_battles")
+    .update({
+      status: "finished",
+      winner_username: winner
+    })
+    .eq("id", battle.id);
+}
+
+async function renderBattlePage() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  const openBattles = await fetchOpenBattles();
+  const myBattle = await fetchMyActiveBattle(user.username);
+
+  if (myBattle) {
+    await finishBattleIfNeeded(myBattle);
+  }
+
+  const freshBattle = await fetchMyActiveBattle(user.username);
+
+  const battlesHtml = openBattles
+    .filter(b => b.status === "waiting" && b.creator_username !== user.username)
+    .map(b => `
+      <div class="rank-item">
+        <div class="rank-badge">⚔️</div>
+        <div>
+          <div><b>${b.creator_username}</b></div>
+          <div class="sub">${appState.lang === "uk" ? "Ставка" : "Stake"}: ${formatNum(b.stake)} грн</div>
+        </div>
+        <div>
+          <button data-join-battle="${b.id}">${appState.lang === "uk" ? "Прийняти" : "Join"}</button>
+        </div>
+      </div>
+    `).join("");
+
+  let activeBattleHtml = "";
+
+  if (freshBattle) {
+    const remainingMs = freshBattle.ends_at ? Math.max(0, new Date(freshBattle.ends_at).getTime() - Date.now()) : 0;
+    const remainingSec = Math.ceil(remainingMs / 1000);
+
+    activeBattleHtml = `
+      <div class="panel" style="margin-bottom:16px">
+        <h3>${tr("tapBattleTitle")}</h3>
+        <p><b>${appState.lang === "uk" ? "Статус" : "Status"}:</b> ${freshBattle.status}</p>
+        <p><b>${appState.lang === "uk" ? "Ставка" : "Stake"}:</b> ${formatNum(freshBattle.stake)} грн</p>
+        <p><b>${appState.lang === "uk" ? "Ти" : "You"}:</b> ${user.username}</p>
+        <p><b>${appState.lang === "uk" ? "Таймер" : "Timer"}:</b> ${remainingSec}s</p>
+        <p><b>${freshBattle.creator_username}</b>: ${freshBattle.creator_taps || 0} ${appState.lang === "uk" ? "тапів" : "taps"}</p>
+        <p><b>${freshBattle.opponent_username || "..."}</b>: ${freshBattle.opponent_taps || 0} ${appState.lang === "uk" ? "тапів" : "taps"}</p>
+        ${
+          freshBattle.status === "active"
+            ? `<button id="battle-tap-btn">${appState.lang === "uk" ? "ТАПАТИ В ДУЕЛІ" : "TAP IN BATTLE"}</button>`
+            : ""
+        }
+      </div>
+    `;
+  }
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">⚔️ ${tr("tapBattleTitle")}</h2>
+
+    ${activeBattleHtml}
+
+    <div class="panel">
+      <h3>${appState.lang === "uk" ? "Створити дуель" : "Create battle"}</h3>
+      <div class="transfer-row">
+        <input id="battle-stake-input" type="number" placeholder="${appState.lang === "uk" ? "Ставка" : "Stake"}">
+        <button id="create-battle-btn">${appState.lang === "uk" ? "Створити" : "Create"}</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h3>${appState.lang === "uk" ? "Доступні дуелі" : "Open battles"}</h3>
+      <div class="rank-list">
+        ${battlesHtml || `<div class="sub">${tr("none")}</div>`}
+      </div>
+    </div>
+  `;
+
+  if (document.getElementById("create-battle-btn")) {
+    document.getElementById("create-battle-btn").onclick = async () => {
+      const stake = Number(document.getElementById("battle-stake-input").value);
+      if (!stake || stake <= 0) return showToast(tr("invalidData"), true);
+      if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+      if (Number(user.balance) < stake) return showToast(tr("insufficientFunds"), true);
+
+      const existing = await fetchMyActiveBattle(user.username);
+      if (existing) return showToast(appState.lang === "uk" ? "У тебе вже є активна дуель" : "You already have an active battle", true);
+
+      const ok = await updatePlayer(user.username, {
+        balance: Number(user.balance) - stake
+      });
+      if (!ok) return;
+
+      const created = await createBattle(user.username, stake);
+      if (!created) {
+        await updatePlayer(user.username, { balance: Number(user.balance) + stake });
+        return;
+      }
+
+      await appendHistory(user.username, `${appState.lang === "uk" ? "Створив дуель" : "Created battle"}: -${formatNum(stake)} грн`, -stake);
+      showToast(appState.lang === "uk" ? "Дуель створено" : "Battle created");
+      await renderBattlePage();
+    };
+  }
+
+  document.querySelectorAll("[data-join-battle]").forEach(button => {
+    button.onclick = async () => {
+      const battleId = button.dataset.joinBattle;
+      const battle = openBattles.find(b => b.id === battleId);
+      if (!battle) return;
+
+      const myExisting = await fetchMyActiveBattle(user.username);
+      if (myExisting) return showToast(appState.lang === "uk" ? "У тебе вже є активна дуель" : "You already have an active battle", true);
+
+      if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+      if (Number(user.balance) < Number(battle.stake)) return showToast(tr("insufficientFunds"), true);
+
+      const ok1 = await updatePlayer(user.username, {
+        balance: Number(user.balance) - Number(battle.stake)
+      });
+      if (!ok1) return;
+
+      const joined = await joinBattle(battle.id, user.username);
+      if (!joined) {
+        await updatePlayer(user.username, { balance: Number(user.balance) + Number(battle.stake) });
+        return;
+      }
+
+      await appendHistory(user.username, `${appState.lang === "uk" ? "Приєднався до дуелі" : "Joined battle"}: -${formatNum(battle.stake)} грн`, -battle.stake);
+      showToast(appState.lang === "uk" ? "Дуель почалась" : "Battle started");
+      await renderBattlePage();
+    };
+  });
+
+  if (document.getElementById("battle-tap-btn") && freshBattle) {
+    document.getElementById("battle-tap-btn").onclick = async () => {
+      const ok = await addBattleTap(freshBattle, user.username);
+      if (!ok) return;
+      playBeep(520, 0.03, 0.03);
+      await renderBattlePage();
+    };
+  }
+}
+
+async function casinoFlip(user, bet) {
+  const win = Math.random() < 0.48;
+  const reward = win ? bet * 2 : 0;
+  return {
+    win,
+    reward,
+    text: win
+      ? (appState.lang === "uk" ? "Монетка: виграш" : "Coin flip: win")
+      : (appState.lang === "uk" ? "Монетка: програш" : "Coin flip: lose")
+  };
+}
+
+async function casinoSlots(user, bet) {
+  const icons = ["🍒", "💎", "7️⃣", "🍋", "⭐"];
+  const a = icons[rand(0, icons.length - 1)];
+  const b = icons[rand(0, icons.length - 1)];
+  const c = icons[rand(0, icons.length - 1)];
+
+  let reward = 0;
+  if (a === b && b === c) reward = bet * 5;
+  else if (a === b || b === c || a === c) reward = bet * 2;
+
+  return {
+    win: reward > 0,
+    reward,
+    text: `${a} ${b} ${c}`
+  };
+}
+
+async function casinoDice(user, bet) {
+  const myRoll = rand(1, 6);
+  const houseRoll = rand(1, 6);
+
+  let reward = 0;
+  if (myRoll > houseRoll) reward = bet * 2;
+  if (myRoll === houseRoll) reward = bet;
+
+  return {
+    win: reward > bet,
+    reward,
+    text: `${appState.lang === "uk" ? "Ти" : "You"} ${myRoll} : ${houseRoll} ${appState.lang === "uk" ? "казино" : "casino"}`
+  };
+}
+
+async function logCasino(username, game, bet, result) {
+  await supabaseClient.from("casino_logs").insert({
+    username,
+    game,
+    bet,
+    result
+  });
+}
+
+async function fetchCasinoLogs(username) {
+  const { data, error } = await supabaseClient
+    .from("casino_logs")
+    .select("*")
+    .eq("username", username)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return data || [];
+}
+
+async function renderCasinoPage() {
+  await fetchAllPlayers();
+  const user = getCurrentUserRow();
+  if (!user) return;
+
+  const logs = await fetchCasinoLogs(user.username);
+
+  document.getElementById("page-content").innerHTML = `
+    <h2 class="page-title">🎰 ${tr("casinoTitle")}</h2>
+
+    <div class="grid" style="gap:16px">
+      <div class="panel">
+        <h3>${appState.lang === "uk" ? "Монетка" : "Coin flip"}</h3>
+        <div class="transfer-row">
+          <input id="casino-bet-flip" type="number" placeholder="${tr("amount")}">
+          <button id="casino-flip-btn">${appState.lang === "uk" ? "Грати" : "Play"}</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>${appState.lang === "uk" ? "Слоти" : "Slots"}</h3>
+        <div class="transfer-row">
+          <input id="casino-bet-slots" type="number" placeholder="${tr("amount")}">
+          <button id="casino-slots-btn">${appState.lang === "uk" ? "Крутити" : "Spin"}</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>${appState.lang === "uk" ? "Кості" : "Dice"}</h3>
+        <div class="transfer-row">
+          <input id="casino-bet-dice" type="number" placeholder="${tr("amount")}">
+          <button id="casino-dice-btn">${appState.lang === "uk" ? "Кинути" : "Roll"}</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>${appState.lang === "uk" ? "Останні ігри" : "Recent games"}</h3>
+        <div class="history-list">
+          ${
+            logs.length
+              ? logs.map(log => `
+                <div class="history-item">
+                  <div class="history-top">
+                    <b>${log.game}</b>
+                    <span class="sub">${new Date(log.created_at).toLocaleString()}</span>
+                  </div>
+                  <div class="sub">${appState.lang === "uk" ? "Ставка" : "Bet"}: ${formatNum(log.bet)} | ${appState.lang === "uk" ? "Результат" : "Result"}: ${formatNum(log.result)}</div>
+                </div>
+              `).join("")
+              : `<div class="sub">${tr("none")}</div>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+
+  const handleCasinoGame = async (gameName, betInputId, gameFn) => {
+    const bet = Number(document.getElementById(betInputId).value);
+    if (!bet || bet <= 0) return showToast(tr("invalidData"), true);
+    if (!promptCvv(user, tr("purchaseRequiresCvv"))) return;
+    if (Number(user.balance) < bet) return showToast(tr("insufficientFunds"), true);
+
+    const ok1 = await updatePlayer(user.username, {
+      balance: Number(user.balance) - bet
+    });
+    if (!ok1) return;
+
+    const result = await gameFn(user, bet);
+    const payout = Number(result.reward || 0);
+
+    const ok2 = await updatePlayer(user.username, {
+      balance: Number(user.balance) + payout,
+      total_earned: Number(user.total_earned) + Math.max(0, payout - bet)
+    });
+    if (!ok2) return;
+
+    await logCasino(user.username, gameName, bet, payout - bet);
+    await appendHistory(
+      user.username,
+      `${appState.lang === "uk" ? "Казино" : "Casino"} ${gameName}: ${result.text}`,
+      payout - bet
+    );
+
+    await checkAndGrantTitles(user.username);
+
+    if (payout > bet) {
+      playBeep(860);
+      showToast(`${appState.lang === "uk" ? "Виграш" : "Win"} +${formatNum(payout - bet)}`);
+    } else if (payout === bet) {
+      playBeep(600);
+      showToast(appState.lang === "uk" ? "Нічия" : "Draw");
+    } else {
+      playBeep(320);
+      showToast(appState.lang === "uk" ? "Програш" : "Lose", true);
+    }
+
+    await renderCasinoPage();
+  };
+
+  document.getElementById("casino-flip-btn").onclick = () => handleCasinoGame("Coin Flip", "casino-bet-flip", casinoFlip);
+  document.getElementById("casino-slots-btn").onclick = () => handleCasinoGame("Slots", "casino-bet-slots", casinoSlots);
+  document.getElementById("casino-dice-btn").onclick = () => handleCasinoGame("Dice", "casino-bet-dice", casinoDice);
+}
 
 async function renderSupportPage() {
+  await fetchAllPlayers();
   await fetchGameState();
   const user = getCurrentUserRow();
   if (!user) return;
@@ -1669,17 +2274,13 @@ async function renderSupportPage() {
   };
 }
 
-// =====================================================
-// VIP
-// =====================================================
-
 async function handleVipGiveaway() {
   await fetchAllPlayers();
   const user = getCurrentUserRow();
   if (!user) return;
 
   if (!hasVipAccess(user)) return showToast(tr("vipRequiresClass"), true);
-  if (user.vip_giveaway_day === todayString()) return showToast(tr("dailyBonusTaken"), true);
+  if (user.vip_giveaway_day === new Date().toDateString()) return showToast(tr("dailyBonusTaken"), true);
 
   const amount = Number(prompt("Сума (max 100000)"));
   if (!amount || amount <= 0 || amount > 100000) return;
@@ -1693,7 +2294,7 @@ async function handleVipGiveaway() {
 
   const ok1 = await updatePlayer(user.username, {
     balance: Number(user.balance) - amount,
-    vip_giveaway_day: todayString()
+    vip_giveaway_day: new Date().toDateString()
   });
 
   const ok2 = await updatePlayer(target.username, {
@@ -1705,15 +2306,12 @@ async function handleVipGiveaway() {
 
   await appendHistory(user.username, `VIP → ${target.username}: ${formatNum(amount)} грн`, amount);
   await appendHistory(target.username, `VIP ← ${user.username}: ${formatNum(amount)} грн`, amount);
+  await checkAndGrantTitles(target.username);
 
   playBeep(880);
   showToast(tr("vipSent"));
   await renderProfilePage();
 }
-
-// =====================================================
-// RENDER ADMIN
-// =====================================================
 
 async function renderAdminPage() {
   await fetchAllPlayers();
@@ -1725,13 +2323,14 @@ async function renderAdminPage() {
     return;
   }
 
-  const players = appState.allPlayers.filter(player => !player.banned).map(player => player.username).sort();
+  const players = appState.allPlayers.map(player => player.username).sort();
   const onlineHtml = appState.onlinePlayers.map(player => `
     <div class="rank-item">
       <div class="rank-badge">●</div>
       <div>
         <div><b>${player.username}</b></div>
         <div class="sub">${getClassData(player.class).title}</div>
+        <div>${(player.titles || []).map(t => `<span class="badge-title">${t}</span>`).join("")}</div>
       </div>
       <div class="sub">${player.device === "phone" ? `📱 ${tr("phone")}` : `🖥 ${tr("desktop")}`}</div>
     </div>
@@ -1755,7 +2354,7 @@ async function renderAdminPage() {
       </div>
 
       <div class="admin-card">
-        <h3>${tr("activePlayers")}</h3>
+        <h3>${appState.lang === "uk" ? "Масові дії" : "Mass actions"}</h3>
         <div class="admin-actions">
           <button id="admin-mass-money-btn">${tr("onlineOnlyMoney")}</button>
           <button id="admin-mass-crypto-btn">${tr("onlineOnlyCrypto")}</button>
@@ -1782,7 +2381,7 @@ async function renderAdminPage() {
           <input id="admin-amount-input" type="number" placeholder="${tr("amount")}">
 
           <select id="admin-class-select">
-            ${classList.filter(c => c.key !== "creator").map(c => `<option value="${c.key}">${c.title}</option>`).join("")}
+            ${classList.map(c => `<option value="${c.key}">${c.title}</option>`).join("")}
           </select>
 
           <select id="admin-business-select">
@@ -1835,6 +2434,7 @@ async function renderAdminPage() {
         total_earned: Number(player.total_earned) + amount
       });
       await appendHistory(player.username, `${tr("onlineOnlyMoney")}: +${formatNum(amount)} грн`, amount);
+      await checkAndGrantTitles(player.username);
     }
 
     playBeep(840);
@@ -1862,13 +2462,16 @@ async function renderAdminPage() {
   document.getElementById("admin-collect-commission-btn").onclick = async () => {
     const creator = getCurrentUserRow();
     const amount = Number(appState.commissionBank);
+
     await updatePlayer(creator.username, {
       balance: Number(creator.balance) + amount,
       total_earned: Number(creator.total_earned) + amount
     });
+
     await appendHistory(creator.username, `${tr("collectCommission")}: +${formatNum(amount)} грн`, amount);
     appState.commissionBank = 0;
     await saveGameState();
+
     showToast(tr("valueUpdated"));
     await renderAdminPage();
   };
@@ -1876,13 +2479,16 @@ async function renderAdminPage() {
   document.getElementById("admin-collect-support-btn").onclick = async () => {
     const creator = getCurrentUserRow();
     const amount = Number(appState.supportBank);
+
     await updatePlayer(creator.username, {
       balance: Number(creator.balance) + amount,
       total_earned: Number(creator.total_earned) + amount
     });
+
     await appendHistory(creator.username, `${tr("collectSupport")}: +${formatNum(amount)} грн`, amount);
     appState.supportBank = 0;
     await saveGameState();
+
     showToast(tr("valueUpdated"));
     await renderAdminPage();
   };
@@ -1905,6 +2511,7 @@ async function renderAdminPage() {
       total_earned: Number(player.total_earned) + amount
     });
     await appendHistory(player.username, `${tr("giveMoney")}: +${formatNum(amount)} грн`, amount);
+    await checkAndGrantTitles(player.username);
 
     showToast(tr("valueUpdated"));
     await renderAdminPage();
@@ -1978,13 +2585,16 @@ async function renderAdminPage() {
       crypto: {},
       stocks: {},
       businesses: [],
+      business_levels: {},
       realty: [],
       cars: [],
+      titles: [],
+      friends: player.friends || [],
       card_name: "BitBank Card",
       card_color: "black",
       card_cvv: String(rand(100, 999)),
-      card_number: generateCardNumber(),
-      card_expiry: generateCardExpiry(),
+      card_number: "4444 5555 6666 7777",
+      card_expiry: "12/30",
       last_bonus_day: "",
       vip_giveaway_day: "",
       banned: false
@@ -2000,6 +2610,7 @@ async function renderAdminPage() {
     if (!player || player.username === "creator") return;
 
     await supabaseClient.from("history").delete().eq("username", player.username);
+    await supabaseClient.from("casino_logs").delete().eq("username", player.username);
     await supabaseClient.from("players").delete().eq("username", player.username);
 
     showToast(tr("accountDeleted"));
@@ -2011,8 +2622,16 @@ async function renderAdminPage() {
     if (!player) return;
     const businessId = document.getElementById("admin-business-select").value;
     const updated = Array.from(new Set([...(player.businesses || []), businessId]));
-    await updatePlayer(player.username, { businesses: updated });
+    const updatedLevels = { ...(player.business_levels || {}) };
+    if (!updatedLevels[businessId]) updatedLevels[businessId] = 1;
+
+    await updatePlayer(player.username, {
+      businesses: updated,
+      business_levels: updatedLevels
+    });
     await appendHistory(player.username, `${tr("giveBusiness")}: ${BUSINESS_CATALOG.find(x => x.id === businessId)?.name || businessId}`);
+    await checkAndGrantTitles(player.username);
+
     showToast(tr("valueUpdated"));
     await renderAdminPage();
   };
@@ -2022,8 +2641,11 @@ async function renderAdminPage() {
     if (!player) return;
     const realtyId = document.getElementById("admin-realty-select").value;
     const updated = Array.from(new Set([...(player.realty || []), realtyId]));
+
     await updatePlayer(player.username, { realty: updated });
     await appendHistory(player.username, `${tr("giveRealty")}: ${REALTY_CATALOG.find(x => x.id === realtyId)?.name || realtyId}`);
+    await checkAndGrantTitles(player.username);
+
     showToast(tr("valueUpdated"));
     await renderAdminPage();
   };
@@ -2033,16 +2655,15 @@ async function renderAdminPage() {
     if (!player) return;
     const carId = document.getElementById("admin-car-select").value;
     const updated = Array.from(new Set([...(player.cars || []), carId]));
+
     await updatePlayer(player.username, { cars: updated });
     await appendHistory(player.username, `${tr("giveCar")}: ${CAR_CATALOG.find(x => x.id === carId)?.name || carId}`);
+    await checkAndGrantTitles(player.username);
+
     showToast(tr("valueUpdated"));
     await renderAdminPage();
   };
 }
-
-// =====================================================
-// ROUTER
-// =====================================================
 
 async function renderPage(page) {
   setActivePage(page);
@@ -2054,16 +2675,15 @@ async function renderPage(page) {
   if (page === "realty") return renderRealtyPage();
   if (page === "cars") return renderCarsPage();
   if (page === "classes") return renderClassesPage();
+  if (page === "friends") return renderFriendsPage();
+  if (page === "battle") return renderBattlePage();
+  if (page === "casino") return renderCasinoPage();
   if (page === "transfer") return renderTransfersPage();
   if (page === "history") return renderHistoryPage();
   if (page === "top") return renderTopPage();
   if (page === "donate") return renderSupportPage();
   if (page === "admin") return renderAdminPage();
 }
-
-// =====================================================
-// AUTH
-// =====================================================
 
 async function registerUser() {
   const username = sanitize(document.getElementById("reg-username")?.value).toLowerCase();
@@ -2074,7 +2694,6 @@ async function registerUser() {
   if (["me", "admin"].includes(username)) return showToast(tr("bannedName"), true);
 
   await fetchAllPlayers();
-
   if (appState.allPlayers.some(player => player.username === username)) {
     return showToast(tr("userExists"), true);
   }
@@ -2084,8 +2703,8 @@ async function registerUser() {
 
   playBeep(760);
   showToast(tr("userCreated"));
-
   document.querySelector('[data-tab="login"]')?.click();
+
   if (document.getElementById("login-username")) document.getElementById("login-username").value = username;
   if (document.getElementById("login-password")) document.getElementById("login-password").value = password;
 }
@@ -2098,7 +2717,6 @@ async function loginUser() {
   if (!result) return;
 
   playBeep(740);
-
   document.getElementById("login-screen")?.classList.add("hidden");
   document.getElementById("app-screen")?.classList.remove("hidden");
 
@@ -2111,14 +2729,9 @@ async function loginUser() {
 function logoutUser() {
   appState.currentUser = null;
   saveSession();
-
   document.getElementById("app-screen")?.classList.add("hidden");
   document.getElementById("login-screen")?.classList.remove("hidden");
 }
-
-// =====================================================
-// CARD ACTIONS
-// =====================================================
 
 async function changePin() {
   await fetchAllPlayers();
@@ -2137,17 +2750,20 @@ async function changePin() {
   await renderProfilePage();
 }
 
-// =====================================================
-// ONLINE / PASSIVE / MARKET
-// =====================================================
-
 async function handleClickIncome() {
   await fetchAllPlayers();
   const user = getCurrentUserRow();
   if (!user) return;
 
-  const reward = getClickReward(user);
+  const battle = await fetchMyActiveBattle(user.username);
+  if (battle && battle.status === "active" && battleIsActive(battle)) {
+    await addBattleTap(battle, user.username);
+    playBeep(540, 0.03, 0.03);
+    await renderBattlePage();
+    return;
+  }
 
+  const reward = getClickReward(user);
   const ok = await updatePlayer(user.username, {
     balance: Number(user.balance) + reward,
     total_earned: Number(user.total_earned) + reward,
@@ -2158,6 +2774,7 @@ async function handleClickIncome() {
   if (!ok) return;
 
   await appendHistory(user.username, `${tr("click")}: +${formatNum(reward)} грн`, reward);
+  await checkAndGrantTitles(user.username);
   playBeep(540);
 
   const active = document.querySelector(".nav-btn.active")?.dataset.page || "dashboard";
@@ -2178,6 +2795,7 @@ async function passiveIncomeTick() {
   if (!ok) return;
 
   await appendHistory(user.username, `${tr("passiveIncome")}: +${formatNum(amount)} грн`, amount);
+  await checkAndGrantTitles(user.username);
 
   const active = document.querySelector(".nav-btn.active")?.dataset.page || "dashboard";
   await renderPage(active);
@@ -2208,18 +2826,15 @@ async function presenceTick() {
   updateHeader();
 }
 
-// =====================================================
-// REALTIME
-// =====================================================
-
 function setupRealtime() {
   supabaseClient
     .channel("bitbank-live")
     .on("postgres_changes", { event: "*", schema: "public", table: "players" }, async () => {
       await fetchAllPlayers();
       updateHeader();
+
       const active = document.querySelector(".nav-btn.active")?.dataset.page;
-      if (active === "admin" || active === "top") {
+      if (active === "admin" || active === "top" || active === "friends") {
         await renderPage(active);
       }
     })
@@ -2227,12 +2842,12 @@ function setupRealtime() {
       await fetchGameState();
       updateHeader();
     })
+    .on("postgres_changes", { event: "*", schema: "public", table: "tap_battles" }, async () => {
+      const active = document.querySelector(".nav-btn.active")?.dataset.page;
+      if (active === "battle") await renderBattlePage();
+    })
     .subscribe();
 }
-
-// =====================================================
-// EVENTS
-// =====================================================
 
 function bindEvents() {
   const loginBtn = document.getElementById("login-btn");
@@ -2341,10 +2956,6 @@ function bindEvents() {
   });
 }
 
-// =====================================================
-// INIT
-// =====================================================
-
 async function initApp() {
   loadSession();
 
@@ -2377,6 +2988,15 @@ async function initApp() {
   setInterval(marketTick, 30000);
   setInterval(presenceTick, 15000);
   setInterval(passiveIncomeTick, 60000);
+
+  setInterval(async () => {
+    const user = getCurrentUserRow();
+    if (!user) return;
+    const battle = await fetchMyActiveBattle(user.username);
+    if (battle) {
+      await finishBattleIfNeeded(battle);
+    }
+  }, 3000);
 }
 
 initApp();
