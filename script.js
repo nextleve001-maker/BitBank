@@ -6,7 +6,6 @@ const SUPABASE_KEY = "sb_publishable_9eL4kseNCXHF3d7MFAyj3A_iB8pjYfv";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const LOCAL_SESSION_KEY = "bitbank_rebuild_session_v1";
-
 let appState = {
   currentUser: null,
   lang: "uk",
