@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- LOGIN / REGISTER -->
   <div id="login-screen" class="screen">
     <div class="auth-card">
       <div class="brand">
@@ -30,19 +29,17 @@
         <input id="login-username" type="text" placeholder="Логін" />
         <input id="login-password" type="password" placeholder="Пароль" />
         <button id="login-btn" class="primary-btn">Увійти</button>
-        <div class="hint">Новий акаунт отримує 500 грн</div>
+        <div class="hint"> 500+ за вхід
       </div>
 
       <div id="register-form" class="tab-pane">
         <input id="reg-username" type="text" placeholder="Логін" />
         <input id="reg-password" type="password" placeholder="Пароль" />
         <button id="register-btn" class="primary-btn">Створити</button>
-        <div class="hint">Новий акаунт отримує 500 грн</div>
       </div>
     </div>
   </div>
 
-  <!-- APP -->
   <div id="app-screen" class="screen hidden">
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-top">
@@ -57,18 +54,21 @@
       </div>
 
       <nav class="nav">
-        <button data-page="dashboard" class="nav-btn active">🏠 <span>Профіль</span></button>
-        <button data-page="crypto" class="nav-btn">🪙 <span>Крипто</span></button>
-        <button data-page="stocks" class="nav-btn">📈 <span>Акції</span></button>
-        <button data-page="business" class="nav-btn">🏢 <span>Бізнес</span></button>
-        <button data-page="realty" class="nav-btn">🏝️ <span>Нерухомість</span></button>
-        <button data-page="cars" class="nav-btn">🚗 <span>Авто</span></button>
-        <button data-page="classes" class="nav-btn">⭐ <span>Класи</span></button>
-        <button data-page="transfer" class="nav-btn">💸 <span>Перекази</span></button>
-        <button data-page="history" class="nav-btn">🕓 <span>Історія</span></button>
-        <button data-page="top" class="nav-btn">🏆 <span>Топ 100</span></button>
-        <button data-page="donate" class="nav-btn">❤️ <span>Підтримка</span></button>
-        <button id="admin-nav" data-page="admin" class="nav-btn hidden">👑 <span>Адмін</span></button>
+        <button data-page="dashboard" class="nav-btn active">🏠 <span data-i18n="menu_profile">Профіль</span></button>
+        <button data-page="crypto" class="nav-btn">🪙 <span data-i18n="menu_crypto">Крипто</span></button>
+        <button data-page="stocks" class="nav-btn">📈 <span data-i18n="menu_stocks">Акції</span></button>
+        <button data-page="business" class="nav-btn">🏢 <span data-i18n="menu_business">Бізнес</span></button>
+        <button data-page="realty" class="nav-btn">🏝️ <span data-i18n="menu_realty">Нерухомість</span></button>
+        <button data-page="cars" class="nav-btn">🚗 <span data-i18n="menu_cars">Авто</span></button>
+        <button data-page="classes" class="nav-btn">⭐ <span data-i18n="menu_classes">Класи</span></button>
+        <button data-page="friends" class="nav-btn">👥 <span data-i18n="menu_friends">Друзі</span></button>
+        <button data-page="battle" class="nav-btn">⚔️ <span data-i18n="menu_battle">Дуель</span></button>
+        <button data-page="casino" class="nav-btn">🎰 <span data-i18n="menu_casino">Казино</span></button>
+        <button data-page="transfer" class="nav-btn">💸 <span data-i18n="menu_transfer">Перекази</span></button>
+        <button data-page="history" class="nav-btn">🕓 <span data-i18n="menu_history">Історія</span></button>
+        <button data-page="top" class="nav-btn">🏆 <span data-i18n="menu_top">Топ 100</span></button>
+        <button data-page="donate" class="nav-btn">❤️ <span data-i18n="menu_support">Підтримка</span></button>
+        <button id="admin-nav" data-page="admin" class="nav-btn hidden">👑 <span data-i18n="menu_admin">Адмін</span></button>
       </nav>
 
       <div class="sidebar-bottom">
@@ -82,7 +82,6 @@
       <header class="topbar">
         <div class="topbar-left">
           <button id="sidebar-open" class="icon-btn mobile-only">☰</button>
-
           <div class="user-chip">
             <span id="header-username">user</span>
             <span id="header-status" class="pill">NONE</span>
@@ -108,21 +107,18 @@
       </header>
 
       <section id="global-message" class="message hidden"></section>
-
       <section id="page-content" class="content"></section>
 
       <button id="click-btn" class="click-btn">КЛІК</button>
     </main>
   </div>
 
-  <!-- CARD COLOR MODAL -->
   <div id="color-modal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">
         <h3>Оберіть колір картки</h3>
         <button class="icon-btn" id="close-color-modal">✕</button>
       </div>
-
       <div class="color-grid">
         <button class="color-option black" data-color="black"></button>
         <button class="color-option white" data-color="white"></button>
@@ -131,7 +127,8 @@
       </div>
     </div>
   </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
 </body>
 </html>
