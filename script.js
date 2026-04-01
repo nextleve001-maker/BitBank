@@ -3090,5 +3090,13 @@ async function initApp() {
     }
   }, 3000);
 }
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("APP START");
 
+  const login = document.getElementById("login-screen");
+  const app = document.getElementById("app-screen");
+
+  if (login) login.classList.remove("hidden");
+  if (app) app.classList.add("hidden");
+});
 initApp();
