@@ -3078,8 +3078,15 @@ async function initApp() {
   }
 
   setInterval(marketTick, 30000);
-  setInterval(presenceTick, 15000);
-  setInterval(passiveIncomeTick, 60000);
+setInterval(() => {
+  if (!appState.currentUser) return;
+  presenceTick();
+}, 15000);
+
+setInterval(() => {
+  if (!appState.currentUser) return;
+  passiveIncomeTick();
+}, 60000);
 
   setInterval(async () => {
     const user = getCurrentUserRow();
@@ -3090,7 +3097,31 @@ async function initApp() {
     }
   }, 3000);
 }
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("APP START");
+
+  const loginScreen = document.getElementById("login-screen");
+  const appScreen = document.getElementById("app-screen");
+
+  try {
+    await initApp();
+  } catch (e) {
+    console.error("initApp failed:", e);
+    showToast?.("Server error", true);
+  }
+
+  const hasUser = !!appState.currentUser;
+
+  if (loginScreen && appScreen) {
+    if (hasUser) {
+      loginScreen.classList.add("hidden");
+      appScreen.classList.remove("hidden");
+    } else {
+      loginScreen.classList.remove("hidden");
+      appScreen.classList.add("hidden");
+    }
+  }
+});
  console.log("APP START");
 
 const login = document.getElementById("login-screen");
