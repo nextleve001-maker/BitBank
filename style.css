@@ -685,3 +685,260 @@ input:focus, select:focus {
     .profile-info-grid { grid-template-columns: 1fr; }
     .profile-daily-zone { flex-direction: column; align-items: stretch; }
 }
+/* =====================
+   RESET
+===================== */
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial, sans-serif;
+}
+
+body{
+  background:#0f172a;
+  color:#e2e8f0;
+}
+
+/* =====================
+   SCROLLBAR
+===================== */
+::-webkit-scrollbar{
+  width:8px;
+}
+
+::-webkit-scrollbar-thumb{
+  background:#3b82f6;
+  border-radius:10px;
+}
+
+/* =====================
+   HEADER
+===================== */
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px;
+  background:#020617;
+  border-bottom:1px solid #1e293b;
+}
+
+header h1{
+  font-size:20px;
+  color:#3b82f6;
+}
+
+header .balance{
+  font-size:14px;
+  color:#22c55e;
+}
+
+/* =====================
+   NAVBAR
+===================== */
+nav{
+  display:flex;
+  gap:10px;
+  padding:10px;
+  background:#020617;
+  border-bottom:1px solid #1e293b;
+  flex-wrap:wrap;
+}
+
+nav button{
+  background:#1e293b;
+  border:none;
+  padding:8px 14px;
+  color:white;
+  border-radius:8px;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+nav button:hover{
+  background:#3b82f6;
+}
+
+/* =====================
+   MAIN
+===================== */
+#page-content{
+  padding:15px;
+}
+
+/* =====================
+   CARDS
+===================== */
+.card{
+  background:#020617;
+  border:1px solid #1e293b;
+  border-radius:12px;
+  padding:15px;
+  margin-bottom:15px;
+  box-shadow:0 0 10px rgba(0,0,0,0.3);
+  transition:0.2s;
+}
+
+.card:hover{
+  transform:scale(1.01);
+}
+
+/* =====================
+   BUTTONS
+===================== */
+button{
+  background:#3b82f6;
+  border:none;
+  padding:8px 12px;
+  border-radius:8px;
+  color:white;
+  cursor:pointer;
+  margin-top:5px;
+  transition:0.2s;
+}
+
+button:hover{
+  background:#2563eb;
+}
+
+button:active{
+  transform:scale(0.95);
+}
+
+/* =====================
+   INPUTS
+===================== */
+input{
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+  margin-bottom:5px;
+  border-radius:6px;
+  border:1px solid #334155;
+  background:#020617;
+  color:white;
+}
+
+/* =====================
+   MARKET
+===================== */
+.market-card img{
+  border-radius:50%;
+}
+
+.market-top{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.market-actions{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+}
+
+/* =====================
+   CASINO
+===================== */
+.casino-result{
+  border:1px solid #3b82f6;
+}
+
+.casino-roulette-row{
+  display:flex;
+  gap:5px;
+  margin-bottom:5px;
+}
+
+/* =====================
+   BATTLE
+===================== */
+.battle-card{
+  border-left:4px solid #3b82f6;
+}
+
+.battle-mine{
+  border-left:4px solid #22c55e;
+}
+
+.battle-current{
+  border:2px solid #22c55e;
+}
+
+.battle-actions{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+}
+
+/* =====================
+   ADMIN
+===================== */
+#admin-output .card{
+  background:#1e293b;
+}
+
+/* =====================
+   CARD (BANK CARD UI)
+===================== */
+.card[style]{
+  border:none;
+  border-radius:16px;
+}
+
+/* =====================
+   TEXT COLORS
+===================== */
+.green{
+  color:#22c55e;
+}
+
+.red{
+  color:#ef4444;
+}
+
+.blue{
+  color:#3b82f6;
+}
+
+/* =====================
+   GRID
+===================== */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:10px;
+}
+
+/* =====================
+   MOBILE
+===================== */
+@media(max-width:768px){
+
+  nav{
+    flex-direction:column;
+  }
+
+  button{
+    width:100%;
+  }
+
+  .market-actions{
+    flex-direction:column;
+  }
+}
+
+/* =====================
+   ANIMATIONS
+===================== */
+@keyframes glow{
+  0%{box-shadow:0 0 5px #3b82f6;}
+  50%{box-shadow:0 0 15px #3b82f6;}
+  100%{box-shadow:0 0 5px #3b82f6;}
+}
+
+.glow{
+  animation:glow 2s infinite;
+}
