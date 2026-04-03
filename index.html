@@ -1,134 +1,320 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uk">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BitBank</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div id="login-screen" class="screen">
-    <div class="auth-card">
-      <div class="brand">
-        <div class="brand-icon">₿</div>
-        <div>
-          <h1>BitBank</h1>
-          <p id="auth-subtitle">Симулятор фінансової гри</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>BitBank</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <div id="app-root" class="app-root">
+      <div id="login-screen" class="screen login-screen">
+        <div class="auth-bg">
+          <div class="auth-grid"></div>
+          <div class="auth-glow auth-glow-1"></div>
+          <div class="auth-glow auth-glow-2"></div>
         </div>
-      </div>
 
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="login">Вхід</button>
-        <button class="tab-btn" data-tab="register">Реєстрація</button>
-      </div>
+        <div class="auth-container">
+          <div class="brand-row">
+            <div class="brand-badge">BitBank</div>
+            <div class="brand-subtitle" data-i18n="brandSubtitle">click • earn • invest</div>
+          </div>
 
-      <div id="login-form" class="tab-pane active">
-        <input id="login-username" type="text" placeholder="Логін" />
-        <input id="login-password" type="password" placeholder="Пароль" />
-        <button id="login-btn" class="primary-btn">Увійти</button>
-        <div class="hint">500+ за вхід 
-      </div>
+          <div class="auth-card">
+            <div class="auth-top">
+              <div class="auth-title" data-i18n="authTitle">Welcome back</div>
+              <div class="auth-hint" data-i18n="authHint">Login to continue your journey.</div>
+            </div>
 
-      <div id="register-form" class="tab-pane">
-        <input id="reg-username" type="text" placeholder="Логін" />
-        <input id="reg-password" type="password" placeholder="Пароль" />
-        <button id="register-btn" class="primary-btn">Створити</button>
-      </div>
-    </div>
-  </div>
+            <div class="auth-tabs">
+              <button id="login-btn" class="tab-btn active" type="button" data-i18n="loginTab">Login</button>
+              <button id="register-btn" class="tab-btn" type="button" data-i18n="registerTab">Register</button>
+            </div>
 
-  <div id="app-screen" class="screen hidden">
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-top">
-        <div class="brand small">
-          <div class="brand-icon">₿</div>
-          <div>
-            <h2>BitBank</h2>
-            <p>online game</p>
+            <div class="auth-forms">
+              <form id="login-form" class="auth-form" autocomplete="off">
+                <label class="field">
+                  <div class="field-label" data-i18n="usernameLabel">Username</div>
+                  <input id="login-username" class="field-input" type="text" placeholder="Your username" required />
+                </label>
+
+                <label class="field">
+                  <div class="field-label" data-i18n="passwordLabel">Password</div>
+                  <input id="login-password" class="field-input" type="password" placeholder="Your password" required />
+                </label>
+
+                <div class="auth-actions">
+                  <button id="login-btn-submit" class="btn btn-primary" type="submit" data-i18n="loginBtn">Login</button>
+                  <div class="auth-switcher">
+                    <button id="goto-register" class="link-btn" type="button" data-i18n="registerLink">Create account</button>
+                  </div>
+                </div>
+              </form>
+
+              <form id="register-form" class="auth-form hidden" autocomplete="off">
+                <label class="field">
+                  <div class="field-label" data-i18n="usernameLabel">Username</div>
+                  <input id="register-username" class="field-input" type="text" placeholder="Choose username" required />
+                </label>
+
+                <label class="field">
+                  <div class="field-label" data-i18n="passwordLabel">Password</div>
+                  <input id="register-password" class="field-input" type="password" placeholder="Choose password" required />
+                </label>
+
+                <div class="auth-actions">
+                  <button id="register-btn-submit" class="btn btn-primary" type="submit" data-i18n="registerBtn">Register</button>
+                  <div class="auth-switcher">
+                    <button id="goto-login" class="link-btn" type="button" data-i18n="loginLink">Back to login</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <div class="auth-bottom">
+              <div class="auth-quick">
+                <div class="auth-quick-item">
+                  <div class="auth-quick-title" data-i18n="deviceHintTitle">Device</div>
+                  <div class="auth-quick-text" data-i18n="deviceHintText">We detect your device to personalize experience.</div>
+                </div>
+                <div class="auth-quick-divider"></div>
+                <div class="auth-quick-item">
+                  <div class="auth-quick-title" data-i18n="adminHintTitle">Creator admin</div>
+                  <div class="auth-quick-text" data-i18n="adminHintText">Use creator credentials to access the admin panel.</div>
+                </div>
+              </div>
+
+              <div class="auth-message" id="auth-message" aria-live="polite"></div>
+            </div>
           </div>
         </div>
-        <button id="sidebar-close" class="icon-btn mobile-only">✕</button>
       </div>
 
-      <nav class="nav">
-        <button data-page="dashboard" class="nav-btn active">🏠 <span data-i18n="menu_profile">Профіль</span></button>
-        <button data-page="crypto" class="nav-btn">🪙 <span data-i18n="menu_crypto">Крипто</span></button>
-        <button data-page="stocks" class="nav-btn">📈 <span data-i18n="menu_stocks">Акції</span></button>
-        <button data-page="business" class="nav-btn">🏢 <span data-i18n="menu_business">Бізнес</span></button>
-        <button data-page="realty" class="nav-btn">🏝️ <span data-i18n="menu_realty">Нерухомість</span></button>
-        <button data-page="cars" class="nav-btn">🚗 <span data-i18n="menu_cars">Авто</span></button>
-        <button data-page="classes" class="nav-btn">⭐ <span data-i18n="menu_classes">Класи</span></button>
-        <button data-page="friends" class="nav-btn">👥 <span data-i18n="menu_friends">Друзі</span></button>
-        <button data-page="battle" class="nav-btn">⚔️ <span data-i18n="menu_battle">Дуель</span></button>
-        <button data-page="casino" class="nav-btn">🎰 <span data-i18n="menu_casino">Казино</span></button>
-        <button data-page="transfer" class="nav-btn">💸 <span data-i18n="menu_transfer">Перекази</span></button>
-        <button data-page="history" class="nav-btn">🕓 <span data-i18n="menu_history">Історія</span></button>
-        <button data-page="top" class="nav-btn">🏆 <span data-i18n="menu_top">Топ 100</span></button>
-        <button data-page="donate" class="nav-btn">❤️ <span data-i18n="menu_support">Підтримка</span></button>
-        <button id="admin-nav" data-page="admin" class="nav-btn hidden">👑 <span data-i18n="menu_admin">Адмін</span></button>
-      </nav>
+      <div id="app-screen" class="screen app-screen hidden">
+        <div id="overlay" class="overlay hidden"></div>
 
-      <div class="sidebar-bottom">
-        <button id="logout-btn" class="danger-btn">Вийти</button>
-      </div>
-    </aside>
+        <aside id="sidebar" class="sidebar">
+          <div class="sidebar-header">
+            <div class="sidebar-brand">
+              <div class="sidebar-logo"></div>
+              <div class="sidebar-title">BitBank</div>
+            </div>
+          </div>
 
-    <div id="overlay" class="overlay"></div>
+          <div class="sidebar-user">
+            <div class="sidebar-user-top">
+              <div class="sidebar-user-avatar"></div>
+              <div class="sidebar-user-meta">
+                <div id="header-username" class="sidebar-user-name">—</div>
+                <div id="header-status" class="sidebar-user-status">—</div>
+              </div>
+            </div>
 
-    <main class="main">
-      <header class="topbar">
-        <div class="topbar-left">
-          <button id="sidebar-open" class="icon-btn mobile-only">☰</button>
-          <div class="user-chip">
-            <span id="header-username">user</span>
-            <span id="header-status" class="pill">NONE</span>
-            <span id="header-online" class="pill green">ONLINE</span>
-            <span id="header-device" class="pill cyan">🖥 ПК</span>
+            <div class="sidebar-user-stats">
+              <div class="stat-pill">
+                <div class="stat-label" data-i18n="onlineLabel">Online</div>
+                <div id="header-online" class="stat-value">0</div>
+              </div>
+              <div class="stat-pill">
+                <div class="stat-label" data-i18n="deviceLabel">Device</div>
+                <div id="header-device" class="stat-value">—</div>
+              </div>
+            </div>
+          </div>
+
+          <nav class="sidebar-nav">
+            <button class="nav-section-title" type="button" data-i18n="navShopTitle">Core</button>
+
+            <button class="nav-link" data-page="profile">
+              <span class="nav-icon profile-icon"></span>
+              <span class="nav-text" data-i18n="navProfile">Profile</span>
+            </button>
+
+            <button class="nav-link" data-page="classes">
+              <span class="nav-icon classes-icon"></span>
+              <span class="nav-text" data-i18n="navClasses">Classes</span>
+            </button>
+
+            <button class="nav-link" data-page="tap">
+              <span class="nav-icon tap-icon"></span>
+              <span class="nav-text" data-i18n="navTap">Click</span>
+            </button>
+
+            <button class="nav-link" data-page="transfers">
+              <span class="nav-icon transfer-icon"></span>
+              <span class="nav-text" data-i18n="navTransfers">Transfers</span>
+            </button>
+
+            <button class="nav-link" data-page="battle">
+              <span class="nav-icon battle-icon"></span>
+              <span class="nav-text" data-i18n="navBattle">Battle</span>
+            </button>
+
+            <button class="nav-link" data-page="casino">
+              <span class="nav-icon casino-icon"></span>
+              <span class="nav-text" data-i18n="navCasino">Casino</span>
+            </button>
+
+            <button class="nav-link" data-page="friends">
+              <span class="nav-icon friends-icon"></span>
+              <span class="nav-text" data-i18n="navFriends">Friends</span>
+            </button>
+
+            <button class="nav-link" data-page="business">
+              <span class="nav-icon business-icon"></span>
+              <span class="nav-text" data-i18n="navBusinesses">Businesses</span>
+            </button>
+
+            <button class="nav-link" data-page="realty">
+              <span class="nav-icon realty-icon"></span>
+              <span class="nav-text" data-i18n="navRealty">Realty</span>
+            </button>
+
+            <button class="nav-link" data-page="cars">
+              <span class="nav-icon cars-icon"></span>
+              <span class="nav-text" data-i18n="navCars">Cars</span>
+            </button>
+
+            <button class="nav-link" data-page="stocks">
+              <span class="nav-icon stocks-icon"></span>
+              <span class="nav-text" data-i18n="navStocks">Stocks</span>
+            </button>
+
+            <button class="nav-link" data-page="crypto">
+              <span class="nav-icon crypto-icon"></span>
+              <span class="nav-text" data-i18n="navCrypto">Crypto</span>
+            </button>
+
+            <button class="nav-link" data-page="titles">
+              <span class="nav-icon titles-icon"></span>
+              <span class="nav-text" data-i18n="navTitles">Titles</span>
+            </button>
+
+            <button class="nav-link" data-page="top">
+              <span class="nav-icon top-icon"></span>
+              <span class="nav-text" data-i18n="navTop">Top 100</span>
+            </button>
+
+            <button class="nav-link" data-page="history">
+              <span class="nav-icon history-icon"></span>
+              <span class="nav-text" data-i18n="navHistory">History</span>
+            </button>
+
+            <button class="nav-link" data-page="support">
+              <span class="nav-icon support-icon"></span>
+              <span class="nav-text" data-i18n="navSupport">Support</span>
+            </button>
+
+            <div class="sidebar-divider"></div>
+
+            <button class="nav-section-title" type="button" data-i18n="navAdminTitle">Admin</button>
+
+            <button id="admin-nav" class="nav-link nav-admin hidden" data-page="admin">
+              <span class="nav-icon admin-icon"></span>
+              <span class="nav-text" data-i18n="navAdminPanel">Admin panel</span>
+            </button>
+          </nav>
+
+          <div class="sidebar-footer">
+            <button id="toggle-sound-btn" class="btn btn-ghost btn-small" type="button" data-i18n="toggleSoundBtn">Sound</button>
+            <button id="lang-btn" class="btn btn-ghost btn-small" type="button">UA / EN</button>
+          </div>
+        </aside>
+
+        <div class="main">
+          <header class="topbar" id="topbar">
+            <div class="topbar-left">
+              <button id="sidebar-open" class="icon-btn mobile-only" type="button" aria-label="Open sidebar">
+                ☰
+              </button>
+              <button id="sidebar-close" class="icon-btn mobile-only hidden" type="button" aria-label="Close sidebar">
+                ✕
+              </button>
+              <div class="topbar-breadcrumb">
+                <div class="topbar-title" id="header-title" data-i18n="headerTitle">BitBank</div>
+              </div>
+            </div>
+
+            <div class="topbar-center">
+              <div class="balance-group">
+                <div class="balance-pill">
+                  <div class="balance-label" data-i18n="balanceUAHLabel">UAH</div>
+                  <div id="balance-uah" class="balance-value">0 ₴</div>
+                </div>
+                <div class="balance-pill">
+                  <div class="balance-label" data-i18n="balanceUSDLabel">USD</div>
+                  <div id="balance-usd" class="balance-value">0 $</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="topbar-right">
+              <button id="click-btn" class="btn btn-primary btn-click" type="button" data-i18n="clickBtn">CLICK</button>
+
+              <div class="icon-actions">
+                <button id="vip-giveaway-btn" class="btn btn-ghost btn-small" type="button" data-i18n="vipGiveawayBtn">VIP giveaway</button>
+                <button id="color-modal-open" class="btn btn-ghost btn-small hidden" type="button" data-i18n="profileCardControls">Card</button>
+              </div>
+
+              <button id="logout-btn" class="btn btn-danger btn-small" type="button" data-i18n="logoutBtn">Logout</button>
+            </div>
+          </header>
+
+          <div id="global-message" class="global-message hidden" aria-live="polite"></div>
+
+          <main id="page-content" class="page-content">
+            <section id="page-profile" class="page hidden" data-page="profile"></section>
+            <section id="page-classes" class="page hidden" data-page="classes"></section>
+            <section id="page-tap" class="page hidden" data-page="tap"></section>
+            <section id="page-transfers" class="page hidden" data-page="transfers"></section>
+            <section id="page-casino" class="page hidden" data-page="casino"></section>
+            <section id="page-battle" class="page hidden" data-page="battle"></section>
+            <section id="page-friends" class="page hidden" data-page="friends"></section>
+            <section id="page-business" class="page hidden" data-page="business"></section>
+            <section id="page-realty" class="page hidden" data-page="realty"></section>
+            <section id="page-cars" class="page hidden" data-page="cars"></section>
+            <section id="page-stocks" class="page hidden" data-page="stocks"></section>
+            <section id="page-crypto" class="page hidden" data-page="crypto"></section>
+            <section id="page-titles" class="page hidden" data-page="titles"></section>
+            <section id="page-top" class="page hidden" data-page="top"></section>
+            <section id="page-history" class="page hidden" data-page="history"></section>
+            <section id="page-support" class="page hidden" data-page="support"></section>
+            <section id="page-admin" class="page hidden" data-page="admin"></section>
+          </main>
+        </div>
+
+        <div id="color-modal" class="modal hidden" role="dialog" aria-modal="true">
+          <div class="modal-backdrop" data-close="true"></div>
+          <div class="modal-content">
+            <div class="modal-header">
+              <div class="modal-title" data-i18n="colorModalTitle">Change card color</div>
+              <button id="close-color-modal" class="icon-btn" type="button" aria-label="Close">✕</button>
+            </div>
+
+            <div class="modal-body">
+              <div class="color-grid" id="color-grid"></div>
+            </div>
+
+            <div class="modal-footer">
+              <button id="confirm-color-change" class="btn btn-primary" type="button" data-i18n="confirmBtn">Confirm</button>
+              <button class="btn btn-ghost" type="button" data-close="true" data-i18n="cancelBtn">Cancel</button>
+            </div>
           </div>
         </div>
 
-        <div class="topbar-actions">
-          <button id="change-pin-btn" class="soft-btn">Змінити PIN</button>
-          <button id="change-card-name-btn" class="soft-btn">Назва карти</button>
-          <button id="change-card-color-btn" class="soft-btn">Колір картки</button>
-          <button id="vip-giveaway-btn" class="soft-btn gold hidden">VIP-роздача</button>
-          <button id="toggle-sound-btn" class="soft-btn">🔊 Звук</button>
-          <button id="lang-btn" class="soft-btn">EN</button>
-        </div>
-
-        <div class="balance-box">
-          <span>💰 <b id="balance-uah">0</b> грн</span>
-          <span class="sep">|</span>
-          <span>💵 <b id="balance-usd">0</b> USD</span>
-        </div>
-      </header>
-
-      <section id="global-message" class="message hidden"></section>
-      <section id="page-content" class="content"></section>
-
-      <button id="click-btn" class="click-btn">КЛІК</button>
-    </main>
-  </div>
-
-  <div id="color-modal" class="modal hidden">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h3>Оберіть колір картки</h3>
-        <button class="icon-btn" id="close-color-modal">✕</button>
-      </div>
-      <div class="color-grid">
-        <button class="color-option black" data-color="black"></button>
-        <button class="color-option white" data-color="white"></button>
-        <button class="color-option yellow" data-color="yellow"></button>
-        <button class="color-option gold" data-color="gold"></button>
+        <div id="color-modal-hidden" class="hidden"></div>
       </div>
     </div>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js"></script>
-</body>
+    <template id="tmpl-card-color">
+      <button class="color-swatch" type="button" data-color=""></button>
+    </template>
+
+    <template id="tmpl-asset-card"></template>
+
+    <script src="./script.js"></script>
+  </body>
 </html>
