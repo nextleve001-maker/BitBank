@@ -1,6 +1,3 @@
-// =====================
-// SUPABASE SETUP
-// =====================
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
 const SUPABASE_URL = "https://dznxdbiorjargerkilwf.supabase.co";
@@ -12,133 +9,230 @@ export const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 // PLAYERS
 // =====================
 export async function apiGetPlayer(username){
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("players")
     .select("*")
     .eq("username", username)
-    .single();
+    .maybeSingle();
+
+  if(error){
+    console.error("apiGetPlayer error:", error);
+    return null;
+  }
 
   return data;
 }
 
 export async function apiCreatePlayer(player){
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("players")
-    .insert([player]);
+    .insert([player])
+    .select()
+    .single();
+
+  if(error){
+    console.error("apiCreatePlayer error:", error);
+    return null;
+  }
 
   return data;
 }
 
 export async function apiUpdatePlayer(username, patch){
-  await supabaseClient
+  const { error } = await supabaseClient
     .from("players")
     .update(patch)
     .eq("username", username);
+
+  if(error){
+    console.error("apiUpdatePlayer error:", error);
+  }
 }
 
 export async function apiDeletePlayer(username){
-  await supabaseClient
+  const { error } = await supabaseClient
     .from("players")
     .delete()
     .eq("username", username);
+
+  if(error){
+    console.error("apiDeletePlayer error:", error);
+  }
 }
 
 export async function apiGetAllPlayers(){
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("players")
     .select("*");
+
+  if(error){
+    console.error("apiGetAllPlayers error:", error);
+    return [];
+  }
 
   return data || [];
 }
 
 // =====================
-// ONLINE / PRESENCE
+// PRESENCE
 // =====================
 export async function apiUpdatePresence(username, device){
-  await supabaseClient
+  const { error } = await supabaseClient
     .from("players")
     .update({
       last_seen: new Date().toISOString(),
       device
     })
     .eq("username", username);
+
+  if(error){
+    console.error("apiUpdatePresence error:", error);
+  }
 }
 
 // =====================
 // GAME STATE
 // =====================
 export async function apiGetGameState(){
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("game_state")
     .select("*")
-    .limit(1)
-    .single();
+    .eq("id", 1)
+    .maybeSingle();
+
+  if(error){
+    console.error("apiGetGameState error:", error);
+    return null;
+  }
 
   return data;
 }
 
 export async function apiUpdateGameState(patch){
-  await supabaseClient
+  const payload = {
+    id: 1,
+    ...patch
+  };
+
+  const { error } = await supabaseClient
     .from("game_state")
-    .update(patch)
-    .eq("id", 1);
+    .upsert(payload);
+
+  if(error){
+    console.error("apiUpdateGameState error:", error);
+  }
 }
 
 // =====================
 // HISTORY
+// тут поле text, не action
 // =====================
-export async function apiAddHistory(username, action, amount){
-  await supabaseClient
+export async function apiAddHistory(username, text, amount){
+  const { error } = await supabaseClient
     .from("history")
     .insert([{
       username,
-      action,
-      amount,
-      created_at: new Date().toISOString()
+      text,
+      amount
     }]);
+
+  if(error){
+    console.error("apiAddHistory error:", error);
+  }
+}
+
+export async function apiGetHistory(username){
+  const { data, error } = await supabaseClient
+    .from("history")
+    .select("*")
+    .eq("username", username)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if(error){
+    console.error("apiGetHistory error:", error);
+    return [];
+  }
+
+  return data || [];
 }
 
 // =====================
-// CASINO LOG
+// CASINO LOGS
 // =====================
 export async function apiLogCasino(username, game, bet, result){
-  await supabaseClient
+  const { error } = await supabaseClient
     .from("casino_logs")
     .insert([{
       username,
       game,
       bet,
-      result,
-      created_at: new Date().toISOString()
+      result
     }]);
+
+  if(error){
+    console.error("apiLogCasino error:", error);
+  }
+}
+
+export async function apiGetCasinoLogs(username){
+  const { data, error } = await supabaseClient
+    .from("casino_logs")
+    .select("*")
+    .eq("username", username)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if(error){
+    console.error("apiGetCasinoLogs error:", error);
+    return [];
+  }
+
+  return data || [];
 }
 
 // =====================
-// BATTLES
+// TAP BATTLES
+// у тебе таблиця tap_battles, не battles
 // =====================
-export async function apiCreateBattle(battle){
-  const { data } = await supabaseClient
-    .from("battles")
-    .insert([battle])
+export async function apiCreateBattle(payload){
+  const { data, error } = await supabaseClient
+    .from("tap_battles")
+    .insert([payload])
     .select()
     .single();
+
+  if(error){
+    console.error("apiCreateBattle error:", error);
+    return null;
+  }
 
   return data;
 }
 
 export async function apiGetBattles(){
-  const { data } = await supabaseClient
-    .from("battles")
-    .select("*");
+  const { data, error } = await supabaseClient
+    .from("tap_battles")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if(error){
+    console.error("apiGetBattles error:", error);
+    return [];
+  }
 
   return data || [];
 }
 
 export async function apiUpdateBattle(id, patch){
-  await supabaseClient
-    .from("battles")
+  const { error } = await supabaseClient
+    .from("tap_battles")
     .update(patch)
     .eq("id", id);
+
+  if(error){
+    console.error("apiUpdateBattle error:", error);
+  }
 }
 
 // =====================
