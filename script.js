@@ -3103,6 +3103,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const loginScreen = document.getElementById("login-screen");
   const appScreen = document.getElementById("app-screen");
 
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("APP START");
+
+  const loginScreen = document.getElementById("login-screen");
+  const appScreen = document.getElementById("app-screen");
+
+  // 1) Ініціалізація (initApp робить loadSession + робить show/hide)
   try {
     await initApp();
   } catch (e) {
@@ -3110,6 +3117,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     showToast?.("Server error", true);
   }
 
+  // 2) Страхувальна логіка UI (щоб ніколи не залишити користувача на порожньому екрані)
   const hasUser = !!appState.currentUser;
 
   if (loginScreen && appScreen) {
@@ -3122,10 +3130,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 });
- console.log("APP START");
-
-const login = document.getElementById("login-screen");
-const app = document.getElementById("app-screen");
 
 if (login) login.classList.remove("hidden");
 if (app) app.classList.add("hidden");
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("APP START");
+
+  const loginScreen = document.getElementById("login-screen");
+  const appScreen = document.getElementById("app-screen");
+
+
