@@ -942,3 +942,101 @@ input{
 .glow{
   animation:glow 2s infinite;
 }
+/* =====================
+   AUTH CENTER (LOGIN)
+===================== */
+.auth-screen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:linear-gradient(180deg,#020617,#0f172a);
+}
+
+.auth-box{
+  width:100%;
+  max-width:420px;
+  background:#020617;
+  border:1px solid #1e293b;
+  border-radius:20px;
+  padding:25px;
+  box-shadow:0 0 40px rgba(0,0,0,0.6);
+}
+
+.auth-header{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.auth-header h1{
+  font-size:28px;
+  color:#3b82f6;
+}
+
+.auth-tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:15px;
+}
+
+.auth-tab{
+  flex:1;
+  padding:10px;
+  border-radius:10px;
+  background:#1e293b;
+  color:white;
+  border:none;
+}
+
+.auth-tab.active{
+  background:#3b82f6;
+}
+
+/* =====================
+   MOBILE IMPROVE
+===================== */
+.mobile-mode button{
+  min-height:50px;
+  font-size:16px;
+}
+
+.mobile-mode input{
+  min-height:50px;
+  font-size:16px;
+}
+
+/* =====================
+   BIG CLICK BUTTON
+===================== */
+#click-btn{
+  width:100%;
+  max-width:300px;
+  margin:20px auto;
+  display:block;
+  font-size:22px;
+  padding:15px;
+  border-radius:16px;
+}
+
+/* =====================
+   TOUCH EFFECT
+===================== */
+.tap-active{
+  transform:scale(0.95);
+  opacity:0.8;
+}
+
+/* =====================
+   MOBILE SIDEBAR
+===================== */
+.mobile-sidebar{
+  position:fixed;
+  left:0;
+  top:0;
+  width:85%;
+  height:100%;
+  background:#020617;
+  z-index:1000;
+  overflow:auto;
+}
