@@ -7,6 +7,7 @@ import {
   apiUpdatePlayer,
   apiUpdatePresence
 } from "./api.js";
+
 import {
   renderProfilePage,
   renderStatsPage,
@@ -14,8 +15,18 @@ import {
   renderInventoryPage,
   renderBusinessPage
 } from "./ui.js";
-import { renderCryptoPage, renderStocksPage, startMarketLoop } from "./market.js";
-import { renderBattlePage, startBattleLoop } from "./battle.js";
+
+import {
+  renderCryptoPage,
+  renderStocksPage,
+  startMarketLoop
+} from "./market.js";
+
+import {
+  renderBattlePage,
+  startBattleLoop
+} from "./battle.js";
+
 import { renderCasinoPage } from "./casino.js";
 import { renderTransfersPage, renderCardSettingsPage } from "./transfers.js";
 import { renderAdminPage, isAdmin } from "./admin.js";
@@ -57,6 +68,12 @@ function showApp() {
   document.getElementById("app-screen")?.classList.remove("hidden");
 }
 
+function currentDeviceType() {
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    ? "phone"
+    : "desktop";
+}
+
 async function loadPlayer() {
   if (!AppState.currentUser) return;
   AppState.player = await apiGetPlayer(AppState.currentUser);
@@ -76,10 +93,6 @@ export async function updatePlayer(patch) {
   await apiUpdatePlayer(AppState.player.username, patch);
   Object.assign(AppState.player, patch);
   updateHeader();
-}
-
-function currentDeviceType() {
-  return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? "phone" : "desktop";
 }
 
 export function updateHeader() {
@@ -116,7 +129,7 @@ function renderHistoryPage() {
   root.innerHTML = `
     <div class="card">
       <h2>History</h2>
-      <p>History page is connected.</p>
+      <p>History page connected.</p>
     </div>
   `;
 }
@@ -196,12 +209,43 @@ async function presenceTick() {
   if (!AppState.player?.username) return;
 
   const device = currentDeviceType();
-
   AppState.player.device = device;
   AppState.player.last_seen = new Date().toISOString();
 
-  await apiUpdatePresence(AppState.player.username, device);
+  try {
+    await apiUpdatePresence(AppState.player.username, device);
+  } catch (error) {
+    console.error("presenceTick error:", error);
+  }
+
   updateHeader();
+}
+
+function setupMobileMode() {
+  const isPhone = currentDeviceType() === "phone";
+  document.body.classList.toggle("mobile-mode", isPhone);
+
+  const sidebar = document.getElementById("sidebar");
+  if (!sidebar) return;
+
+  if (isPhone) {
+    sidebar.classList.add("mobile-sidebar");
+  } else {
+    sidebar.classList.remove("mobile-sidebar");
+  }
+}
+
+function setupTouchButtons() {
+  const buttons = document.querySelectorAll("button, .nav-btn");
+  buttons.forEach((btn) => {
+    btn.addEventListener("touchstart", () => {
+      btn.classList.add("tap-active");
+    }, { passive: true });
+
+    btn.addEventListener("touchend", () => {
+      btn.classList.remove("tap-active");
+    }, { passive: true });
+  });
 }
 
 function startLoops() {
@@ -239,6 +283,8 @@ export async function startApp(username) {
     return;
   }
 
+  setupMobileMode();
+  setupTouchButtons();
   updateHeader();
   renderDefaultPage();
 
