@@ -13,18 +13,18 @@ function setPage(html){
   bindDynamicUI();
 }
 
-function highlightActiveNav(){
-  const current = document.body.dataset.currentPage || "profile";
-  document.querySelectorAll(".nav-btn").forEach(btn=>{
-    btn.classList.toggle("active", btn.dataset.page === current);
-  });
-}
-
 function bindDynamicUI(){
   const clickBtn = document.getElementById("premium-click-btn");
   if(clickBtn){
     clickBtn.addEventListener("click", handleClick);
   }
+}
+
+function highlightActiveNav(){
+  const current = document.body.dataset.currentPage || "profile";
+  document.querySelectorAll(".nav-btn").forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.page === current);
+  });
 }
 
 function safeArray(v){
@@ -51,12 +51,16 @@ function getPlayer(){
   return AppState.player || {};
 }
 
+function getBusinesses(){
+  return safeArray(getPlayer().businesses);
+}
+
 function getTitles(){
   return safeArray(getPlayer().titles);
 }
 
-function getBusinesses(){
-  return safeArray(getPlayer().businesses);
+function getFriends(){
+  return safeArray(getPlayer().friends);
 }
 
 function getRealty(){
@@ -65,10 +69,6 @@ function getRealty(){
 
 function getCars(){
   return safeArray(getPlayer().cars);
-}
-
-function getFriends(){
-  return safeArray(getPlayer().friends);
 }
 
 function getCryptoWallet(){
@@ -88,7 +88,6 @@ function calcPassiveIncome(){
   ownedBusinesses.forEach(id=>{
     const b = BUSINESSES.find(x=>x.id === id);
     if(!b) return;
-
     const level = Number(levels[id] || 1);
     total += Number(b.income || 0) * level;
   });
@@ -97,7 +96,7 @@ function calcPassiveIncome(){
 }
 
 function calcAssetValue(){
-  let total = 0;
+  let total = Number(getPlayer().balance || 0);
 
   getBusinesses().forEach(id=>{
     const b = BUSINESSES.find(x=>x.id === id);
@@ -114,18 +113,14 @@ function calcAssetValue(){
     if(asset) total += Number(amount || 0) * Number(asset.price || 0);
   });
 
-  return total + Number(getPlayer().balance || 0);
+  return total;
 }
 
-function getClassLabel(){
-  return getPlayer().class || "none";
-}
-
-function getProfileCardHTML(){
+function profileCardHTML(){
   const p = getPlayer();
 
   return `
-    <div class="bank-card glow">
+    <div class="bank-card">
       <div class="bank-top">
         <div>
           <div class="bank-label">BitBank Platinum</div>
@@ -141,12 +136,10 @@ function getProfileCardHTML(){
           <div class="bank-small">Holder</div>
           <div class="bank-big">${p.username || "Unknown"}</div>
         </div>
-
         <div>
           <div class="bank-small">CVV</div>
           <div class="bank-big">${p.card_cvv || "000"}</div>
         </div>
-
         <div>
           <div class="bank-small">EXP</div>
           <div class="bank-big">${p.card_expiry || "12/30"}</div>
@@ -156,27 +149,59 @@ function getProfileCardHTML(){
   `;
 }
 
-function getBalanceCardsHTML(){
-  const p = getPlayer();
-
+function profileSideHTML(){
   return `
-    <div class="balance-duo">
-      <div class="balance-card balance-uah">
-        <div class="currency">Main Balance · UAH</div>
-        <div class="amount green">₴ ${formatMoney(p.balance)}</div>
-        <div class="hint">Ready for business, crypto and transfers</div>
+    <div class="profile-side-stack">
+      <div class="card">
+        <h3>Card Actions</h3>
+        <div class="profile-actions">
+          <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=card]')?.click()">Edit Card</button>
+          <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=transfers]')?.click()">Open Transfers</button>
+          <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=stats]')?.click()">View Stats</button>
+        </div>
       </div>
 
-      <div class="balance-card balance-usd">
-        <div class="currency">Dollar Wallet · USD</div>
-        <div class="amount orange">$ ${formatMoney(p.usd)}</div>
-        <div class="hint">Use for premium assets and conversions</div>
+      <div class="card">
+        <h3>Convert Currency</h3>
+        <p>Move value between UAH and USD quickly from your banking profile.</p>
+        <div class="profile-actions">
+          <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=transfers]')?.click()">UAH → USD</button>
+          <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=transfers]')?.click()">USD → UAH</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Income Engine</h3>
+        <p>Your passive flow grows from businesses, activity and investment.</p>
+        <div class="profile-actions">
+          <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=business]')?.click()">Manage Businesses</button>
+        </div>
       </div>
     </div>
   `;
 }
 
-function getStatsHTML(){
+function balanceHTML(){
+  const p = getPlayer();
+
+  return `
+    <div class="balance-duo">
+      <div class="balance-card">
+        <div class="currency">Main Balance · UAH</div>
+        <div class="amount green">₴ ${formatMoney(p.balance)}</div>
+        <div class="hint">Your primary banking wallet</div>
+      </div>
+
+      <div class="balance-card">
+        <div class="currency">Dollar Wallet · USD</div>
+        <div class="amount orange">$ ${formatMoney(p.usd)}</div>
+        <div class="hint">Used for conversions and premium assets</div>
+      </div>
+    </div>
+  `;
+}
+
+function statsHTML(){
   const p = getPlayer();
 
   return `
@@ -194,30 +219,30 @@ function getStatsHTML(){
       </div>
 
       <div class="card stat-card">
-        <div class="stat-label">Class</div>
-        <div class="stat-value">${getClassLabel()}</div>
-        <div class="stat-sub">Current account status</div>
+        <div class="stat-label">Current Class</div>
+        <div class="stat-value">${p.class || "none"}</div>
+        <div class="stat-sub">Account level</div>
       </div>
 
       <div class="card stat-card">
         <div class="stat-label">Total Assets</div>
         <div class="stat-value blue">₴ ${formatCompact(calcAssetValue())}</div>
-        <div class="stat-sub">Balance + holdings</div>
+        <div class="stat-sub">Cash + holdings</div>
       </div>
     </div>
   `;
 }
 
-function getTitlesHTML(){
+function titlesHTML(){
   const titles = getTitles();
 
   return `
     <div class="card">
-      <h3>Titles & Status</h3>
+      <h3>Titles & Achievements</h3>
       <div class="titles-list">
         ${
           titles.length
-            ? titles.map(title => `<div class="title-pill">${title}</div>`).join("")
+            ? titles.map(t => `<div class="title-pill">${t}</div>`).join("")
             : `<div class="title-pill">No titles yet</div>`
         }
       </div>
@@ -225,51 +250,12 @@ function getTitlesHTML(){
   `;
 }
 
-function getQuickActionsHTML(){
-  return `
-    <div class="card">
-      <h3>Card Actions</h3>
-      <div class="profile-actions">
-        <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=card]')?.click()">Edit Card</button>
-        <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=transfers]')?.click()">Open Transfers</button>
-        <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=stats]')?.click()">View Stats</button>
-      </div>
-    </div>
-  `;
-}
-
-function getConvertHTML(){
-  return `
-    <div class="card">
-      <h3>Convert Currency</h3>
-      <p>Move value between UAH and USD for a premium banking feel.</p>
-      <div class="profile-actions">
-        <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=transfers]')?.click()">UAH → USD</button>
-        <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=transfers]')?.click()">USD → UAH</button>
-      </div>
-    </div>
-  `;
-}
-
-function getPassiveHTML(){
-  return `
-    <div class="card">
-      <h3>Income Engine</h3>
-      <p>Your passive revenue grows from businesses, assets and activity.</p>
-      <div class="profile-actions">
-        <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=business]')?.click()">Manage Businesses</button>
-        <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=crypto]')?.click()">Open Portfolio</button>
-      </div>
-    </div>
-  `;
-}
-
-function getClickPanelHTML(){
+function clickHTML(){
   return `
     <div class="click-panel">
-      <div class="click-copy">
-        <h3>Instant Revenue</h3>
-        <p>Tap to generate extra money and push your economy forward in real time.</p>
+      <div>
+        <h3>Manual Revenue</h3>
+        <p>Tap to generate instant cash and boost your economy in real time.</p>
       </div>
       <button id="premium-click-btn" class="click-button">CLICK</button>
     </div>
@@ -284,19 +270,15 @@ export function renderProfilePage(){
   setPage(`
     <div class="dashboard-grid">
       <div class="profile-main">
-        ${getProfileCardHTML()}
-        <div class="profile-side-stack">
-          ${getQuickActionsHTML()}
-          ${getConvertHTML()}
-          ${getPassiveHTML()}
-        </div>
+        ${profileCardHTML()}
+        ${profileSideHTML()}
       </div>
 
       <div class="card">
         <h3>Account Overview</h3>
         <p><span class="muted">Username:</span> ${p.username || "—"}</p>
         <p><span class="muted">Device:</span> ${p.device || "desktop"}</p>
-        <p><span class="muted">Class:</span> ${getClassLabel()}</p>
+        <p><span class="muted">Class:</span> ${p.class || "none"}</p>
         <p><span class="muted">Friends:</span> ${getFriends().length}</p>
         <p><span class="muted">Businesses:</span> ${getBusinesses().length}</p>
         <p><span class="muted">Cars:</span> ${getCars().length}</p>
@@ -304,16 +286,16 @@ export function renderProfilePage(){
       </div>
 
       <div class="section-title">Wallet</div>
-      ${getBalanceCardsHTML()}
+      ${balanceHTML()}
 
       <div class="section-title">Performance</div>
-      ${getStatsHTML()}
+      ${statsHTML()}
 
       <div class="section-title">Titles</div>
-      ${getTitlesHTML()}
+      ${titlesHTML()}
 
-      <div class="section-title">Manual Income</div>
-      ${getClickPanelHTML()}
+      <div class="section-title">Action</div>
+      ${clickHTML()}
     </div>
   `);
 }
@@ -368,26 +350,26 @@ export function renderInventoryPage(){
       ${
         inventory.length
           ? inventory.map((item, i)=>`
-              <div class="card asset-card">
-                <div class="asset-info">
-                  <div class="asset-head">
-                    <div class="asset-name">${item.name || `Item ${i + 1}`}</div>
-                    <div class="asset-price">₴ ${formatCompact(item.value || 0)}</div>
-                  </div>
-                  <div class="asset-meta">
-                    <span>Collectible</span>
-                    <span>Stored asset</span>
-                  </div>
-                  <div class="asset-actions full">
-                    <button class="secondary">Inspect</button>
-                  </div>
+            <div class="card asset-card">
+              <div class="asset-info">
+                <div class="asset-head">
+                  <div class="asset-name">${item.name || `Item ${i + 1}`}</div>
+                  <div class="asset-price">₴ ${formatCompact(item.value || 0)}</div>
+                </div>
+                <div class="asset-meta">
+                  <span>Collectible</span>
+                  <span>Stored asset</span>
+                </div>
+                <div class="asset-actions full">
+                  <button class="secondary">Inspect</button>
                 </div>
               </div>
-            `).join("")
+            </div>
+          `).join("")
           : `
             <div class="card">
               <h3>No Items Yet</h3>
-              <p>Your premium inventory will appear here after opening cases or buying items.</p>
+              <p>Your inventory will appear here after cases and purchases.</p>
             </div>
           `
       }
@@ -405,13 +387,13 @@ export function renderStatsPage(){
       <div class="card">
         <h3>Total Earnings</h3>
         <div class="stat-value">₴ ${formatMoney(p.total_earned)}</div>
-        <p class="muted">All time income generated inside BitBank</p>
+        <p class="muted">All-time money generated in BitBank</p>
       </div>
 
       <div class="card">
         <h3>Portfolio Value</h3>
         <div class="stat-value blue">₴ ${formatMoney(calcAssetValue())}</div>
-        <p class="muted">Balance + crypto + stocks + business value</p>
+        <p class="muted">Cash + crypto + stocks + businesses</p>
       </div>
 
       <div class="card">
@@ -462,7 +444,7 @@ export function renderFriendsPage(){
     : `
       <div class="card">
         <h3>No Friends Added</h3>
-        <p>Add players by ID to build your premium network.</p>
+        <p>Add players by ID to build your private network.</p>
       </div>
     `;
 
@@ -491,6 +473,5 @@ export function renderPageUI(page){
       break;
     default:
       renderProfilePage();
-      break;
   }
 }
