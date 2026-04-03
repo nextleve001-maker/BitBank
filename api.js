@@ -1,233 +1,153 @@
 // =====================
-// SUPABASE INIT
+// SUPABASE SETUP
 // =====================
-import { AppState } from "./app.js";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-const SUPABASE_URL = "YOUR_URL";
-const SUPABASE_KEY = "YOUR_KEY";
+const SUPABASE_URL = "https://dznxdbiorjargerkilwf.supabase.co";
+const SUPABASE_KEY = "sb_publishable_9eL4kseNCXHF3d7MFAyj3A_iB8pjYfv";
 
-export const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+export const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // =====================
-// GENERIC REQUESTS
-// =====================
-async function fetchOne(table, query){
-
-  const {data, error} = await supabaseClient
-    .from(table)
-    .select("*")
-    .match(query)
-    .single();
-
-  if(error){
-    console.error("fetchOne error:", error);
-    return null;
-  }
-
-  return data;
-}
-
-async function fetchMany(table){
-
-  const {data, error} = await supabaseClient
-    .from(table)
-    .select("*");
-
-  if(error){
-    console.error("fetchMany error:", error);
-    return [];
-  }
-
-  return data;
-}
-
-async function insertRow(table, payload){
-
-  const {data, error} = await supabaseClient
-    .from(table)
-    .insert(payload)
-    .select()
-    .single();
-
-  if(error){
-    console.error("insert error:", error);
-    return null;
-  }
-
-  return data;
-}
-
-async function updateRow(table, query, patch){
-
-  const {error} = await supabaseClient
-    .from(table)
-    .update(patch)
-    .match(query);
-
-  if(error){
-    console.error("update error:", error);
-  }
-}
-
-async function deleteRow(table, query){
-
-  const {error} = await supabaseClient
-    .from(table)
-    .delete()
-    .match(query);
-
-  if(error){
-    console.error("delete error:", error);
-  }
-}
-
-// =====================
-// PLAYER API
+// PLAYERS
 // =====================
 export async function apiGetPlayer(username){
-  return await fetchOne("players", {username});
+  const { data } = await supabaseClient
+    .from("players")
+    .select("*")
+    .eq("username", username)
+    .single();
+
+  return data;
 }
 
-export async function apiGetAllPlayers(){
-  return await fetchMany("players");
+export async function apiCreatePlayer(player){
+  const { data } = await supabaseClient
+    .from("players")
+    .insert([player]);
+
+  return data;
 }
 
 export async function apiUpdatePlayer(username, patch){
-  await updateRow("players", {username}, patch);
-}
-
-export async function apiCreatePlayer(data){
-  return await insertRow("players", data);
+  await supabaseClient
+    .from("players")
+    .update(patch)
+    .eq("username", username);
 }
 
 export async function apiDeletePlayer(username){
-  await deleteRow("players", {username});
+  await supabaseClient
+    .from("players")
+    .delete()
+    .eq("username", username);
 }
 
-// =====================
-// GAME STATE API
-// =====================
-export async function apiGetGameState(){
-  return await fetchOne("game_state", {id:1});
-}
-
-export async function apiUpdateGameState(patch){
-  await updateRow("game_state", {id:1}, patch);
-}
-
-// =====================
-// HISTORY API
-// =====================
-export async function apiAddHistory(username, text, amount){
-
-  return await insertRow("history", {
-    username,
-    text,
-    amount,
-    created_at: new Date().toISOString()
-  });
-}
-
-export async function apiGetHistory(username){
-
-  const {data, error} = await supabaseClient
-    .from("history")
-    .select("*")
-    .eq("username", username)
-    .order("created_at", {ascending:false})
-    .limit(50);
-
-  if(error){
-    console.error(error);
-    return [];
-  }
-
-  return data;
-}
-
-// =====================
-// CASINO API
-// =====================
-export async function apiLogCasino(username, game, bet, result){
-
-  await insertRow("casino_logs", {
-    username,
-    game,
-    bet,
-    result,
-    created_at: new Date().toISOString()
-  });
-}
-
-// =====================
-// BATTLE API
-// =====================
-export async function apiCreateBattle(payload){
-  return await insertRow("tap_battles", payload);
-}
-
-export async function apiUpdateBattle(id, patch){
-  await updateRow("tap_battles", {id}, patch);
-}
-
-export async function apiGetBattles(){
-
-  const {data} = await supabaseClient
-    .from("tap_battles")
+export async function apiGetAllPlayers(){
+  const { data } = await supabaseClient
+    .from("players")
     .select("*");
 
   return data || [];
 }
 
 // =====================
-// MARKET API
+// ONLINE / PRESENCE
 // =====================
-export async function apiSaveMarket(data){
-  await updateRow("game_state", {id:1}, {market:data});
+export async function apiUpdatePresence(username, device){
+  await supabaseClient
+    .from("players")
+    .update({
+      last_seen: new Date().toISOString(),
+      device
+    })
+    .eq("username", username);
 }
 
 // =====================
-// FRIENDS API
+// GAME STATE
 // =====================
-export async function apiUpdateFriends(username, friends){
-  await updateRow("players", {username}, {friends});
+export async function apiGetGameState(){
+  const { data } = await supabaseClient
+    .from("game_state")
+    .select("*")
+    .limit(1)
+    .single();
+
+  return data;
+}
+
+export async function apiUpdateGameState(patch){
+  await supabaseClient
+    .from("game_state")
+    .update(patch)
+    .eq("id", 1);
 }
 
 // =====================
-// ADMIN API
+// HISTORY
+// =====================
+export async function apiAddHistory(username, action, amount){
+  await supabaseClient
+    .from("history")
+    .insert([{
+      username,
+      action,
+      amount,
+      created_at: new Date().toISOString()
+    }]);
+}
+
+// =====================
+// CASINO LOG
+// =====================
+export async function apiLogCasino(username, game, bet, result){
+  await supabaseClient
+    .from("casino_logs")
+    .insert([{
+      username,
+      game,
+      bet,
+      result,
+      created_at: new Date().toISOString()
+    }]);
+}
+
+// =====================
+// BATTLES
+// =====================
+export async function apiCreateBattle(battle){
+  const { data } = await supabaseClient
+    .from("battles")
+    .insert([battle])
+    .select()
+    .single();
+
+  return data;
+}
+
+export async function apiGetBattles(){
+  const { data } = await supabaseClient
+    .from("battles")
+    .select("*");
+
+  return data || [];
+}
+
+export async function apiUpdateBattle(id, patch){
+  await supabaseClient
+    .from("battles")
+    .update(patch)
+    .eq("id", id);
+}
+
+// =====================
+// ADMIN
 // =====================
 export async function apiBanUser(username){
-  await updateRow("players", {username}, {banned:true});
+  await apiUpdatePlayer(username, { banned: true });
 }
 
 export async function apiUnbanUser(username){
-  await updateRow("players", {username}, {banned:false});
-}
-
-export async function apiSetBalance(username, balance){
-  await updateRow("players", {username}, {balance});
-}
-
-// =====================
-// BULK OPERATIONS
-// =====================
-export async function apiMassUpdatePlayers(players){
-
-  for(const p of players){
-    await updateRow("players", {username:p.username}, p);
-  }
-}
-
-// =====================
-// PRESENCE
-// =====================
-export async function apiUpdatePresence(username, device){
-
-  await updateRow("players", {username}, {
-    last_seen:new Date().toISOString(),
-    device
-  });
+  await apiUpdatePlayer(username, { banned: false });
 }
