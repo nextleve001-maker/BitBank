@@ -2,18 +2,18 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>BitBank</title>
 
-  <link rel="stylesheet" href="style.css?v=400">
-
+  <link rel="stylesheet" href="style.css?v=500" />
 </head>
 <body>
+  <!-- AUTH -->
   <div id="login-screen" class="auth-screen">
     <div class="auth-box">
       <div class="auth-header">
         <h1>BitBank</h1>
-        <p>Crypto • Business • Casino • Battle</p>
+        <p>Digital bank • crypto • economy • premium dashboard</p>
       </div>
 
       <div class="auth-tabs">
@@ -25,32 +25,53 @@
 
       <div id="login-form" class="auth-form">
         <label for="login-username">Username</label>
-        <input id="login-username" type="text" placeholder="Enter username" autocomplete="username" />
+        <input
+          id="login-username"
+          type="text"
+          placeholder="Enter username"
+          autocomplete="username"
+        />
 
         <label for="login-password">Password</label>
-        <input id="login-password" type="password" placeholder="Enter password" autocomplete="current-password" />
+        <input
+          id="login-password"
+          type="password"
+          placeholder="Enter password"
+          autocomplete="current-password"
+        />
 
-        <button id="login-btn" type="button" class="primary-btn">Login</button>
+        <button id="login-btn" class="primary-btn" type="button">Login</button>
       </div>
 
       <div id="register-form" class="auth-form hidden">
         <label for="register-username">Username</label>
-        <input id="register-username" type="text" placeholder="Create username" autocomplete="username" />
+        <input
+          id="register-username"
+          type="text"
+          placeholder="Create username"
+          autocomplete="username"
+        />
 
         <label for="register-password">Password</label>
-        <input id="register-password" type="password" placeholder="Create password" autocomplete="new-password" />
+        <input
+          id="register-password"
+          type="password"
+          placeholder="Create password"
+          autocomplete="new-password"
+        />
 
-        <button id="register-btn" type="button" class="primary-btn">Register</button>
+        <button id="register-btn" class="primary-btn" type="button">Register</button>
       </div>
     </div>
   </div>
 
+  <!-- APP -->
   <div id="app-screen" class="app-screen hidden">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-top">
         <div class="brand-block">
           <h2>BitBank</h2>
-          <p>Online Idle Economy</p>
+          <p>Premium economy platform</p>
         </div>
       </div>
 
@@ -62,7 +83,6 @@
         <button class="nav-btn" data-page="realty" type="button">🏝 Realty</button>
         <button class="nav-btn" data-page="cars" type="button">🚗 Cars</button>
         <button class="nav-btn" data-page="inventory" type="button">🎒 Inventory</button>
-        <button class="nav-btn" data-page="market" type="button">🛒 Market</button>
         <button class="nav-btn" data-page="friends" type="button">👥 Friends</button>
         <button class="nav-btn" data-page="battle" type="button">⚔️ Battle</button>
         <button class="nav-btn" data-page="casino" type="button">🎰 Casino</button>
@@ -74,7 +94,7 @@
       </nav>
 
       <div class="sidebar-bottom">
-        <button id="logout-btn" type="button" class="danger-btn">Logout</button>
+        <button id="logout-btn" class="danger-btn" type="button">Logout</button>
       </div>
     </aside>
 
@@ -82,6 +102,7 @@
       <header class="topbar">
         <div class="topbar-left">
           <h1 id="header-username">Player</h1>
+
           <div class="top-meta">
             <span id="header-status">Class: none</span>
             <span id="header-device">Device: desktop</span>
@@ -93,6 +114,7 @@
             <span>UAH</span>
             <strong id="balance-uah">₴ 0</strong>
           </div>
+
           <div class="balance-chip">
             <span>USD</span>
             <strong id="balance-usd">$ 0</strong>
@@ -106,7 +128,7 @@
         <div id="battle-widget"></div>
 
         <div id="page-content" class="page-content">
-          <div class="card">
+          <div class="card" style="grid-column:1 / -1;">
             <h2>Loading...</h2>
             <p>BitBank is starting.</p>
           </div>
