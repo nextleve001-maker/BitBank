@@ -274,7 +274,7 @@ export function renderPage(page) {
       break;
 
     case "business":
-      renderBusinessPage();
+      renderBusinessPremiumPage();
       break;
 
     case "crypto":
