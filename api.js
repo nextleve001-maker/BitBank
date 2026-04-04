@@ -6,6 +6,21 @@ const SUPABASE_KEY = "sb_publishable_9eL4kseNCXHF3d7MFAyj3A_iB8pjYfv";
 export const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // =====================
+// ERROR HELPER
+// =====================
+function showApiError(scope, error) {
+  console.error(`${scope} error:`, error);
+
+  const message =
+    error?.message ||
+    error?.details ||
+    error?.hint ||
+    JSON.stringify(error);
+
+  alert(`${scope}: ${message}`);
+}
+
+// =====================
 // PLAYERS
 // =====================
 export async function apiGetPlayer(username) {
@@ -16,7 +31,7 @@ export async function apiGetPlayer(username) {
     .maybeSingle();
 
   if (error) {
-    console.error("apiGetPlayer error:", error);
+    showApiError("apiGetPlayer", error);
     return null;
   }
 
@@ -31,7 +46,7 @@ export async function apiCreatePlayer(player) {
     .single();
 
   if (error) {
-    console.error("apiCreatePlayer error:", error);
+    showApiError("apiCreatePlayer", error);
     return null;
   }
 
@@ -45,7 +60,7 @@ export async function apiUpdatePlayer(username, patch) {
     .eq("username", username);
 
   if (error) {
-    console.error("apiUpdatePlayer error:", error);
+    showApiError("apiUpdatePlayer", error);
     return false;
   }
 
@@ -59,7 +74,7 @@ export async function apiDeletePlayer(username) {
     .eq("username", username);
 
   if (error) {
-    console.error("apiDeletePlayer error:", error);
+    showApiError("apiDeletePlayer", error);
     return false;
   }
 
@@ -72,7 +87,7 @@ export async function apiGetAllPlayers() {
     .select("*");
 
   if (error) {
-    console.error("apiGetAllPlayers error:", error);
+    showApiError("apiGetAllPlayers", error);
     return [];
   }
 
@@ -92,7 +107,7 @@ export async function apiUpdatePresence(username, device) {
     .eq("username", username);
 
   if (error) {
-    console.error("apiUpdatePresence error:", error);
+    showApiError("apiUpdatePresence", error);
     return false;
   }
 
@@ -110,7 +125,7 @@ export async function apiGetGameState() {
     .maybeSingle();
 
   if (error) {
-    console.error("apiGetGameState error:", error);
+    showApiError("apiGetGameState", error);
     return null;
   }
 
@@ -128,7 +143,7 @@ export async function apiUpdateGameState(patch) {
     .upsert(payload);
 
   if (error) {
-    console.error("apiUpdateGameState error:", error);
+    showApiError("apiUpdateGameState", error);
     return false;
   }
 
@@ -151,7 +166,7 @@ export async function apiAddHistory(username, text, amount) {
     ]);
 
   if (error) {
-    console.error("apiAddHistory error:", error);
+    showApiError("apiAddHistory", error);
     return false;
   }
 
@@ -167,7 +182,7 @@ export async function apiGetHistory(username) {
     .limit(100);
 
   if (error) {
-    console.error("apiGetHistory error:", error);
+    showApiError("apiGetHistory", error);
     return [];
   }
 
@@ -191,7 +206,7 @@ export async function apiLogCasino(username, game, bet, result) {
     ]);
 
   if (error) {
-    console.error("apiLogCasino error:", error);
+    showApiError("apiLogCasino", error);
     return false;
   }
 
@@ -207,7 +222,7 @@ export async function apiGetCasinoLogs(username) {
     .limit(50);
 
   if (error) {
-    console.error("apiGetCasinoLogs error:", error);
+    showApiError("apiGetCasinoLogs", error);
     return [];
   }
 
@@ -215,7 +230,7 @@ export async function apiGetCasinoLogs(username) {
 }
 
 // =====================
-// TAP BATTLES
+// BATTLES
 // =====================
 export async function apiCreateBattle(payload) {
   const { data, error } = await supabaseClient
@@ -225,7 +240,7 @@ export async function apiCreateBattle(payload) {
     .single();
 
   if (error) {
-    console.error("apiCreateBattle error:", error);
+    showApiError("apiCreateBattle", error);
     return null;
   }
 
@@ -239,7 +254,7 @@ export async function apiGetBattles() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("apiGetBattles error:", error);
+    showApiError("apiGetBattles", error);
     return [];
   }
 
@@ -253,7 +268,7 @@ export async function apiUpdateBattle(id, patch) {
     .eq("id", id);
 
   if (error) {
-    console.error("apiUpdateBattle error:", error);
+    showApiError("apiUpdateBattle", error);
     return false;
   }
 
@@ -261,7 +276,7 @@ export async function apiUpdateBattle(id, patch) {
 }
 
 // =====================
-// ADMIN HELPERS
+// ADMIN
 // =====================
 export async function apiBanUser(username) {
   return await apiUpdatePlayer(username, { banned: true });
