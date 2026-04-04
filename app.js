@@ -324,8 +324,8 @@ export function renderPage(page) {
       break;
 
     case "history":
-      renderHistoryPage();
-      break;
+    renderHistoryPage();
+    break;
 
     case "stats":
       renderStatsPage();
