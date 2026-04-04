@@ -2,14 +2,24 @@ import { AppState } from "./app.js";
 import { handleClick } from "./player.js";
 import { BUSINESSES } from "./economy.js";
 import { MarketState } from "./market.js";
+import { t, renderLanguageSwitcher, bindLanguageSwitcher } from "./i18n.js";
 
 const root = document.getElementById("page-content");
 
-function setPage(html) {
+// =====================
+// CORE
+// =====================
+function setPage(html, rerenderFn = null) {
   if (!root) return;
   root.innerHTML = html;
   bindDynamicUI();
   highlightActiveNav();
+
+  if (rerenderFn) {
+    bindLanguageSwitcher(() => {
+      rerenderFn();
+    });
+  }
 }
 
 function bindDynamicUI() {
@@ -61,6 +71,9 @@ function highlightActiveNav() {
   });
 }
 
+// =====================
+// HELPERS
+// =====================
 function safeArray(v) {
   return Array.isArray(v) ? v : [];
 }
@@ -111,10 +124,6 @@ function getRealty() {
   return safeArray(getPlayer().realty);
 }
 
-function getInventory() {
-  return safeArray(getPlayer().inventory);
-}
-
 function getCryptoWallet() {
   return safeObject(getPlayer().crypto);
 }
@@ -124,15 +133,14 @@ function getStockWallet() {
 }
 
 function calcPassiveIncome() {
-  const businesses = getBusinesses();
+  const ownedBusinesses = getBusinesses();
   const levels = getBusinessLevels();
 
   let total = 0;
 
-  businesses.forEach((id) => {
+  ownedBusinesses.forEach((id) => {
     const b = BUSINESSES.find((x) => x.id === id);
     if (!b) return;
-
     const level = Number(levels[id] || 1);
     total += Number(b.income || 0) * level;
   });
@@ -213,6 +221,9 @@ function getAccountMood() {
   return "Early stage balance";
 }
 
+// =====================
+// PROFILE BLOCKS
+// =====================
 function renderProfileCard() {
   const p = getPlayer();
 
@@ -252,26 +263,26 @@ function renderQuickPanel() {
   return `
     <div class="profile-side-stack">
       <div class="card">
-        <h3>Fast Actions</h3>
+        <h3>${t("transfers")}</h3>
         <div class="profile-actions">
-          <button id="quick-transfer-btn">Transfer</button>
-          <button id="open-card-btn" class="secondary">Card Settings</button>
-          <button id="open-stats-btn" class="secondary">Statistics</button>
+          <button id="quick-transfer-btn">${t("transfers")}</button>
+          <button id="open-card-btn" class="secondary">${t("cardSettings")}</button>
+          <button id="open-stats-btn" class="secondary">${t("stats")}</button>
         </div>
       </div>
 
       <div class="card">
-        <h3>Wealth Status</h3>
+        <h3>${t("currentClass")}</h3>
         <p><span class="muted">Tier:</span> ${getNetWorthLabel()}</p>
         <p><span class="muted">Cash State:</span> ${getAccountMood()}</p>
-        <p><span class="muted">Current Class:</span> ${getPlayer().class || "none"}</p>
+        <p><span class="muted">${t("currentClass")}:</span> ${getPlayer().class || "none"}</p>
       </div>
 
       <div class="card">
-        <h3>Portfolio Actions</h3>
+        <h3>${t("portfolio")}</h3>
         <div class="profile-actions">
-          <button id="open-business-btn" class="secondary">Businesses</button>
-          <button id="open-crypto-btn" class="secondary">Crypto</button>
+          <button id="open-business-btn" class="secondary">${t("business")}</button>
+          <button id="open-crypto-btn" class="secondary">${t("crypto")}</button>
         </div>
       </div>
     </div>
@@ -284,13 +295,13 @@ function renderBalanceSection() {
   return `
     <div class="balance-duo">
       <div class="balance-card">
-        <div class="currency">UAH Balance</div>
+        <div class="currency">UAH ${t("balance")}</div>
         <div class="amount green">₴ ${formatMoney(p.balance)}</div>
         <div class="hint">Main operating wallet</div>
       </div>
 
       <div class="balance-card">
-        <div class="currency">USD Balance</div>
+        <div class="currency">USD ${t("balance")}</div>
         <div class="amount orange">$ ${formatMoney(p.usd)}</div>
         <div class="hint">Reserve currency wallet</div>
       </div>
@@ -316,13 +327,13 @@ function renderStatsSection() {
       </div>
 
       <div class="card stat-card">
-        <div class="stat-label">Portfolio</div>
+        <div class="stat-label">${t("portfolio")}</div>
         <div class="stat-value blue">₴ ${formatCompact(calcTotalAssets())}</div>
         <div class="stat-sub">Cash + business + market</div>
       </div>
 
       <div class="card stat-card">
-        <div class="stat-label">Network</div>
+        <div class="stat-label">${t("friends")}</div>
         <div class="stat-value">${getFriends().length}</div>
         <div class="stat-sub">Friends in your circle</div>
       </div>
@@ -351,18 +362,18 @@ function renderFinanceBlocks() {
   return `
     <div class="dashboard-grid" style="grid-template-columns:1fr 1fr;">
       <div class="card">
-        <h3>Exchange</h3>
+        <h3>${t("transfers")}</h3>
         <p>Convert between UAH and USD from a single banking hub.</p>
         <div class="profile-actions">
-          <button onclick="document.querySelector('.nav-btn[data-page=transfers]')?.click()">Open Exchange</button>
+          <button onclick="document.querySelector('.nav-btn[data-page=transfers]')?.click()">${t("transfers")}</button>
         </div>
       </div>
 
       <div class="card">
-        <h3>Card Controls</h3>
+        <h3>${t("cardSettings")}</h3>
         <p>Change card name, color and security settings.</p>
         <div class="profile-actions">
-          <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=card]')?.click()">Manage Card</button>
+          <button class="secondary" onclick="document.querySelector('.nav-btn[data-page=card]')?.click()">${t("card")}</button>
         </div>
       </div>
     </div>
@@ -373,10 +384,10 @@ function renderManualIncomeBlock() {
   return `
     <div class="click-panel">
       <div>
-        <h3>Quick Cash</h3>
+        <h3>${t("tapToEarn")}</h3>
         <p>Tap for instant balance growth. Built as a premium action, not a random giant game button.</p>
       </div>
-      <button id="premium-click-btn" class="click-button">Tap to Earn</button>
+      <button id="premium-click-btn" class="click-button">${t("tapToEarn")}</button>
     </div>
   `;
 }
@@ -386,17 +397,20 @@ function renderOverviewBlock() {
 
   return `
     <div class="card">
-      <h3>Account Overview</h3>
-      <p><span class="muted">Username:</span> ${p.username || "—"}</p>
-      <p><span class="muted">Device:</span> ${p.device || "desktop"}</p>
-      <p><span class="muted">Businesses:</span> ${getBusinesses().length}</p>
-      <p><span class="muted">Cars:</span> ${getCars().length}</p>
-      <p><span class="muted">Realty:</span> ${getRealty().length}</p>
-      <p><span class="muted">Inventory:</span> ${getInventory().length}</p>
+      <h3>${t("profile")}</h3>
+      <p><span class="muted">${t("username")}:</span> ${p.username || "—"}</p>
+      <p><span class="muted">${t("device")}:</span> ${p.device || "desktop"}</p>
+      <p><span class="muted">${t("business")}:</span> ${getBusinesses().length}</p>
+      <p><span class="muted">${t("cars")}:</span> ${getCars().length}</p>
+      <p><span class="muted">${t("realty")}:</span> ${getRealty().length}</p>
+      <p><span class="muted">${t("inventory")}:</span> ${safeArray(getPlayer().inventory).length}</p>
     </div>
   `;
 }
 
+// =====================
+// PAGES
+// =====================
 export function renderProfilePage() {
   document.body.dataset.currentPage = "profile";
 
@@ -409,36 +423,38 @@ export function renderProfilePage() {
 
       ${renderOverviewBlock()}
 
-      <div class="section-title">Wallet</div>
+      ${renderLanguageSwitcher()}
+
+      <div class="section-title">${t("balance")}</div>
       ${renderBalanceSection()}
 
-      <div class="section-title">Performance</div>
+      <div class="section-title">${t("stats")}</div>
       ${renderStatsSection()}
 
-      <div class="section-title">Banking</div>
+      <div class="section-title">${t("transfers")}</div>
       ${renderFinanceBlocks()}
 
       <div class="section-title">Titles</div>
       ${renderTitlesSection()}
 
-      <div class="section-title">Manual Revenue</div>
+      <div class="section-title">${t("tapToEarn")}</div>
       ${renderManualIncomeBlock()}
     </div>
-  `);
+  `, renderProfilePage);
 }
 
 function businessImageById(id) {
   const images = {
     1: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1200&q=80",
-    2: "https://images.unsplash.com/photo-1521335629791-ce4aec67dd53?auto=format&fit=crop&w=1200&q=80",
+    2: "https://images.unsplash.com/photo-1561758033-d89a9ad46330?auto=format&fit=crop&w=1200&q=80",
     3: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80",
-    4: "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1200&q=80",
-    5: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-    6: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80",
-    7: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
-    8: "https://images.unsplash.com/photo-1513828583688-c52646db42da?auto=format&fit=crop&w=1200&q=80",
-    9: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1200&q=80",
-    10: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80"
+    4: "https://images.unsplash.com/photo-1486006920555-c77dcf18193c?auto=format&fit=crop&w=1200&q=80",
+    5: "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1200&q=80",
+    6: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+    7: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80",
+    8: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80",
+    9: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80",
+    10: "https://images.unsplash.com/photo-1554224154-26032fced8bd?auto=format&fit=crop&w=1200&q=80"
   };
 
   return images[id] || "https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1200&q=80";
@@ -447,18 +463,14 @@ function businessImageById(id) {
 export function renderBusinessPage() {
   document.body.dataset.currentPage = "business";
 
-  const ownedBusinesses = getBusinesses();
-  const levels = getBusinessLevels();
-
   const cards = BUSINESSES.map((item) => {
-    const owned = ownedBusinesses.includes(item.id);
-    const level = Number(levels[item.id] || 1);
+    const owned = getBusinesses().includes(item.id);
 
     return `
       <div class="card asset-card">
         <div class="asset-cover">
           <img src="${businessImageById(item.id)}" alt="${item.name}">
-          <div class="asset-badge">${owned ? "Owned" : "Available"}</div>
+          <div class="asset-badge">${owned ? t("owned") : t("business")}</div>
         </div>
 
         <div class="asset-info">
@@ -468,13 +480,13 @@ export function renderBusinessPage() {
           </div>
 
           <div class="asset-meta">
-            <span>Income: ₴ ${formatCompact(item.income)}/min</span>
-            <span>Level: ${level}</span>
+            <span>${t("income")}: ₴ ${formatCompact(item.income)}/${t("perMinute")}</span>
+            <span>Status: ${owned ? t("current") : "Available"}</span>
           </div>
 
           <div class="asset-actions">
-            <button>${owned ? "Manage" : "Buy"}</button>
-            <button class="secondary">Upgrade</button>
+            <button>${t("buy")}</button>
+            <button class="secondary">${t("upgrade")}</button>
           </div>
         </div>
       </div>
@@ -482,52 +494,49 @@ export function renderBusinessPage() {
   }).join("");
 
   setPage(`
-    <div class="section-title">Business Portfolio</div>
+    ${renderLanguageSwitcher()}
+    <div class="section-title">${t("business")}</div>
     <div class="asset-grid">${cards}</div>
-  `);
+  `, renderBusinessPage);
 }
 
 export function renderInventoryPage() {
   document.body.dataset.currentPage = "inventory";
 
-  const inventory = getInventory();
-
-  if (!inventory.length) {
-    setPage(`
-      <div class="card" style="grid-column:1 / -1;">
-        <h2>Inventory</h2>
-        <p>Your collected items and rewards will appear here.</p>
-      </div>
-    `);
-    return;
-  }
-
-  const cards = inventory.map((item, index) => {
-    return `
-      <div class="card asset-card">
-        <div class="asset-info">
-          <div class="asset-head">
-            <div class="asset-name">${item.name || `Item ${index + 1}`}</div>
-            <div class="asset-price">₴ ${formatCompact(item.value || 0)}</div>
-          </div>
-
-          <div class="asset-meta">
-            <span>Collectible</span>
-            <span>Stored Asset</span>
-          </div>
-
-          <div class="asset-actions full">
-            <button class="secondary">Inspect</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("");
+  const inventory = safeArray(getPlayer().inventory);
 
   setPage(`
-    <div class="section-title">Inventory</div>
-    <div class="asset-grid">${cards}</div>
-  `);
+    ${renderLanguageSwitcher()}
+    <div class="section-title">${t("inventory")}</div>
+    <div class="asset-grid">
+      ${
+        inventory.length
+          ? inventory.map((item, i) => `
+              <div class="card asset-card">
+                <div class="asset-info">
+                  <div class="asset-head">
+                    <div class="asset-name">${item.name || `Item ${i + 1}`}</div>
+                    <div class="asset-price">₴ ${formatCompact(item.value || 0)}</div>
+                  </div>
+                  <div class="asset-meta">
+                    <span>Collectible</span>
+                    <span>Stored asset</span>
+                  </div>
+                  <div class="asset-actions full">
+                    <button class="secondary">Inspect</button>
+                  </div>
+                </div>
+              </div>
+            `).join("")
+          : `
+            <div class="card">
+              <h3>No Items Yet</h3>
+              <p>Your inventory will appear here after cases and purchases.</p>
+            </div>
+          `
+      }
+    </div>
+  `, renderInventoryPage);
 }
 
 export function renderStatsPage() {
@@ -536,15 +545,16 @@ export function renderStatsPage() {
   const p = getPlayer();
 
   setPage(`
+    ${renderLanguageSwitcher()}
     <div class="dashboard-grid" style="grid-template-columns:repeat(2,1fr);">
       <div class="card">
-        <h3>Total Earned</h3>
+        <h3>Total Earnings</h3>
         <div class="stat-value">₴ ${formatMoney(p.total_earned)}</div>
         <p class="muted">All-time generated money</p>
       </div>
 
       <div class="card">
-        <h3>Total Assets</h3>
+        <h3>${t("portfolio")}</h3>
         <div class="stat-value blue">₴ ${formatMoney(calcTotalAssets())}</div>
         <p class="muted">Full portfolio value</p>
       </div>
@@ -552,17 +562,17 @@ export function renderStatsPage() {
       <div class="card">
         <h3>Passive Income</h3>
         <div class="stat-value green">₴ ${formatMoney(calcPassiveIncome())}</div>
-        <p class="muted">Per minute</p>
+        <p class="muted">${t("perMinute")}</p>
       </div>
 
       <div class="card">
-        <h3>Portfolio Structure</h3>
-        <p>Crypto: ₴ ${formatMoney(calcCryptoValue())}</p>
-        <p>Stocks: ₴ ${formatMoney(calcStocksValue())}</p>
-        <p>Businesses: ₴ ${formatMoney(calcBusinessValue())}</p>
+        <h3>${t("market")}</h3>
+        <p>${t("crypto")}: ₴ ${formatMoney(calcCryptoValue())}</p>
+        <p>${t("stocks")}: ₴ ${formatMoney(calcStocksValue())}</p>
+        <p>${t("business")}: ₴ ${formatMoney(calcBusinessValue())}</p>
       </div>
     </div>
-  `);
+  `, renderStatsPage);
 }
 
 export function renderFriendsPage() {
@@ -573,11 +583,12 @@ export function renderFriendsPage() {
 
   if (!friends.length) {
     setPage(`
+      ${renderLanguageSwitcher()}
       <div class="card" style="grid-column:1 / -1;">
-        <h2>Friends</h2>
+        <h2>${t("friends")}</h2>
         <p>You have no friends added yet.</p>
       </div>
-    `);
+    `, renderFriendsPage);
     return;
   }
 
@@ -606,9 +617,10 @@ export function renderFriendsPage() {
   }).join("");
 
   setPage(`
-    <div class="section-title">Friends Network</div>
+    ${renderLanguageSwitcher()}
+    <div class="section-title">${t("friends")}</div>
     <div class="asset-grid">${cards}</div>
-  `);
+  `, renderFriendsPage);
 }
 
 export function renderPageUI(page) {
