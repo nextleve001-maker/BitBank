@@ -1,214 +1,53 @@
 import { AppState, updatePlayer } from "./app.js";
 import { removeBalance, addBalance } from "./player.js";
 import { apiAddHistory } from "./api.js";
+import { getCurrentClassConfig } from "./economy.js";
 
 // =====================
-// MARKET DATA
+// CRYPTO DATA (20)
 // =====================
 export const CRYPTO_ASSETS = [
-  {
-    id: "BTC",
-    name: "Bitcoin",
-    symbol: "BTC",
-    price: 2500000,
-    min: 600000,
-    max: 5000000,
-    volatility: 0.035,
-    img: "https://cryptologos.cc/logos/bitcoin-btc-logo.png"
-  },
-  {
-    id: "ETH",
-    name: "Ethereum",
-    symbol: "ETH",
-    price: 120000,
-    min: 30000,
-    max: 400000,
-    volatility: 0.04,
-    img: "https://cryptologos.cc/logos/ethereum-eth-logo.png"
-  },
-  {
-    id: "BNB",
-    name: "BNB",
-    symbol: "BNB",
-    price: 28000,
-    min: 5000,
-    max: 70000,
-    volatility: 0.045,
-    img: "https://cryptologos.cc/logos/bnb-bnb-logo.png"
-  },
-  {
-    id: "SOL",
-    name: "Solana",
-    symbol: "SOL",
-    price: 8500,
-    min: 1000,
-    max: 30000,
-    volatility: 0.06,
-    img: "https://cryptologos.cc/logos/solana-sol-logo.png"
-  },
-  {
-    id: "XRP",
-    name: "XRP",
-    symbol: "XRP",
-    price: 90,
-    min: 10,
-    max: 500,
-    volatility: 0.07,
-    img: "https://cryptologos.cc/logos/xrp-xrp-logo.png"
-  },
-  {
-    id: "ADA",
-    name: "Cardano",
-    symbol: "ADA",
-    price: 45,
-    min: 5,
-    max: 250,
-    volatility: 0.065,
-    img: "https://cryptologos.cc/logos/cardano-ada-logo.png"
-  },
-  {
-    id: "DOGE",
-    name: "Dogecoin",
-    symbol: "DOGE",
-    price: 18,
-    min: 1,
-    max: 120,
-    volatility: 0.08,
-    img: "https://cryptologos.cc/logos/dogecoin-doge-logo.png"
-  },
-  {
-    id: "TON",
-    name: "Toncoin",
-    symbol: "TON",
-    price: 320,
-    min: 50,
-    max: 1200,
-    volatility: 0.05,
-    img: "https://cryptologos.cc/logos/toncoin-ton-logo.png"
-  },
-  {
-    id: "DOT",
-    name: "Polkadot",
-    symbol: "DOT",
-    price: 260,
-    min: 50,
-    max: 1500,
-    volatility: 0.055,
-    img: "https://cryptologos.cc/logos/polkadot-new-dot-logo.png"
-  },
-  {
-    id: "AVAX",
-    name: "Avalanche",
-    symbol: "AVAX",
-    price: 1400,
-    min: 150,
-    max: 5000,
-    volatility: 0.06,
-    img: "https://cryptologos.cc/logos/avalanche-avax-logo.png"
-  }
+  { id: "BTC", name: "Bitcoin", symbol: "BTC", price: 2500000, min: 600000, max: 5000000, volatility: 0.035, img: "https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=040" },
+  { id: "ETH", name: "Ethereum", symbol: "ETH", price: 120000, min: 30000, max: 400000, volatility: 0.04, img: "https://cryptologos.cc/logos/ethereum-eth-logo.png?v=040" },
+  { id: "BNB", name: "BNB", symbol: "BNB", price: 28000, min: 5000, max: 70000, volatility: 0.045, img: "https://cryptologos.cc/logos/bnb-bnb-logo.png?v=040" },
+  { id: "SOL", name: "Solana", symbol: "SOL", price: 8500, min: 1000, max: 30000, volatility: 0.06, img: "https://cryptologos.cc/logos/solana-sol-logo.png?v=040" },
+  { id: "XRP", name: "XRP", symbol: "XRP", price: 90, min: 10, max: 500, volatility: 0.07, img: "https://cryptologos.cc/logos/xrp-xrp-logo.png?v=040" },
+  { id: "ADA", name: "Cardano", symbol: "ADA", price: 45, min: 5, max: 250, volatility: 0.065, img: "https://cryptologos.cc/logos/cardano-ada-logo.png?v=040" },
+  { id: "DOGE", name: "Dogecoin", symbol: "DOGE", price: 18, min: 1, max: 120, volatility: 0.08, img: "https://cryptologos.cc/logos/dogecoin-doge-logo.png?v=040" },
+  { id: "TON", name: "Toncoin", symbol: "TON", price: 320, min: 50, max: 1200, volatility: 0.05, img: "https://cryptologos.cc/logos/toncoin-ton-logo.png?v=040" },
+  { id: "DOT", name: "Polkadot", symbol: "DOT", price: 260, min: 50, max: 1500, volatility: 0.055, img: "https://cryptologos.cc/logos/polkadot-new-dot-logo.png?v=040" },
+  { id: "AVAX", name: "Avalanche", symbol: "AVAX", price: 1400, min: 150, max: 5000, volatility: 0.06, img: "https://cryptologos.cc/logos/avalanche-avax-logo.png?v=040" },
+  { id: "MATIC", name: "Polygon", symbol: "MATIC", price: 75, min: 10, max: 400, volatility: 0.06, img: "https://cryptologos.cc/logos/polygon-matic-logo.png?v=040" },
+  { id: "LINK", name: "Chainlink", symbol: "LINK", price: 900, min: 80, max: 3500, volatility: 0.05, img: "https://cryptologos.cc/logos/chainlink-link-logo.png?v=040" },
+  { id: "TRX", name: "TRON", symbol: "TRX", price: 14, min: 2, max: 60, volatility: 0.045, img: "https://cryptologos.cc/logos/tron-trx-logo.png?v=040" },
+  { id: "LTC", name: "Litecoin", symbol: "LTC", price: 4500, min: 300, max: 15000, volatility: 0.05, img: "https://cryptologos.cc/logos/litecoin-ltc-logo.png?v=040" },
+  { id: "BCH", name: "Bitcoin Cash", symbol: "BCH", price: 11000, min: 1000, max: 30000, volatility: 0.055, img: "https://cryptologos.cc/logos/bitcoin-cash-bch-logo.png?v=040" },
+  { id: "UNI", name: "Uniswap", symbol: "UNI", price: 520, min: 50, max: 2000, volatility: 0.06, img: "https://cryptologos.cc/logos/uniswap-uni-logo.png?v=040" },
+  { id: "ATOM", name: "Cosmos", symbol: "ATOM", price: 680, min: 60, max: 2400, volatility: 0.055, img: "https://cryptologos.cc/logos/cosmos-atom-logo.png?v=040" },
+  { id: "ETC", name: "Ethereum Classic", symbol: "ETC", price: 1300, min: 100, max: 4000, volatility: 0.06, img: "https://cryptologos.cc/logos/ethereum-classic-etc-logo.png?v=040" },
+  { id: "NEAR", name: "NEAR Protocol", symbol: "NEAR", price: 270, min: 20, max: 1200, volatility: 0.065, img: "https://cryptologos.cc/logos/near-protocol-near-logo.png?v=040" },
+  { id: "ICP", name: "Internet Computer", symbol: "ICP", price: 500, min: 40, max: 2500, volatility: 0.07, img: "https://cryptologos.cc/logos/internet-computer-icp-logo.png?v=040" }
 ];
 
+// =====================
+// STOCKS DATA (15)
+// =====================
 export const STOCK_ASSETS = [
-  {
-    id: "AAPL",
-    name: "Apple",
-    symbol: "AAPL",
-    price: 9500,
-    min: 3000,
-    max: 25000,
-    volatility: 0.02,
-    img: "https://logo.clearbit.com/apple.com"
-  },
-  {
-    id: "MSFT",
-    name: "Microsoft",
-    symbol: "MSFT",
-    price: 11000,
-    min: 4000,
-    max: 30000,
-    volatility: 0.02,
-    img: "https://logo.clearbit.com/microsoft.com"
-  },
-  {
-    id: "GOOGL",
-    name: "Google",
-    symbol: "GOOGL",
-    price: 10500,
-    min: 3500,
-    max: 28000,
-    volatility: 0.022,
-    img: "https://logo.clearbit.com/google.com"
-  },
-  {
-    id: "AMZN",
-    name: "Amazon",
-    symbol: "AMZN",
-    price: 9800,
-    min: 3000,
-    max: 26000,
-    volatility: 0.024,
-    img: "https://logo.clearbit.com/amazon.com"
-  },
-  {
-    id: "TSLA",
-    name: "Tesla",
-    symbol: "TSLA",
-    price: 15000,
-    min: 2000,
-    max: 50000,
-    volatility: 0.045,
-    img: "https://logo.clearbit.com/tesla.com"
-  },
-  {
-    id: "NVDA",
-    name: "NVIDIA",
-    symbol: "NVDA",
-    price: 18000,
-    min: 3000,
-    max: 60000,
-    volatility: 0.04,
-    img: "https://logo.clearbit.com/nvidia.com"
-  },
-  {
-    id: "META",
-    name: "Meta",
-    symbol: "META",
-    price: 8000,
-    min: 2500,
-    max: 25000,
-    volatility: 0.03,
-    img: "https://logo.clearbit.com/meta.com"
-  },
-  {
-    id: "INTC",
-    name: "Intel",
-    symbol: "INTC",
-    price: 3500,
-    min: 1000,
-    max: 12000,
-    volatility: 0.025,
-    img: "https://logo.clearbit.com/intel.com"
-  },
-  {
-    id: "AMD",
-    name: "AMD",
-    symbol: "AMD",
-    price: 5200,
-    min: 1500,
-    max: 18000,
-    volatility: 0.03,
-    img: "https://logo.clearbit.com/amd.com"
-  },
-  {
-    id: "NFLX",
-    name: "Netflix",
-    symbol: "NFLX",
-    price: 7000,
-    min: 2000,
-    max: 22000,
-    volatility: 0.03,
-    img: "https://logo.clearbit.com/netflix.com"
-  }
+  { id: "AAPL", name: "Apple", symbol: "AAPL", price: 9500, min: 3000, max: 25000, volatility: 0.02, img: "https://logo.clearbit.com/apple.com" },
+  { id: "MSFT", name: "Microsoft", symbol: "MSFT", price: 11000, min: 4000, max: 30000, volatility: 0.02, img: "https://logo.clearbit.com/microsoft.com" },
+  { id: "GOOGL", name: "Google", symbol: "GOOGL", price: 10500, min: 3500, max: 28000, volatility: 0.022, img: "https://logo.clearbit.com/google.com" },
+  { id: "AMZN", name: "Amazon", symbol: "AMZN", price: 9800, min: 3000, max: 26000, volatility: 0.024, img: "https://logo.clearbit.com/amazon.com" },
+  { id: "TSLA", name: "Tesla", symbol: "TSLA", price: 15000, min: 2000, max: 50000, volatility: 0.045, img: "https://logo.clearbit.com/tesla.com" },
+  { id: "NVDA", name: "NVIDIA", symbol: "NVDA", price: 18000, min: 3000, max: 60000, volatility: 0.04, img: "https://logo.clearbit.com/nvidia.com" },
+  { id: "META", name: "Meta", symbol: "META", price: 8000, min: 2500, max: 25000, volatility: 0.03, img: "https://logo.clearbit.com/meta.com" },
+  { id: "AMD", name: "AMD", symbol: "AMD", price: 5200, min: 1500, max: 18000, volatility: 0.03, img: "https://logo.clearbit.com/amd.com" },
+  { id: "NFLX", name: "Netflix", symbol: "NFLX", price: 7000, min: 2000, max: 22000, volatility: 0.03, img: "https://logo.clearbit.com/netflix.com" },
+  { id: "INTC", name: "Intel", symbol: "INTC", price: 3500, min: 1000, max: 12000, volatility: 0.025, img: "https://logo.clearbit.com/intel.com" },
+  { id: "UBER", name: "Uber", symbol: "UBER", price: 4200, min: 1200, max: 15000, volatility: 0.03, img: "https://logo.clearbit.com/uber.com" },
+  { id: "SHOP", name: "Shopify", symbol: "SHOP", price: 6100, min: 1500, max: 20000, volatility: 0.035, img: "https://logo.clearbit.com/shopify.com" },
+  { id: "ORCL", name: "Oracle", symbol: "ORCL", price: 5600, min: 1800, max: 17000, volatility: 0.022, img: "https://logo.clearbit.com/oracle.com" },
+  { id: "ADBE", name: "Adobe", symbol: "ADBE", price: 7600, min: 2200, max: 24000, volatility: 0.028, img: "https://logo.clearbit.com/adobe.com" },
+  { id: "PYPL", name: "PayPal", symbol: "PYPL", price: 4300, min: 900, max: 14000, volatility: 0.03, img: "https://logo.clearbit.com/paypal.com" }
 ];
 
 // =====================
@@ -233,27 +72,15 @@ function safeObject(v) {
   return v && typeof v === "object" && !Array.isArray(v) ? v : {};
 }
 
-function safeArray(v) {
-  return Array.isArray(v) ? v : [];
-}
-
-function ensureWallets() {
-  const p = getPlayer();
-  if (!p.crypto) p.crypto = {};
-  if (!p.stocks) p.stocks = {};
-}
-
 function formatMoney(n) {
   return Math.floor(Number(n || 0)).toLocaleString("en-US");
 }
 
 function formatCompact(n) {
   const value = Number(n || 0);
-
   if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + "B";
   if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
   if (value >= 1_000) return (value / 1_000).toFixed(1) + "K";
-
   return Math.floor(value).toString();
 }
 
@@ -267,6 +94,12 @@ function clamp(value, min, max) {
 
 function roundPrice(value) {
   return Math.max(1, Math.round(value));
+}
+
+function ensureWallets() {
+  const p = getPlayer();
+  if (!p.crypto || typeof p.crypto !== "object" || Array.isArray(p.crypto)) p.crypto = {};
+  if (!p.stocks || typeof p.stocks !== "object" || Array.isArray(p.stocks)) p.stocks = {};
 }
 
 function getAssetList(type) {
@@ -294,34 +127,31 @@ function setHolding(type, id, amount) {
 
   if (type === "crypto") {
     p.crypto[id] = amount;
-    return;
+  } else {
+    p.stocks[id] = amount;
   }
-
-  p.stocks[id] = amount;
 }
 
 function getPortfolioValue(type) {
   const assets = getAssetList(type);
-
   return assets.reduce((sum, asset) => {
     return sum + getHolding(type, asset.id) * Number(asset.price || 0);
   }, 0);
 }
 
 function getPositionCount(type) {
-  if (type === "crypto") {
-    return Object.keys(safeObject(getPlayer().crypto)).filter((key) => Number(getPlayer().crypto[key] || 0) > 0).length;
-  }
-
-  return Object.keys(safeObject(getPlayer().stocks)).filter((key) => Number(getPlayer().stocks[key] || 0) > 0).length;
+  const source = type === "crypto" ? safeObject(getPlayer().crypto) : safeObject(getPlayer().stocks);
+  return Object.keys(source).filter((key) => Number(source[key] || 0) > 0).length;
 }
 
 function getCurrentPage() {
   return document.body.dataset.currentPage || "profile";
 }
 
-function isPhone() {
-  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+function discountPrice(basePrice) {
+  const cls = getCurrentClassConfig();
+  const discount = Number(cls.marketDiscount || 0);
+  return Math.max(1, basePrice * (1 - discount));
 }
 
 // =====================
@@ -332,8 +162,17 @@ export function canUseCrypto() {
 }
 
 export function canUseStocks() {
-  const accountClass = getPlayer().class || "none";
-  return ["trader", "vip", "businessman", "manager", "creator"].includes(accountClass);
+  const cls = getPlayer().class || "none";
+  return [
+    "silver",
+    "gold",
+    "platinum",
+    "diamond",
+    "black",
+    "vip",
+    "legend",
+    "creator"
+  ].includes(cls);
 }
 
 // =====================
@@ -373,8 +212,8 @@ function updateMarketSentiment() {
 function tickAsset(asset) {
   const noise = randomBetween(-asset.volatility, asset.volatility);
   const wave = Math.sin(Date.now() / 20000) * (asset.volatility / 3);
-  let nextPrice = Number(asset.price || 0) * (1 + noise + wave);
 
+  let nextPrice = Number(asset.price || 0) * (1 + noise + wave);
   nextPrice *= MarketState.trend;
   nextPrice = clamp(nextPrice, asset.min, asset.max);
 
@@ -390,12 +229,8 @@ export function marketTick() {
   MarketState.lastUpdate = Date.now();
 
   const page = getCurrentPage();
-  if (page === "crypto") {
-    renderCryptoPage();
-  }
-  if (page === "stocks") {
-    renderStocksPage();
-  }
+  if (page === "crypto") renderCryptoPage();
+  if (page === "stocks") renderStocksPage();
 }
 
 // =====================
@@ -406,10 +241,9 @@ async function persistWallet(type) {
 
   if (type === "crypto") {
     await updatePlayer({ crypto: p.crypto });
-    return;
+  } else {
+    await updatePlayer({ stocks: p.stocks });
   }
-
-  await updatePlayer({ stocks: p.stocks });
 }
 
 export async function buyCrypto(id, amount) {
@@ -427,7 +261,7 @@ export async function buyCrypto(id, amount) {
     return false;
   }
 
-  const cost = qty * Number(asset.price || 0);
+  const cost = qty * discountPrice(Number(asset.price || 0));
 
   if (!removeBalance(cost)) {
     alert("Not enough balance");
@@ -472,7 +306,7 @@ export async function sellCrypto(id, amount) {
 
 export async function buyStock(id, amount) {
   if (!canUseStocks()) {
-    alert("Stocks unlock from trader class");
+    alert("Stocks unlock from Silver class and higher");
     return false;
   }
 
@@ -485,7 +319,7 @@ export async function buyStock(id, amount) {
     return false;
   }
 
-  const cost = qty * Number(asset.price || 0);
+  const cost = qty * discountPrice(Number(asset.price || 0));
 
   if (!removeBalance(cost)) {
     alert("Not enough balance");
@@ -531,37 +365,51 @@ export async function sellStock(id, amount) {
 // =====================
 // RENDER HELPERS
 // =====================
+function setPage(html) {
+  const root = document.getElementById("page-content");
+  if (!root) return;
+  root.innerHTML = html;
+  bindMarketUI();
+}
+
+function pageHeader(title, text) {
+  return `
+    <div class="card" style="grid-column:1 / -1;">
+      <h2>${title}</h2>
+      <p>${text}</p>
+    </div>
+  `;
+}
+
 function renderMarketSummary(type) {
-  const isCrypto = type === "crypto";
   const totalValue = getPortfolioValue(type);
   const positions = getPositionCount(type);
-  const sentiment = MarketState.sentiment;
-  const accountClass = getPlayer().class || "none";
+  const cls = getCurrentClassConfig();
 
   return `
     <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);">
-      <div class="card">
-        <h3>${isCrypto ? "Crypto Wallet" : "Stocks Wallet"}</h3>
-        <div class="stat-value ${isCrypto ? "blue" : "green"}">₴ ${formatCompact(totalValue)}</div>
-        <p class="muted">Current market value</p>
+      <div class="card stat-card">
+        <div class="stat-label">${type === "crypto" ? "Crypto Wallet" : "Stocks Wallet"}</div>
+        <div class="stat-value blue">₴ ${formatCompact(totalValue)}</div>
+        <div class="stat-sub">Live market value</div>
       </div>
 
-      <div class="card">
-        <h3>Positions</h3>
+      <div class="card stat-card">
+        <div class="stat-label">Positions</div>
         <div class="stat-value">${positions}</div>
-        <p class="muted">Active holdings</p>
+        <div class="stat-sub">Active holdings</div>
       </div>
 
-      <div class="card">
-        <h3>Sentiment</h3>
-        <div class="stat-value">${sentiment}</div>
-        <p class="muted">Live market mood</p>
+      <div class="card stat-card">
+        <div class="stat-label">Sentiment</div>
+        <div class="stat-value">${MarketState.sentiment}</div>
+        <div class="stat-sub">Market mood</div>
       </div>
 
-      <div class="card">
-        <h3>Account Access</h3>
-        <div class="stat-value">${isCrypto ? "Open" : accountClass}</div>
-        <p class="muted">${isCrypto ? "Crypto is available" : "Stocks require trader+"}</p>
+      <div class="card stat-card">
+        <div class="stat-label">Discount</div>
+        <div class="stat-value green">-${Math.floor((cls.marketDiscount || 0) * 100)}%</div>
+        <div class="stat-sub">${cls.name} class bonus</div>
       </div>
     </div>
   `;
@@ -570,6 +418,7 @@ function renderMarketSummary(type) {
 function renderAssetCard(type, asset) {
   const owned = getHolding(type, asset.id);
   const value = owned * Number(asset.price || 0);
+  const buyPrice = discountPrice(Number(asset.price || 0));
 
   return `
     <div class="card asset-card">
@@ -577,7 +426,9 @@ function renderAssetCard(type, asset) {
         <img
           src="${asset.img}"
           alt="${asset.name}"
-          onerror="this.src='https://via.placeholder.com/600x400?text=${asset.symbol}'"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          onerror="this.onerror=null;this.src='https://placehold.co/600x400/0b1220/ffffff?text=${asset.symbol}'"
         >
         <div class="asset-badge">${asset.symbol}</div>
       </div>
@@ -591,14 +442,14 @@ function renderAssetCard(type, asset) {
         <div class="asset-meta">
           <span>Owned: ${owned}</span>
           <span>Value: ₴ ${formatCompact(value)}</span>
-          <span>Trend: ${MarketState.sentiment}</span>
+          <span>Buy: ₴ ${formatCompact(buyPrice)}</span>
         </div>
 
         <div class="profile-actions">
           <input id="${type}-amount-${asset.id}" type="number" min="0.0001" step="0.0001" placeholder="Amount">
           <div class="asset-actions">
-            <button onclick="window.marketBuy('${type}','${asset.id}')">Buy</button>
-            <button class="secondary" onclick="window.marketSell('${type}','${asset.id}')">Sell</button>
+            <button data-market-buy="${type}:${asset.id}">Buy</button>
+            <button class="secondary" data-market-sell="${type}:${asset.id}">Sell</button>
           </div>
         </div>
       </div>
@@ -611,21 +462,6 @@ function getAmountInput(type, id) {
   return el ? Number(el.value) : 0;
 }
 
-function setPage(html) {
-  const root = document.getElementById("page-content");
-  if (!root) return;
-  root.innerHTML = html;
-}
-
-function pageHeader(title, text) {
-  return `
-    <div class="card" style="grid-column:1 / -1;">
-      <h2>${title}</h2>
-      <p>${text}</p>
-    </div>
-  `;
-}
-
 // =====================
 // RENDER PAGES
 // =====================
@@ -635,7 +471,7 @@ export function renderCryptoPage() {
   const cards = MarketState.crypto.map((asset) => renderAssetCard("crypto", asset)).join("");
 
   setPage(`
-    ${pageHeader("Crypto Portfolio", "Track your digital assets in a premium banking-style investment dashboard.")}
+    ${pageHeader("Crypto Portfolio", "Premium digital asset dashboard with live prices and full wallet overview.")}
     ${renderMarketSummary("crypto")}
     <div class="section-title">Assets</div>
     <div class="asset-grid">${cards}</div>
@@ -645,14 +481,12 @@ export function renderCryptoPage() {
 export function renderStocksPage() {
   document.body.dataset.currentPage = "stocks";
 
-  const access = canUseStocks();
-
-  if (!access) {
+  if (!canUseStocks()) {
     setPage(`
-      ${pageHeader("Stock Portfolio", "Unlock stock trading with trader class or higher.")}
+      ${pageHeader("Stock Portfolio", "Unlock stocks with Silver class or higher.")}
       <div class="card" style="grid-column:1 / -1;">
         <h3>Stocks Locked</h3>
-        <p>This section opens from <strong>trader</strong> class and above.</p>
+        <p>You need a stronger account class to access stock trading.</p>
       </div>
     `);
     return;
@@ -661,7 +495,7 @@ export function renderStocksPage() {
   const cards = MarketState.stocks.map((asset) => renderAssetCard("stocks", asset)).join("");
 
   setPage(`
-    ${pageHeader("Stock Portfolio", "A clean premium view for equity positions and market movements.")}
+    ${pageHeader("Stock Portfolio", "Modern premium equity dashboard with clean company cards and market access.")}
     ${renderMarketSummary("stocks")}
     <div class="section-title">Assets</div>
     <div class="asset-grid">${cards}</div>
@@ -669,33 +503,41 @@ export function renderStocksPage() {
 }
 
 // =====================
-// UI BRIDGE
+// BIND UI
 // =====================
-window.marketBuy = async function (type, id) {
-  const amount = getAmountInput(type, id);
+function bindMarketUI() {
+  document.querySelectorAll("[data-market-buy]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const raw = btn.getAttribute("data-market-buy");
+      const [type, id] = raw.split(":");
+      const amount = getAmountInput(type, id);
 
-  if (type === "crypto") {
-    const ok = await buyCrypto(id, amount);
-    if (ok) renderCryptoPage();
-    return;
-  }
+      if (type === "crypto") {
+        const ok = await buyCrypto(id, amount);
+        if (ok) renderCryptoPage();
+      } else {
+        const ok = await buyStock(id, amount);
+        if (ok) renderStocksPage();
+      }
+    });
+  });
 
-  const ok = await buyStock(id, amount);
-  if (ok) renderStocksPage();
-};
+  document.querySelectorAll("[data-market-sell]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const raw = btn.getAttribute("data-market-sell");
+      const [type, id] = raw.split(":");
+      const amount = getAmountInput(type, id);
 
-window.marketSell = async function (type, id) {
-  const amount = getAmountInput(type, id);
-
-  if (type === "crypto") {
-    const ok = await sellCrypto(id, amount);
-    if (ok) renderCryptoPage();
-    return;
-  }
-
-  const ok = await sellStock(id, amount);
-  if (ok) renderStocksPage();
-};
+      if (type === "crypto") {
+        const ok = await sellCrypto(id, amount);
+        if (ok) renderCryptoPage();
+      } else {
+        const ok = await sellStock(id, amount);
+        if (ok) renderStocksPage();
+      }
+    });
+  });
+}
 
 // =====================
 // LOOP
@@ -703,5 +545,5 @@ window.marketSell = async function (type, id) {
 export function startMarketLoop() {
   setInterval(() => {
     marketTick();
-  }, isPhone() ? 5000 : 4000);
+  }, 4500);
 }
