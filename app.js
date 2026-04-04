@@ -311,3 +311,20 @@ export async function initApp() {
 }
 
 initApp();
+function setupPhoneUX(){
+  const isPhone = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  document.body.classList.toggle("mobile-mode", isPhone);
+
+  if(isPhone){
+    document.querySelectorAll("button, .nav-btn").forEach(btn=>{
+      btn.addEventListener("touchstart", ()=>{
+        btn.style.opacity = "0.9";
+      }, { passive:true });
+
+      btn.addEventListener("touchend", ()=>{
+        btn.style.opacity = "1";
+      }, { passive:true });
+    });
+  }
+}
