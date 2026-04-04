@@ -31,6 +31,8 @@ import { renderCasinoPage } from "./casino.js";
 import { renderTransfersPage, renderCardSettingsPage } from "./transfers.js";
 import { renderAdminPage, isAdmin } from "./admin.js";
 import { passiveIncomeTick, renderBusinessPremiumPage } from "./economy.js";
+import { t } from "./i18n.js";
+import { renderHistoryPage } from "./history.js";
 
 export const AppState = {
   currentUser: null,
