@@ -1,12 +1,9 @@
-// =====================
-// IMPORTS
-// =====================
 import { AppState, updatePlayer } from "./app.js";
 import { removeBalance, addBalance } from "./player.js";
 import { apiAddHistory } from "./api.js";
 
 // =====================
-// CRYPTO DATA
+// MARKET DATA
 // =====================
 export const CRYPTO_ASSETS = [
   {
@@ -14,7 +11,7 @@ export const CRYPTO_ASSETS = [
     name: "Bitcoin",
     symbol: "BTC",
     price: 2500000,
-    min: 500000,
+    min: 600000,
     max: 5000000,
     volatility: 0.035,
     img: "https://cryptologos.cc/logos/bitcoin-btc-logo.png"
@@ -111,9 +108,6 @@ export const CRYPTO_ASSETS = [
   }
 ];
 
-// =====================
-// STOCK DATA
-// =====================
 export const STOCK_ASSETS = [
   {
     id: "AAPL",
@@ -223,61 +217,82 @@ export const STOCK_ASSETS = [
 export const MarketState = {
   trend: 1,
   sentiment: "neutral",
-  lastUpdate: Date.now(),
   crypto: structuredClone(CRYPTO_ASSETS),
-  stocks: structuredClone(STOCK_ASSETS)
+  stocks: structuredClone(STOCK_ASSETS),
+  lastUpdate: Date.now()
 };
 
 // =====================
 // HELPERS
 // =====================
-function getPlayer(){
-  return AppState.player;
+function getPlayer() {
+  return AppState.player || {};
 }
 
-function clamp(value, min, max){
-  return Math.max(min, Math.min(max, value));
+function safeObject(v) {
+  return v && typeof v === "object" && !Array.isArray(v) ? v : {};
 }
 
-function randomBetween(min, max){
+function safeArray(v) {
+  return Array.isArray(v) ? v : [];
+}
+
+function ensureWallets() {
+  const p = getPlayer();
+  if (!p.crypto) p.crypto = {};
+  if (!p.stocks) p.stocks = {};
+}
+
+function formatMoney(n) {
+  return Math.floor(Number(n || 0)).toLocaleString("en-US");
+}
+
+function formatCompact(n) {
+  const value = Number(n || 0);
+
+  if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + "B";
+  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
+  if (value >= 1_000) return (value / 1_000).toFixed(1) + "K";
+
+  return Math.floor(value).toString();
+}
+
+function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-function roundPrice(value){
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function roundPrice(value) {
   return Math.max(1, Math.round(value));
 }
 
-function ensureWallets(){
-  const p = getPlayer();
-
-  if(!p.crypto) p.crypto = {};
-  if(!p.stocks) p.stocks = {};
-}
-
-function getAssetList(type){
+function getAssetList(type) {
   return type === "crypto" ? MarketState.crypto : MarketState.stocks;
 }
 
-function getAsset(type, id){
-  return getAssetList(type).find(asset => asset.id === id);
+function getAsset(type, id) {
+  return getAssetList(type).find((asset) => asset.id === id);
 }
 
-function getHolding(type, id){
+function getHolding(type, id) {
   const p = getPlayer();
   ensureWallets();
 
-  if(type === "crypto"){
+  if (type === "crypto") {
     return Number(p.crypto[id] || 0);
   }
 
   return Number(p.stocks[id] || 0);
 }
 
-function setHolding(type, id, amount){
+function setHolding(type, id, amount) {
   const p = getPlayer();
   ensureWallets();
 
-  if(type === "crypto"){
+  if (type === "crypto") {
     p.crypto[id] = amount;
     return;
   }
@@ -285,52 +300,67 @@ function setHolding(type, id, amount){
   p.stocks[id] = amount;
 }
 
-function getPortfolioValue(type){
+function getPortfolioValue(type) {
   const assets = getAssetList(type);
 
   return assets.reduce((sum, asset) => {
-    return sum + getHolding(type, asset.id) * asset.price;
+    return sum + getHolding(type, asset.id) * Number(asset.price || 0);
   }, 0);
 }
 
-// =====================
-// CLASSES ACCESS
-// =====================
-export function canUseStocks(){
-  const p = getPlayer();
-  const rank = p.class || "none";
-  return ["trader", "vip", "businessman", "manager", "creator"].includes(rank);
+function getPositionCount(type) {
+  if (type === "crypto") {
+    return Object.keys(safeObject(getPlayer().crypto)).filter((key) => Number(getPlayer().crypto[key] || 0) > 0).length;
+  }
+
+  return Object.keys(safeObject(getPlayer().stocks)).filter((key) => Number(getPlayer().stocks[key] || 0) > 0).length;
 }
 
-export function canUseCrypto(){
+function getCurrentPage() {
+  return document.body.dataset.currentPage || "profile";
+}
+
+function isPhone() {
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+// =====================
+// ACCESS
+// =====================
+export function canUseCrypto() {
   return true;
 }
 
+export function canUseStocks() {
+  const accountClass = getPlayer().class || "none";
+  return ["trader", "vip", "businessman", "manager", "creator"].includes(accountClass);
+}
+
 // =====================
-// MARKET SENTIMENT
+// MARKET ENGINE
 // =====================
-export function updateMarketSentiment(){
+function updateMarketSentiment() {
   const roll = Math.random();
 
-  if(roll < 0.2){
+  if (roll < 0.18) {
     MarketState.sentiment = "panic";
     MarketState.trend = 0.94;
     return;
   }
 
-  if(roll < 0.4){
+  if (roll < 0.38) {
     MarketState.sentiment = "bearish";
     MarketState.trend = 0.98;
     return;
   }
 
-  if(roll < 0.6){
+  if (roll < 0.62) {
     MarketState.sentiment = "neutral";
     MarketState.trend = 1;
     return;
   }
 
-  if(roll < 0.82){
+  if (roll < 0.84) {
     MarketState.sentiment = "bullish";
     MarketState.trend = 1.03;
     return;
@@ -340,317 +370,338 @@ export function updateMarketSentiment(){
   MarketState.trend = 1.07;
 }
 
-// =====================
-// PRICE TICK
-// =====================
-function tickAsset(asset){
-  const microNoise = randomBetween(-asset.volatility, asset.volatility);
+function tickAsset(asset) {
+  const noise = randomBetween(-asset.volatility, asset.volatility);
   const wave = Math.sin(Date.now() / 20000) * (asset.volatility / 3);
-  const delta = 1 + microNoise + wave;
+  let nextPrice = Number(asset.price || 0) * (1 + noise + wave);
 
-  let nextPrice = asset.price * delta;
   nextPrice *= MarketState.trend;
   nextPrice = clamp(nextPrice, asset.min, asset.max);
 
   asset.price = roundPrice(nextPrice);
 }
 
-export function marketTick(){
+export function marketTick() {
   updateMarketSentiment();
 
   MarketState.crypto.forEach(tickAsset);
   MarketState.stocks.forEach(tickAsset);
 
   MarketState.lastUpdate = Date.now();
+
+  const page = getCurrentPage();
+  if (page === "crypto") {
+    renderCryptoPage();
+  }
+  if (page === "stocks") {
+    renderStocksPage();
+  }
 }
 
 // =====================
-// BUY / SELL CRYPTO
+// BUY / SELL
 // =====================
-export async function buyCrypto(id, amount){
+async function persistWallet(type) {
   const p = getPlayer();
-  ensureWallets();
 
-  if(!canUseCrypto()){
-    alert("Crypto unavailable");
+  if (type === "crypto") {
+    await updatePlayer({ crypto: p.crypto });
+    return;
+  }
+
+  await updatePlayer({ stocks: p.stocks });
+}
+
+export async function buyCrypto(id, amount) {
+  if (!canUseCrypto()) {
+    alert("Crypto is unavailable");
     return false;
   }
 
   const asset = getAsset("crypto", id);
-  if(!asset) return false;
+  if (!asset) return false;
 
   const qty = Number(amount);
-  if(!qty || qty <= 0){
+  if (!qty || qty <= 0) {
     alert("Invalid amount");
     return false;
   }
 
-  const cost = asset.price * qty;
+  const cost = qty * Number(asset.price || 0);
 
-  if(!removeBalance(cost)){
-    alert("Not enough UAH");
+  if (!removeBalance(cost)) {
+    alert("Not enough balance");
     return false;
   }
 
   const current = getHolding("crypto", id);
   setHolding("crypto", id, current + qty);
 
-  await updatePlayer({
-    crypto: p.crypto
-  });
+  await persistWallet("crypto");
+  await apiAddHistory(getPlayer().username, `Buy crypto ${id}`, -cost);
 
-  await apiAddHistory(p.username, `Buy crypto ${id}`, -cost);
   return true;
 }
 
-export async function sellCrypto(id, amount){
-  const p = getPlayer();
-  ensureWallets();
-
+export async function sellCrypto(id, amount) {
   const asset = getAsset("crypto", id);
-  if(!asset) return false;
+  if (!asset) return false;
 
   const qty = Number(amount);
-  if(!qty || qty <= 0){
+  if (!qty || qty <= 0) {
     alert("Invalid amount");
     return false;
   }
 
   const current = getHolding("crypto", id);
-
-  if(current < qty){
+  if (current < qty) {
     alert("Not enough crypto");
     return false;
   }
 
-  const income = asset.price * qty;
+  const income = qty * Number(asset.price || 0);
 
   setHolding("crypto", id, current - qty);
   addBalance(income);
 
-  await updatePlayer({
-    crypto: p.crypto
-  });
+  await persistWallet("crypto");
+  await apiAddHistory(getPlayer().username, `Sell crypto ${id}`, income);
 
-  await apiAddHistory(p.username, `Sell crypto ${id}`, income);
   return true;
 }
 
-// =====================
-// BUY / SELL STOCKS
-// =====================
-export async function buyStock(id, amount){
-  const p = getPlayer();
-  ensureWallets();
-
-  if(!canUseStocks()){
-    alert("Stocks available from trader class");
+export async function buyStock(id, amount) {
+  if (!canUseStocks()) {
+    alert("Stocks unlock from trader class");
     return false;
   }
 
   const asset = getAsset("stocks", id);
-  if(!asset) return false;
+  if (!asset) return false;
 
   const qty = Number(amount);
-  if(!qty || qty <= 0){
+  if (!qty || qty <= 0) {
     alert("Invalid amount");
     return false;
   }
 
-  const cost = asset.price * qty;
+  const cost = qty * Number(asset.price || 0);
 
-  if(!removeBalance(cost)){
-    alert("Not enough UAH");
+  if (!removeBalance(cost)) {
+    alert("Not enough balance");
     return false;
   }
 
   const current = getHolding("stocks", id);
   setHolding("stocks", id, current + qty);
 
-  await updatePlayer({
-    stocks: p.stocks
-  });
+  await persistWallet("stocks");
+  await apiAddHistory(getPlayer().username, `Buy stock ${id}`, -cost);
 
-  await apiAddHistory(p.username, `Buy stock ${id}`, -cost);
   return true;
 }
 
-export async function sellStock(id, amount){
-  const p = getPlayer();
-  ensureWallets();
-
+export async function sellStock(id, amount) {
   const asset = getAsset("stocks", id);
-  if(!asset) return false;
+  if (!asset) return false;
 
   const qty = Number(amount);
-  if(!qty || qty <= 0){
+  if (!qty || qty <= 0) {
     alert("Invalid amount");
     return false;
   }
 
   const current = getHolding("stocks", id);
-
-  if(current < qty){
+  if (current < qty) {
     alert("Not enough stocks");
     return false;
   }
 
-  const income = asset.price * qty;
+  const income = qty * Number(asset.price || 0);
 
   setHolding("stocks", id, current - qty);
   addBalance(income);
 
-  await updatePlayer({
-    stocks: p.stocks
-  });
+  await persistWallet("stocks");
+  await apiAddHistory(getPlayer().username, `Sell stock ${id}`, income);
 
-  await apiAddHistory(p.username, `Sell stock ${id}`, income);
   return true;
-}
-
-// =====================
-// SUMMARY HELPERS
-// =====================
-export function getCryptoSummary(){
-  return MarketState.crypto.map(asset => ({
-    ...asset,
-    owned: getHolding("crypto", asset.id),
-    value: getHolding("crypto", asset.id) * asset.price
-  }));
-}
-
-export function getStockSummary(){
-  return MarketState.stocks.map(asset => ({
-    ...asset,
-    owned: getHolding("stocks", asset.id),
-    value: getHolding("stocks", asset.id) * asset.price
-  }));
-}
-
-export function getMarketOverview(){
-  return {
-    sentiment: MarketState.sentiment,
-    trend: MarketState.trend,
-    cryptoValue: getPortfolioValue("crypto"),
-    stockValue: getPortfolioValue("stocks")
-  };
 }
 
 // =====================
 // RENDER HELPERS
 // =====================
-function renderAssetCard(type, asset){
-  const owned = getHolding(type, asset.id);
+function renderMarketSummary(type) {
+  const isCrypto = type === "crypto";
+  const totalValue = getPortfolioValue(type);
+  const positions = getPositionCount(type);
+  const sentiment = MarketState.sentiment;
+  const accountClass = getPlayer().class || "none";
 
   return `
-    <div class="card market-card">
-      <div class="market-top">
+    <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);">
+      <div class="card">
+        <h3>${isCrypto ? "Crypto Wallet" : "Stocks Wallet"}</h3>
+        <div class="stat-value ${isCrypto ? "blue" : "green"}">₴ ${formatCompact(totalValue)}</div>
+        <p class="muted">Current market value</p>
+      </div>
+
+      <div class="card">
+        <h3>Positions</h3>
+        <div class="stat-value">${positions}</div>
+        <p class="muted">Active holdings</p>
+      </div>
+
+      <div class="card">
+        <h3>Sentiment</h3>
+        <div class="stat-value">${sentiment}</div>
+        <p class="muted">Live market mood</p>
+      </div>
+
+      <div class="card">
+        <h3>Account Access</h3>
+        <div class="stat-value">${isCrypto ? "Open" : accountClass}</div>
+        <p class="muted">${isCrypto ? "Crypto is available" : "Stocks require trader+"}</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderAssetCard(type, asset) {
+  const owned = getHolding(type, asset.id);
+  const value = owned * Number(asset.price || 0);
+
+  return `
+    <div class="card asset-card">
+      <div class="asset-cover" style="height:160px;">
         <img
           src="${asset.img}"
           alt="${asset.name}"
-          width="42"
-          height="42"
-          onerror="this.src='https://via.placeholder.com/42?text=${asset.symbol}'"
+          onerror="this.src='https://via.placeholder.com/600x400?text=${asset.symbol}'"
         >
-        <div>
-          <h3>${asset.name}</h3>
-          <p>${asset.symbol}</p>
+        <div class="asset-badge">${asset.symbol}</div>
+      </div>
+
+      <div class="asset-info">
+        <div class="asset-head">
+          <div class="asset-name">${asset.name}</div>
+          <div class="asset-price">₴ ${formatCompact(asset.price)}</div>
+        </div>
+
+        <div class="asset-meta">
+          <span>Owned: ${owned}</span>
+          <span>Value: ₴ ${formatCompact(value)}</span>
+          <span>Trend: ${MarketState.sentiment}</span>
+        </div>
+
+        <div class="profile-actions">
+          <input id="${type}-amount-${asset.id}" type="number" min="0.0001" step="0.0001" placeholder="Amount">
+          <div class="asset-actions">
+            <button onclick="window.marketBuy('${type}','${asset.id}')">Buy</button>
+            <button class="secondary" onclick="window.marketSell('${type}','${asset.id}')">Sell</button>
+          </div>
         </div>
       </div>
-
-      <p>Price: ₴ ${Math.floor(asset.price)}</p>
-      <p>Owned: ${owned}</p>
-      <p>Value: ₴ ${Math.floor(owned * asset.price)}</p>
-
-      <div class="market-actions">
-        <input id="${type}-amount-${asset.id}" type="number" min="1" step="1" placeholder="Amount">
-        <button onclick="window.marketBuy('${type}','${asset.id}')">Buy</button>
-        <button onclick="window.marketSell('${type}','${asset.id}')">Sell</button>
-      </div>
     </div>
   `;
 }
 
-function getAmountFromInput(type, id){
+function getAmountInput(type, id) {
   const el = document.getElementById(`${type}-amount-${id}`);
-  if(!el) return 0;
-  return Number(el.value);
+  return el ? Number(el.value) : 0;
 }
 
-// =====================
-// PAGE RENDER
-// =====================
-export function renderCryptoPage(){
-  const overview = getMarketOverview();
+function setPage(html) {
+  const root = document.getElementById("page-content");
+  if (!root) return;
+  root.innerHTML = html;
+}
 
-  let html = `
-    <h2>Crypto Market</h2>
-    <div class="card">
-      <p>Sentiment: ${overview.sentiment}</p>
-      <p>Portfolio Value: ₴ ${Math.floor(overview.cryptoValue)}</p>
+function pageHeader(title, text) {
+  return `
+    <div class="card" style="grid-column:1 / -1;">
+      <h2>${title}</h2>
+      <p>${text}</p>
     </div>
   `;
-
-  MarketState.crypto.forEach(asset => {
-    html += renderAssetCard("crypto", asset);
-  });
-
-  document.getElementById("page-content").innerHTML = html;
-}
-
-export function renderStocksPage(){
-  const overview = getMarketOverview();
-
-  let html = `
-    <h2>Stock Market</h2>
-    <div class="card">
-      <p>Sentiment: ${overview.sentiment}</p>
-      <p>Portfolio Value: ₴ ${Math.floor(overview.stockValue)}</p>
-      <p>Access: ${canUseStocks() ? "Unlocked" : "Locked until trader class"}</p>
-    </div>
-  `;
-
-  MarketState.stocks.forEach(asset => {
-    html += renderAssetCard("stocks", asset);
-  });
-
-  document.getElementById("page-content").innerHTML = html;
 }
 
 // =====================
-// WINDOW BRIDGE
+// RENDER PAGES
 // =====================
-window.marketBuy = async function(type, id){
-  const amount = getAmountFromInput(type, id);
+export function renderCryptoPage() {
+  document.body.dataset.currentPage = "crypto";
 
-  if(type === "crypto"){
+  const cards = MarketState.crypto.map((asset) => renderAssetCard("crypto", asset)).join("");
+
+  setPage(`
+    ${pageHeader("Crypto Portfolio", "Track your digital assets in a premium banking-style investment dashboard.")}
+    ${renderMarketSummary("crypto")}
+    <div class="section-title">Assets</div>
+    <div class="asset-grid">${cards}</div>
+  `);
+}
+
+export function renderStocksPage() {
+  document.body.dataset.currentPage = "stocks";
+
+  const access = canUseStocks();
+
+  if (!access) {
+    setPage(`
+      ${pageHeader("Stock Portfolio", "Unlock stock trading with trader class or higher.")}
+      <div class="card" style="grid-column:1 / -1;">
+        <h3>Stocks Locked</h3>
+        <p>This section opens from <strong>trader</strong> class and above.</p>
+      </div>
+    `);
+    return;
+  }
+
+  const cards = MarketState.stocks.map((asset) => renderAssetCard("stocks", asset)).join("");
+
+  setPage(`
+    ${pageHeader("Stock Portfolio", "A clean premium view for equity positions and market movements.")}
+    ${renderMarketSummary("stocks")}
+    <div class="section-title">Assets</div>
+    <div class="asset-grid">${cards}</div>
+  `);
+}
+
+// =====================
+// UI BRIDGE
+// =====================
+window.marketBuy = async function (type, id) {
+  const amount = getAmountInput(type, id);
+
+  if (type === "crypto") {
     const ok = await buyCrypto(id, amount);
-    if(ok) renderCryptoPage();
+    if (ok) renderCryptoPage();
     return;
   }
 
   const ok = await buyStock(id, amount);
-  if(ok) renderStocksPage();
+  if (ok) renderStocksPage();
 };
 
-window.marketSell = async function(type, id){
-  const amount = getAmountFromInput(type, id);
+window.marketSell = async function (type, id) {
+  const amount = getAmountInput(type, id);
 
-  if(type === "crypto"){
+  if (type === "crypto") {
     const ok = await sellCrypto(id, amount);
-    if(ok) renderCryptoPage();
+    if (ok) renderCryptoPage();
     return;
   }
 
   const ok = await sellStock(id, amount);
-  if(ok) renderStocksPage();
+  if (ok) renderStocksPage();
 };
 
 // =====================
-// AUTO MARKET LOOP
+// LOOP
 // =====================
-export function startMarketLoop(){
+export function startMarketLoop() {
   setInterval(() => {
     marketTick();
-  }, 4000);
+  }, isPhone() ? 5000 : 4000);
 }
