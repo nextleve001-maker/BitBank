@@ -2,9 +2,10 @@ import { AppState, updatePlayer } from "./app.js";
 import { removeBalance, addBalance } from "./player.js";
 import { apiAddHistory } from "./api.js";
 import { getCurrentClassConfig } from "./economy.js";
+import { t, renderLanguageSwitcher, bindLanguageSwitcher } from "./i18n.js";
 
 // =====================
-// CRYPTO DATA (20)
+// CRYPTO DATA
 // =====================
 export const CRYPTO_ASSETS = [
   { id: "BTC", name: "Bitcoin", symbol: "BTC", price: 2500000, min: 600000, max: 5000000, volatility: 0.035, img: "https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=040" },
@@ -30,7 +31,7 @@ export const CRYPTO_ASSETS = [
 ];
 
 // =====================
-// STOCKS DATA (15)
+// STOCKS DATA
 // =====================
 export const STOCK_ASSETS = [
   { id: "AAPL", name: "Apple", symbol: "AAPL", price: 9500, min: 3000, max: 25000, volatility: 0.02, img: "https://logo.clearbit.com/apple.com" },
@@ -51,7 +52,7 @@ export const STOCK_ASSETS = [
 ];
 
 // =====================
-// MARKET STATE
+// STATE
 // =====================
 export const MarketState = {
   trend: 1,
@@ -70,10 +71,6 @@ function getPlayer() {
 
 function safeObject(v) {
   return v && typeof v === "object" && !Array.isArray(v) ? v : {};
-}
-
-function formatMoney(n) {
-  return Math.floor(Number(n || 0)).toLocaleString("en-US");
 }
 
 function formatCompact(n) {
@@ -114,10 +111,7 @@ function getHolding(type, id) {
   const p = getPlayer();
   ensureWallets();
 
-  if (type === "crypto") {
-    return Number(p.crypto[id] || 0);
-  }
-
+  if (type === "crypto") return Number(p.crypto[id] || 0);
   return Number(p.stocks[id] || 0);
 }
 
@@ -134,6 +128,7 @@ function setHolding(type, id, amount) {
 
 function getPortfolioValue(type) {
   const assets = getAssetList(type);
+
   return assets.reduce((sum, asset) => {
     return sum + getHolding(type, asset.id) * Number(asset.price || 0);
   }, 0);
@@ -152,6 +147,19 @@ function discountPrice(basePrice) {
   const cls = getCurrentClassConfig();
   const discount = Number(cls.marketDiscount || 0);
   return Math.max(1, basePrice * (1 - discount));
+}
+
+function setPage(html, rerenderFn = null) {
+  const root = document.getElementById("page-content");
+  if (!root) return;
+  root.innerHTML = html;
+  bindMarketUI();
+
+  if (rerenderFn) {
+    bindLanguageSwitcher(() => {
+      rerenderFn();
+    });
+  }
 }
 
 // =====================
@@ -176,7 +184,7 @@ export function canUseStocks() {
 }
 
 // =====================
-// MARKET ENGINE
+// ENGINE
 // =====================
 function updateMarketSentiment() {
   const roll = Math.random();
@@ -363,15 +371,8 @@ export async function sellStock(id, amount) {
 }
 
 // =====================
-// RENDER HELPERS
+// RENDER
 // =====================
-function setPage(html) {
-  const root = document.getElementById("page-content");
-  if (!root) return;
-  root.innerHTML = html;
-  bindMarketUI();
-}
-
 function pageHeader(title, text) {
   return `
     <div class="card" style="grid-column:1 / -1;">
@@ -389,7 +390,7 @@ function renderMarketSummary(type) {
   return `
     <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);">
       <div class="card stat-card">
-        <div class="stat-label">${type === "crypto" ? "Crypto Wallet" : "Stocks Wallet"}</div>
+        <div class="stat-label">${type === "crypto" ? `${t("crypto")} ${t("portfolio")}` : `${t("stocks")} ${t("portfolio")}`}</div>
         <div class="stat-value blue">₴ ${formatCompact(totalValue)}</div>
         <div class="stat-sub">Live market value</div>
       </div>
@@ -403,7 +404,7 @@ function renderMarketSummary(type) {
       <div class="card stat-card">
         <div class="stat-label">Sentiment</div>
         <div class="stat-value">${MarketState.sentiment}</div>
-        <div class="stat-sub">Market mood</div>
+        <div class="stat-sub">${t("market")} mood</div>
       </div>
 
       <div class="card stat-card">
@@ -440,16 +441,16 @@ function renderAssetCard(type, asset) {
         </div>
 
         <div class="asset-meta">
-          <span>Owned: ${owned}</span>
+          <span>${t("owned")}: ${owned}</span>
           <span>Value: ₴ ${formatCompact(value)}</span>
-          <span>Buy: ₴ ${formatCompact(buyPrice)}</span>
+          <span>${t("buy")}: ₴ ${formatCompact(buyPrice)}</span>
         </div>
 
         <div class="profile-actions">
           <input id="${type}-amount-${asset.id}" type="number" min="0.0001" step="0.0001" placeholder="Amount">
           <div class="asset-actions">
-            <button data-market-buy="${type}:${asset.id}">Buy</button>
-            <button class="secondary" data-market-sell="${type}:${asset.id}">Sell</button>
+            <button data-market-buy="${type}:${asset.id}">${t("buy")}</button>
+            <button class="secondary" data-market-sell="${type}:${asset.id}">${t("sell")}</button>
           </div>
         </div>
       </div>
@@ -462,20 +463,18 @@ function getAmountInput(type, id) {
   return el ? Number(el.value) : 0;
 }
 
-// =====================
-// RENDER PAGES
-// =====================
 export function renderCryptoPage() {
   document.body.dataset.currentPage = "crypto";
 
   const cards = MarketState.crypto.map((asset) => renderAssetCard("crypto", asset)).join("");
 
   setPage(`
-    ${pageHeader("Crypto Portfolio", "Premium digital asset dashboard with live prices and full wallet overview.")}
+    ${pageHeader(`${t("crypto")} ${t("portfolio")}`, "Premium digital asset dashboard with live prices and full wallet overview.")}
+    ${renderLanguageSwitcher()}
     ${renderMarketSummary("crypto")}
-    <div class="section-title">Assets</div>
+    <div class="section-title">${t("crypto")}</div>
     <div class="asset-grid">${cards}</div>
-  `);
+  `, renderCryptoPage);
 }
 
 export function renderStocksPage() {
@@ -483,27 +482,29 @@ export function renderStocksPage() {
 
   if (!canUseStocks()) {
     setPage(`
-      ${pageHeader("Stock Portfolio", "Unlock stocks with Silver class or higher.")}
+      ${pageHeader(`${t("stocks")} ${t("portfolio")}`, "Unlock stocks with Silver class or higher.")}
+      ${renderLanguageSwitcher()}
       <div class="card" style="grid-column:1 / -1;">
-        <h3>Stocks Locked</h3>
+        <h3>${t("stocks")} Locked</h3>
         <p>You need a stronger account class to access stock trading.</p>
       </div>
-    `);
+    `, renderStocksPage);
     return;
   }
 
   const cards = MarketState.stocks.map((asset) => renderAssetCard("stocks", asset)).join("");
 
   setPage(`
-    ${pageHeader("Stock Portfolio", "Modern premium equity dashboard with clean company cards and market access.")}
+    ${pageHeader(`${t("stocks")} ${t("portfolio")}`, "Modern premium equity dashboard with clean company cards and market access.")}
+    ${renderLanguageSwitcher()}
     ${renderMarketSummary("stocks")}
-    <div class="section-title">Assets</div>
+    <div class="section-title">${t("stocks")}</div>
     <div class="asset-grid">${cards}</div>
-  `);
+  `, renderStocksPage);
 }
 
 // =====================
-// BIND UI
+// BIND
 // =====================
 function bindMarketUI() {
   document.querySelectorAll("[data-market-buy]").forEach((btn) => {
