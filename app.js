@@ -31,7 +31,6 @@ import { renderCasinoPage } from "./casino.js";
 import { renderTransfersPage, renderCardSettingsPage } from "./transfers.js";
 import { renderAdminPage, isAdmin } from "./admin.js";
 import { passiveIncomeTick, renderBusinessPremiumPage } from "./economy.js";
-import { t } from "./i18n.js";
 import { renderHistoryPage } from "./history.js";
 
 export const AppState = {
@@ -222,18 +221,6 @@ function highlightActiveNav() {
 // =====================
 // PAGE HELPERS
 // =====================
-function renderHistoryPage() {
-  const root = document.getElementById("page-content");
-  if (!root) return;
-
-  root.innerHTML = `
-    <div class="card" style="grid-column:1 / -1;">
-      <h2>History</h2>
-      <p>This page is connected. You can move it later into a dedicated history.js module.</p>
-    </div>
-  `;
-}
-
 function renderRealtyPlaceholder() {
   const root = document.getElementById("page-content");
   if (!root) return;
@@ -266,6 +253,9 @@ function renderDefaultPage() {
   renderProfilePage();
 }
 
+// =====================
+// PAGE ROUTER
+// =====================
 export function renderPage(page) {
   AppState.currentPage = page || "profile";
   document.body.dataset.currentPage = AppState.currentPage;
@@ -324,8 +314,8 @@ export function renderPage(page) {
       break;
 
     case "history":
-    renderHistoryPage();
-    break;
+      renderHistoryPage();
+      break;
 
     case "stats":
       renderStatsPage();
@@ -426,9 +416,11 @@ async function softRefreshRuntimeData() {
   try {
     await loadAllPlayers();
     const freshGameState = await apiGetGameState();
+
     if (freshGameState) {
       AppState.gameState = freshGameState;
     }
+
     updateHeader();
   } catch (error) {
     console.error("softRefreshRuntimeData error:", error);
