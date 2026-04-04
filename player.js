@@ -1,225 +1,300 @@
-// =====================
-// IMPORTS
-// =====================
 import { AppState, updatePlayer } from "./app.js";
 import { apiAddHistory } from "./api.js";
 
 // =====================
-// GET PLAYER
+// HELPERS
 // =====================
-export function getPlayer(){
+function getPlayer() {
   return AppState.player;
+}
+
+function safeArray(v) {
+  return Array.isArray(v) ? v : [];
+}
+
+function safeObject(v) {
+  return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+}
+
+function numberValue(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 }
 
 // =====================
 // BALANCE
 // =====================
-export function addBalance(amount){
-
+export function addBalance(amount) {
   const p = getPlayer();
+  const value = numberValue(amount);
 
-  p.balance += amount;
-  p.total_earned += amount;
+  p.balance = numberValue(p.balance) + value;
+  p.total_earned = numberValue(p.total_earned) + value;
 
   updatePlayer({
-    balance:p.balance,
-    total_earned:p.total_earned
+    balance: p.balance,
+    total_earned: p.total_earned
   });
 
-  apiAddHistory(p.username, "Earn", amount);
+  apiAddHistory(p.username, "Earn", value);
 }
 
-export function removeBalance(amount){
-
+export function removeBalance(amount) {
   const p = getPlayer();
+  const value = numberValue(amount);
 
-  if(p.balance < amount){
+  if (numberValue(p.balance) < value) {
     return false;
   }
 
-  p.balance -= amount;
+  p.balance = numberValue(p.balance) - value;
 
   updatePlayer({
-    balance:p.balance
+    balance: p.balance
   });
 
-  apiAddHistory(p.username, "Spend", -amount);
-
+  apiAddHistory(p.username, "Spend", -value);
   return true;
 }
 
 // =====================
 // USD
 // =====================
-export function addUSD(amount){
-
+export function addUSD(amount) {
   const p = getPlayer();
+  const value = numberValue(amount);
 
-  p.usd += amount;
+  p.usd = numberValue(p.usd) + value;
 
   updatePlayer({
-    usd:p.usd
+    usd: p.usd
+  });
+
+  apiAddHistory(p.username, "USD earn", value);
+}
+
+export function removeUSD(amount) {
+  const p = getPlayer();
+  const value = numberValue(amount);
+
+  if (numberValue(p.usd) < value) {
+    return false;
+  }
+
+  p.usd = numberValue(p.usd) - value;
+
+  updatePlayer({
+    usd: p.usd
+  });
+
+  apiAddHistory(p.username, "USD spend", -value);
+  return true;
+}
+
+// =====================
+// CLICK INCOME
+// =====================
+export function getClickValue() {
+  const p = getPlayer();
+  const cls = p.class || p.status || "none";
+
+  if (cls === "basic") return 15;
+  if (cls === "medium") return 50;
+  if (cls === "vip") return 200;
+  if (cls === "creator") return 500;
+
+  return 5;
+}
+
+export function handleClick() {
+  const reward = getClickValue();
+  addBalance(reward);
+}
+
+// =====================
+// INVENTORY
+// =====================
+export function getInventory() {
+  const p = getPlayer();
+  return safeArray(p.inventory);
+}
+
+export function addItem(item) {
+  const p = getPlayer();
+  const inventory = safeArray(p.inventory);
+
+  inventory.push(item);
+  p.inventory = inventory;
+
+  updatePlayer({
+    inventory: p.inventory
   });
 }
 
-export function removeUSD(amount){
-
+export function removeItem(index) {
   const p = getPlayer();
+  const inventory = safeArray(p.inventory);
 
-  if(p.usd < amount) return false;
+  if (!inventory[index]) return false;
 
-  p.usd -= amount;
+  inventory.splice(index, 1);
+  p.inventory = inventory;
 
   updatePlayer({
-    usd:p.usd
+    inventory: p.inventory
   });
 
   return true;
 }
 
 // =====================
-// CLICK SYSTEM
-// =====================
-export function getClickValue(){
-
-  const p = getPlayer();
-
-  let base = 5;
-
-  if(p.status === "basic") base = 15;
-  if(p.status === "medium") base = 50;
-  if(p.status === "vip") base = 200;
-
-  return base;
-}
-
-export function handleClick(){
-
-  const reward = getClickValue();
-
-  addBalance(reward);
-}
-
-// =====================
-// PASSIVE INCOME
-// =====================
-export function calcPassiveIncome(){
-
-  const p = getPlayer();
-
-  let total = 0;
-
-  (p.businesses || []).forEach(id=>{
-    total += 10 * id; // приклад
-  });
-
-  return total;
-}
-
-export function passiveTick(){
-
-  const p = getPlayer();
-
-  const income = calcPassiveIncome() / 60;
-
-  p.balance += income;
-  p.total_earned += income;
-
-  updatePlayer({
-    balance:p.balance,
-    total_earned:p.total_earned
-  });
-}
-
-// =====================
-// INVENTORY
-// =====================
-export function addItem(item){
-
-  const p = getPlayer();
-
-  if(!p.inventory){
-    p.inventory = [];
-  }
-
-  p.inventory.push(item);
-
-  updatePlayer({
-    inventory:p.inventory
-  });
-}
-
-export function removeItem(index){
-
-  const p = getPlayer();
-
-  if(!p.inventory) return;
-
-  p.inventory.splice(index,1);
-
-  updatePlayer({
-    inventory:p.inventory
-  });
-}
-
-export function getInventory(){
-  return getPlayer().inventory || [];
-}
-
-// =====================
 // FRIENDS
 // =====================
-export function addFriend(id){
-
+export function getFriendsList() {
   const p = getPlayer();
+  return safeArray(p.friends);
+}
 
-  if(!p.friends){
-    p.friends = [];
-  }
+export function addFriend(id) {
+  const p = getPlayer();
+  const friends = safeArray(p.friends);
 
-  if(!p.friends.includes(id)){
-    p.friends.push(id);
+  if (!friends.includes(id)) {
+    friends.push(id);
+    p.friends = friends;
 
     updatePlayer({
-      friends:p.friends
+      friends: p.friends
     });
   }
 }
 
-// =====================
-// STATUS / CLASS
-// =====================
-export function setStatus(status){
-
+export function removeFriend(id) {
   const p = getPlayer();
+  const friends = safeArray(p.friends).filter((x) => x !== id);
 
-  p.status = status;
+  p.friends = friends;
 
   updatePlayer({
-    status
+    friends: p.friends
   });
 }
 
 // =====================
-// LAST SEEN
+// CLASS / STATUS
 // =====================
-export function updateLastSeen(){
-
+export function setClass(nextClass) {
   const p = getPlayer();
 
-  p.last_seen = new Date().toISOString();
+  p.class = nextClass;
 
   updatePlayer({
-    last_seen:p.last_seen
+    class: nextClass
+  });
+
+  apiAddHistory(p.username, `Class set: ${nextClass}`, 0);
+}
+
+// =====================
+// CRYPTO / STOCK HELPERS
+// =====================
+export function getCryptoWallet() {
+  const p = getPlayer();
+  return safeObject(p.crypto);
+}
+
+export function getStocksWallet() {
+  const p = getPlayer();
+  return safeObject(p.stocks);
+}
+
+export function setCryptoWallet(wallet) {
+  const p = getPlayer();
+
+  p.crypto = safeObject(wallet);
+
+  updatePlayer({
+    crypto: p.crypto
+  });
+}
+
+export function setStocksWallet(wallet) {
+  const p = getPlayer();
+
+  p.stocks = safeObject(wallet);
+
+  updatePlayer({
+    stocks: p.stocks
   });
 }
 
 // =====================
-// FULL SAVE
+// CARD HELPERS
 // =====================
-export function saveFullPlayer(){
-
+export function setCardName(cardName) {
   const p = getPlayer();
 
-  updatePlayer(p);
+  p.card_name = cardName;
+
+  updatePlayer({
+    card_name: cardName
+  });
+}
+
+export function setCardColor(cardColor) {
+  const p = getPlayer();
+
+  p.card_color = cardColor;
+
+  updatePlayer({
+    card_color: cardColor
+  });
+}
+
+export function setCardCVV(cardCVV) {
+  const p = getPlayer();
+
+  p.card_cvv = cardCVV;
+
+  updatePlayer({
+    card_cvv: cardCVV
+  });
+}
+
+// =====================
+// SAVE FULL PLAYER
+// =====================
+export function saveFullPlayer() {
+  const p = getPlayer();
+
+  updatePlayer({
+    username: p.username,
+    password: p.password,
+    class: p.class,
+    balance: p.balance,
+    usd: p.usd,
+    total_earned: p.total_earned,
+    card_name: p.card_name,
+    card_color: p.card_color,
+    card_cvv: p.card_cvv,
+    card_number: p.card_number,
+    card_expiry: p.card_expiry,
+    device: p.device,
+    banned: p.banned,
+    last_seen: p.last_seen,
+    crypto: p.crypto,
+    stocks: p.stocks,
+    businesses: p.businesses,
+    business_levels: p.business_levels,
+    realty: p.realty,
+    cars: p.cars,
+    inventory: p.inventory,
+    titles: p.titles,
+    friends: p.friends,
+    achievements: p.achievements,
+    completed_quests: p.completed_quests,
+    bank: p.bank,
+    loan: p.loan,
+    insurance: p.insurance
+  });
 }
