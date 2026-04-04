@@ -1,63 +1,77 @@
-// =====================
-// IMPORTS
-// =====================
 import { AppState, updatePlayer } from "./app.js";
 import { apiAddHistory, apiLogCasino } from "./api.js";
 
 // =====================
-// LOCAL STATE
+// STATE
 // =====================
 export const CasinoState = {
   lastResult: null,
-  currentGame: "coinflip",
-  spinning: false,
-  logs: []
+  currentGame: "coinflip"
 };
 
 // =====================
 // HELPERS
 // =====================
-function getPlayer(){
-  return AppState.player;
+function getPlayer() {
+  return AppState.player || {};
 }
 
-function setPage(html){
+function setPage(html) {
   const root = document.getElementById("page-content");
-  if(root) root.innerHTML = html;
+  if (!root) return;
+  root.innerHTML = html;
+  bindCasinoUI();
 }
 
-function randInt(min, max){
+function normalizeBet(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.floor(n);
+}
+
+function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function randChoice(arr){
+function randChoice(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function nowISO(){
+function nowISO() {
   return new Date().toISOString();
 }
 
-function normalizeBet(bet){
-  const value = Number(bet);
-  if(!Number.isFinite(value)) return 0;
-  return Math.floor(value);
+function formatMoney(n) {
+  return Math.floor(Number(n || 0)).toLocaleString("en-US");
 }
 
-function canBet(amount){
-  const p = getPlayer();
-  return amount > 0 && Number(p.balance) >= amount;
+function formatCompact(n) {
+  const value = Number(n || 0);
+
+  if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + "B";
+  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
+  if (value >= 1_000) return (value / 1_000).toFixed(1) + "K";
+
+  return Math.floor(value).toString();
 }
 
-async function spendBet(amount){
-  const p = getPlayer();
+function getBetInput() {
+  const input = document.getElementById("casino-bet");
+  return normalizeBet(input ? input.value : 0);
+}
 
-  if(!canBet(amount)){
-    alert("Not enough money");
+function canBet(amount) {
+  return amount > 0 && Number(getPlayer().balance || 0) >= amount;
+}
+
+async function spendBet(amount) {
+  if (!canBet(amount)) {
+    alert("Not enough balance");
     return false;
   }
 
-  p.balance -= amount;
+  const p = getPlayer();
+  p.balance = Number(p.balance || 0) - amount;
 
   await updatePlayer({
     balance: p.balance
@@ -66,11 +80,11 @@ async function spendBet(amount){
   return true;
 }
 
-async function rewardWin(amount){
+async function rewardWin(amount) {
   const p = getPlayer();
 
-  p.balance += amount;
-  p.total_earned += amount;
+  p.balance = Number(p.balance || 0) + amount;
+  p.total_earned = Number(p.total_earned || 0) + amount;
 
   await updatePlayer({
     balance: p.balance,
@@ -78,53 +92,118 @@ async function rewardWin(amount){
   });
 }
 
-async function saveCasinoLog(game, bet, result){
+async function saveCasinoLog(game, bet, result) {
   const username = getPlayer().username;
 
   await apiLogCasino(username, game, bet, result);
   await apiAddHistory(username, `Casino: ${game}`, result >= 0 ? result : -bet);
 }
 
-function resultCardHTML(title, text, extra = ""){
+function resultBlock() {
+  const r = CasinoState.lastResult;
+
+  if (!r) {
+    return `
+      <div class="card casino-result">
+        <h3>Latest Result</h3>
+        <p>No game played yet.</p>
+      </div>
+    `;
+  }
+
+  if (r.game === "coinflip") {
+    return `
+      <div class="card casino-result">
+        <h3>Coinflip</h3>
+        <p>Choice: ${r.choice}</p>
+        <p>Result: ${r.side}</p>
+        <p>Status: ${r.win ? "WIN" : "LOSE"}</p>
+        <p>Profit: ₴ ${formatMoney(r.profit)}</p>
+      </div>
+    `;
+  }
+
+  if (r.game === "dice") {
+    return `
+      <div class="card casino-result">
+        <h3>Dice</h3>
+        <p>Target: ${r.target}</p>
+        <p>Rolled: ${r.rolled}</p>
+        <p>Status: ${r.win ? "WIN" : "LOSE"}</p>
+        <p>Profit: ₴ ${formatMoney(r.profit)}</p>
+      </div>
+    `;
+  }
+
+  if (r.game === "slots") {
+    return `
+      <div class="card casino-result">
+        <h3>Slots</h3>
+        <p>${r.reels.join(" | ")}</p>
+        <p>Multiplier: x${r.multiplier}</p>
+        <p>Status: ${r.win ? "WIN" : "LOSE"}</p>
+        <p>Profit: ₴ ${formatMoney(r.profit)}</p>
+      </div>
+    `;
+  }
+
+  if (r.game === "roulette") {
+    return `
+      <div class="card casino-result">
+        <h3>Roulette</h3>
+        <p>Rolled: ${r.rolled} (${r.color})</p>
+        <p>Bet: ${r.betType} / ${r.betValue}</p>
+        <p>Status: ${r.win ? "WIN" : "LOSE"}</p>
+        <p>Profit: ₴ ${formatMoney(r.profit)}</p>
+      </div>
+    `;
+  }
+
+  if (r.game === "higher-lower") {
+    return `
+      <div class="card casino-result">
+        <h3>Higher / Lower</h3>
+        <p>Current: ${r.current}</p>
+        <p>Next: ${r.next}</p>
+        <p>Prediction: ${r.prediction}</p>
+        <p>Status: ${r.win ? "WIN" : "LOSE"}</p>
+        <p>Profit: ₴ ${formatMoney(r.profit)}</p>
+      </div>
+    `;
+  }
+
   return `
     <div class="card casino-result">
-      <h3>${title}</h3>
-      <p>${text}</p>
-      ${extra}
+      <h3>Latest Result</h3>
+      <p>Game: ${r.game}</p>
     </div>
   `;
 }
 
-function getBetFromInput(){
-  const input = document.getElementById("casino-bet");
-  return normalizeBet(input ? input.value : 0);
-}
-
-function setCurrentGame(game){
-  CasinoState.currentGame = game;
-}
-
-function getCurrentGame(){
-  return CasinoState.currentGame;
+function sectionCard(title, subtitle, body) {
+  return `
+    <div class="card">
+      <h3>${title}</h3>
+      ${subtitle ? `<p class="muted" style="margin-bottom:12px;">${subtitle}</p>` : ""}
+      ${body}
+    </div>
+  `;
 }
 
 // =====================
-// COINFLIP
+// GAMES
 // =====================
-export async function playCoinflip(choice, bet){
-
+export async function playCoinflip(choice, bet) {
   const amount = normalizeBet(bet);
 
-  if(!(await spendBet(amount))){
-    return null;
-  }
+  if (!(await spendBet(amount))) return null;
 
   const side = randChoice(["heads", "tails"]);
   const win = side === choice;
 
   let profit = -amount;
 
-  if(win){
+  if (win) {
     const reward = amount * 2;
     await rewardWin(reward);
     profit = amount;
@@ -141,20 +220,13 @@ export async function playCoinflip(choice, bet){
   };
 
   await saveCasinoLog("coinflip", amount, profit);
-
   return CasinoState.lastResult;
 }
 
-// =====================
-// DICE
-// =====================
-export async function playDice(target, bet){
-
+export async function playDice(target, bet) {
   const amount = normalizeBet(bet);
 
-  if(!(await spendBet(amount))){
-    return null;
-  }
+  if (!(await spendBet(amount))) return null;
 
   const rolled = randInt(1, 6);
   const targetNumber = normalizeBet(target);
@@ -162,17 +234,17 @@ export async function playDice(target, bet){
   let multiplier = 0;
   let win = false;
 
-  if(targetNumber >= 1 && targetNumber <= 6 && rolled === targetNumber){
+  if (targetNumber >= 1 && targetNumber <= 6 && rolled === targetNumber) {
     multiplier = 5;
     win = true;
-  } else if(rolled >= 4){
+  } else if (rolled >= 4) {
     multiplier = 2;
     win = true;
   }
 
   let profit = -amount;
 
-  if(win){
+  if (win) {
     const reward = amount * multiplier;
     await rewardWin(reward);
     profit = reward - amount;
@@ -189,16 +261,12 @@ export async function playDice(target, bet){
   };
 
   await saveCasinoLog("dice", amount, profit);
-
   return CasinoState.lastResult;
 }
 
-// =====================
-// SLOTS
-// =====================
 const SLOT_SYMBOLS = ["🍒", "🍋", "💎", "7️⃣", "⭐", "🍀"];
 
-function spinSlots(){
+function spinSlots() {
   return [
     randChoice(SLOT_SYMBOLS),
     randChoice(SLOT_SYMBOLS),
@@ -206,30 +274,27 @@ function spinSlots(){
   ];
 }
 
-function getSlotsMultiplier(reels){
+function getSlotsMultiplier(reels) {
   const [a, b, c] = reels;
 
-  if(a === b && b === c){
-    if(a === "7️⃣") return 10;
-    if(a === "💎") return 8;
-    if(a === "⭐") return 6;
+  if (a === b && b === c) {
+    if (a === "7️⃣") return 10;
+    if (a === "💎") return 8;
+    if (a === "⭐") return 6;
     return 5;
   }
 
-  if(a === b || b === c || a === c){
+  if (a === b || b === c || a === c) {
     return 2;
   }
 
   return 0;
 }
 
-export async function playSlots(bet){
-
+export async function playSlots(bet) {
   const amount = normalizeBet(bet);
 
-  if(!(await spendBet(amount))){
-    return null;
-  }
+  if (!(await spendBet(amount))) return null;
 
   const reels = spinSlots();
   const multiplier = getSlotsMultiplier(reels);
@@ -237,7 +302,7 @@ export async function playSlots(bet){
 
   let profit = -amount;
 
-  if(win){
+  if (win) {
     const reward = amount * multiplier;
     await rewardWin(reward);
     profit = reward - amount;
@@ -254,13 +319,9 @@ export async function playSlots(bet){
   };
 
   await saveCasinoLog("slots", amount, profit);
-
   return CasinoState.lastResult;
 }
 
-// =====================
-// ROULETTE
-// =====================
 const ROULETTE_COLORS = {
   0: "green",
   1: "red",
@@ -301,13 +362,10 @@ const ROULETTE_COLORS = {
   36: "red"
 };
 
-export async function playRoulette(betType, betValue, bet){
-
+export async function playRoulette(betType, betValue, bet) {
   const amount = normalizeBet(bet);
 
-  if(!(await spendBet(amount))){
-    return null;
-  }
+  if (!(await spendBet(amount))) return null;
 
   const rolled = randInt(0, 36);
   const color = ROULETTE_COLORS[rolled];
@@ -315,26 +373,22 @@ export async function playRoulette(betType, betValue, bet){
   let multiplier = 0;
   let win = false;
 
-  if(betType === "number"){
-    if(Number(betValue) === rolled){
-      multiplier = 35;
-      win = true;
-    }
+  if (betType === "number" && Number(betValue) === rolled) {
+    multiplier = 35;
+    win = true;
   }
 
-  if(betType === "color"){
-    if(String(betValue).toLowerCase() === String(color).toLowerCase()){
-      multiplier = color === "green" ? 15 : 2;
-      win = true;
-    }
+  if (betType === "color" && String(betValue).toLowerCase() === String(color).toLowerCase()) {
+    multiplier = color === "green" ? 15 : 2;
+    win = true;
   }
 
-  if(betType === "parity" && rolled !== 0){
-    if(String(betValue) === "even" && rolled % 2 === 0){
+  if (betType === "parity" && rolled !== 0) {
+    if (String(betValue) === "even" && rolled % 2 === 0) {
       multiplier = 2;
       win = true;
     }
-    if(String(betValue) === "odd" && rolled % 2 !== 0){
+    if (String(betValue) === "odd" && rolled % 2 !== 0) {
       multiplier = 2;
       win = true;
     }
@@ -342,7 +396,7 @@ export async function playRoulette(betType, betValue, bet){
 
   let profit = -amount;
 
-  if(win){
+  if (win) {
     const reward = amount * multiplier;
     await rewardWin(reward);
     profit = reward - amount;
@@ -361,41 +415,28 @@ export async function playRoulette(betType, betValue, bet){
   };
 
   await saveCasinoLog("roulette", amount, profit);
-
   return CasinoState.lastResult;
 }
 
-// =====================
-// HIGHER / LOWER
-// =====================
-export async function playHigherLower(prediction, bet){
-
+export async function playHigherLower(prediction, bet) {
   const amount = normalizeBet(bet);
 
-  if(!(await spendBet(amount))){
-    return null;
-  }
+  if (!(await spendBet(amount))) return null;
 
   const current = randInt(1, 13);
   const next = randInt(1, 13);
 
   let win = false;
 
-  if(prediction === "higher" && next > current) win = true;
-  if(prediction === "lower" && next < current) win = true;
-  if(prediction === "same" && next === current) win = true;
+  if (prediction === "higher" && next > current) win = true;
+  if (prediction === "lower" && next < current) win = true;
+  if (prediction === "same" && next === current) win = true;
 
-  let multiplier = 0;
-
-  if(prediction === "same"){
-    multiplier = 5;
-  } else {
-    multiplier = 2;
-  }
+  const multiplier = prediction === "same" ? 5 : 2;
 
   let profit = -amount;
 
-  if(win){
+  if (win) {
     const reward = amount * multiplier;
     await rewardWin(reward);
     profit = reward - amount;
@@ -413,167 +454,205 @@ export async function playHigherLower(prediction, bet){
   };
 
   await saveCasinoLog("higher-lower", amount, profit);
-
   return CasinoState.lastResult;
 }
 
 // =====================
-// RENDER RESULT
+// RENDER
 // =====================
-export function renderCasinoResult(){
+export function renderCasinoPage() {
+  document.body.dataset.currentPage = "casino";
 
-  const r = CasinoState.lastResult;
+  const p = getPlayer();
 
-  if(!r){
-    return resultCardHTML("Casino", "No games played yet");
-  }
+  setPage(`
+    <div class="card" style="grid-column:1 / -1;">
+      <h2>Casino Lounge</h2>
+      <p>Premium gaming floor with fast finance-style betting flows and live balance risk.</p>
+    </div>
 
-  if(r.game === "coinflip"){
-    return resultCardHTML(
-      "Coinflip",
-      `Choice: ${r.choice} | Result: ${r.side} | ${r.win ? "WIN" : "LOSE"}`,
-      `<p>Bet: ₴ ${r.bet}</p><p>Profit: ₴ ${r.profit}</p>`
-    );
-  }
+    <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);">
+      <div class="card stat-card">
+        <div class="stat-label">Balance</div>
+        <div class="stat-value green">₴ ${formatCompact(p.balance)}</div>
+        <div class="stat-sub">Available to wager</div>
+      </div>
 
-  if(r.game === "dice"){
-    return resultCardHTML(
-      "Dice",
-      `Target: ${r.target} | Rolled: ${r.rolled} | ${r.win ? "WIN" : "LOSE"}`,
-      `<p>Bet: ₴ ${r.bet}</p><p>Profit: ₴ ${r.profit}</p>`
-    );
-  }
+      <div class="card stat-card">
+        <div class="stat-label">Bet Control</div>
+        <div class="stat-value">LIVE</div>
+        <div class="stat-sub">Unified amount input</div>
+      </div>
 
-  if(r.game === "slots"){
-    return resultCardHTML(
-      "Slots",
-      `${r.reels.join(" | ")} | ${r.win ? "WIN" : "LOSE"}`,
-      `<p>Multiplier: x${r.multiplier}</p><p>Profit: ₴ ${r.profit}</p>`
-    );
-  }
+      <div class="card stat-card">
+        <div class="stat-label">Risk Level</div>
+        <div class="stat-value orange">HIGH</div>
+        <div class="stat-sub">Chance-based outcomes</div>
+      </div>
 
-  if(r.game === "roulette"){
-    return resultCardHTML(
-      "Roulette",
-      `Rolled: ${r.rolled} (${r.color}) | ${r.win ? "WIN" : "LOSE"}`,
-      `<p>Bet Type: ${r.betType}</p><p>Bet Value: ${r.betValue}</p><p>Profit: ₴ ${r.profit}</p>`
-    );
-  }
+      <div class="card stat-card">
+        <div class="stat-label">Mode</div>
+        <div class="stat-value blue">VIP</div>
+        <div class="stat-sub">Premium casino room</div>
+      </div>
+    </div>
 
-  if(r.game === "higher-lower"){
-    return resultCardHTML(
-      "Higher / Lower",
-      `Current: ${r.current} | Next: ${r.next} | ${r.win ? "WIN" : "LOSE"}`,
-      `<p>Prediction: ${r.prediction}</p><p>Profit: ₴ ${r.profit}</p>`
-    );
-  }
-
-  return resultCardHTML("Casino", "Unknown result");
-}
-
-// =====================
-// RENDER PAGE
-// =====================
-export function renderCasinoPage(){
-
-  let html = `
-    <h2>Casino</h2>
-
-    <div class="card">
+    <div class="card" style="grid-column:1 / -1;">
       <h3>Universal Bet</h3>
-      <input id="casino-bet" type="number" min="1" step="1" placeholder="Bet amount">
-    </div>
-
-    <div class="card">
-      <h3>Coinflip</h3>
-      <button onclick="window.playCoinflipUI('heads')">Heads</button>
-      <button onclick="window.playCoinflipUI('tails')">Tails</button>
-    </div>
-
-    <div class="card">
-      <h3>Dice</h3>
-      <input id="dice-target" type="number" min="1" max="6" step="1" placeholder="Target 1-6">
-      <button onclick="window.playDiceUI()">Roll Dice</button>
-    </div>
-
-    <div class="card">
-      <h3>Slots</h3>
-      <button onclick="window.playSlotsUI()">Spin</button>
-    </div>
-
-    <div class="card">
-      <h3>Roulette</h3>
-      <div class="casino-roulette-row">
-        <button onclick="window.playRouletteColorUI('red')">Red</button>
-        <button onclick="window.playRouletteColorUI('black')">Black</button>
-        <button onclick="window.playRouletteColorUI('green')">Green</button>
+      <div class="profile-actions" style="max-width:360px;">
+        <input id="casino-bet" type="number" min="1" step="1" placeholder="Bet amount">
       </div>
-      <div class="casino-roulette-row">
-        <button onclick="window.playRouletteParityUI('even')">Even</button>
-        <button onclick="window.playRouletteParityUI('odd')">Odd</button>
-      </div>
-      <input id="roulette-number" type="number" min="0" max="36" step="1" placeholder="Number 0-36">
-      <button onclick="window.playRouletteNumberUI()">Bet Number</button>
     </div>
 
-    <div class="card">
-      <h3>Higher / Lower</h3>
-      <button onclick="window.playHigherLowerUI('higher')">Higher</button>
-      <button onclick="window.playHigherLowerUI('lower')">Lower</button>
-      <button onclick="window.playHigherLowerUI('same')">Same</button>
+    <div class="asset-grid">
+      ${sectionCard(
+        "Coinflip",
+        "Classic 50/50 direction play",
+        `
+          <div class="asset-actions">
+            <button id="coinflip-heads-btn">Heads</button>
+            <button class="secondary" id="coinflip-tails-btn">Tails</button>
+          </div>
+        `
+      )}
+
+      ${sectionCard(
+        "Dice",
+        "Predict one number or win on high roll",
+        `
+          <div class="profile-actions">
+            <input id="dice-target" type="number" min="1" max="6" placeholder="Target 1-6">
+            <button id="dice-play-btn">Roll Dice</button>
+          </div>
+        `
+      )}
+
+      ${sectionCard(
+        "Slots",
+        "Premium reel machine with multiplier payouts",
+        `
+          <div class="profile-actions">
+            <button id="slots-play-btn">Spin Slots</button>
+          </div>
+        `
+      )}
+
+      ${sectionCard(
+        "Roulette",
+        "Color / parity / number betting",
+        `
+          <div class="profile-actions">
+            <div class="asset-actions">
+              <button id="roulette-red-btn">Red</button>
+              <button class="secondary" id="roulette-black-btn">Black</button>
+            </div>
+            <div class="asset-actions">
+              <button id="roulette-even-btn">Even</button>
+              <button class="secondary" id="roulette-odd-btn">Odd</button>
+            </div>
+            <input id="roulette-number" type="number" min="0" max="36" placeholder="Specific number">
+            <button id="roulette-number-btn">Bet Number</button>
+          </div>
+        `
+      )}
+
+      ${sectionCard(
+        "Higher / Lower",
+        "Predict next card direction",
+        `
+          <div class="asset-actions">
+            <button id="hl-higher-btn">Higher</button>
+            <button class="secondary" id="hl-lower-btn">Lower</button>
+          </div>
+          <div class="profile-actions" style="margin-top:10px;">
+            <button class="secondary" id="hl-same-btn">Same</button>
+          </div>
+        `
+      )}
+
+      ${resultBlock()}
     </div>
-
-    ${renderCasinoResult()}
-  `;
-
-  setPage(html);
+  `);
 }
 
 // =====================
-// WINDOW UI BRIDGE
+// BIND
 // =====================
-window.playCoinflipUI = async function(choice){
-  const bet = getBetFromInput();
-  const result = await playCoinflip(choice, bet);
-  if(result) renderCasinoPage();
-};
+function bindCasinoUI() {
+  const bind = (id, handler) => {
+    const el = document.getElementById(id);
+    if (!el) return;
 
-window.playDiceUI = async function(){
-  const bet = getBetFromInput();
-  const targetInput = document.getElementById("dice-target");
-  const target = targetInput ? targetInput.value : 0;
-  const result = await playDice(target, bet);
-  if(result) renderCasinoPage();
-};
+    el.addEventListener("click", handler);
+    el.addEventListener(
+      "touchend",
+      (e) => {
+        e.preventDefault();
+        handler();
+      },
+      { passive: false }
+    );
+  };
 
-window.playSlotsUI = async function(){
-  const bet = getBetFromInput();
-  const result = await playSlots(bet);
-  if(result) renderCasinoPage();
-};
+  bind("coinflip-heads-btn", async () => {
+    const result = await playCoinflip("heads", getBetInput());
+    if (result) renderCasinoPage();
+  });
 
-window.playRouletteColorUI = async function(color){
-  const bet = getBetFromInput();
-  const result = await playRoulette("color", color, bet);
-  if(result) renderCasinoPage();
-};
+  bind("coinflip-tails-btn", async () => {
+    const result = await playCoinflip("tails", getBetInput());
+    if (result) renderCasinoPage();
+  });
 
-window.playRouletteParityUI = async function(parity){
-  const bet = getBetFromInput();
-  const result = await playRoulette("parity", parity, bet);
-  if(result) renderCasinoPage();
-};
+  bind("dice-play-btn", async () => {
+    const target = document.getElementById("dice-target")?.value || 0;
+    const result = await playDice(target, getBetInput());
+    if (result) renderCasinoPage();
+  });
 
-window.playRouletteNumberUI = async function(){
-  const bet = getBetFromInput();
-  const input = document.getElementById("roulette-number");
-  const number = input ? input.value : 0;
-  const result = await playRoulette("number", number, bet);
-  if(result) renderCasinoPage();
-};
+  bind("slots-play-btn", async () => {
+    const result = await playSlots(getBetInput());
+    if (result) renderCasinoPage();
+  });
 
-window.playHigherLowerUI = async function(prediction){
-  const bet = getBetFromInput();
-  const result = await playHigherLower(prediction, bet);
-  if(result) renderCasinoPage();
-};
+  bind("roulette-red-btn", async () => {
+    const result = await playRoulette("color", "red", getBetInput());
+    if (result) renderCasinoPage();
+  });
+
+  bind("roulette-black-btn", async () => {
+    const result = await playRoulette("color", "black", getBetInput());
+    if (result) renderCasinoPage();
+  });
+
+  bind("roulette-even-btn", async () => {
+    const result = await playRoulette("parity", "even", getBetInput());
+    if (result) renderCasinoPage();
+  });
+
+  bind("roulette-odd-btn", async () => {
+    const result = await playRoulette("parity", "odd", getBetInput());
+    if (result) renderCasinoPage();
+  });
+
+  bind("roulette-number-btn", async () => {
+    const number = document.getElementById("roulette-number")?.value || 0;
+    const result = await playRoulette("number", number, getBetInput());
+    if (result) renderCasinoPage();
+  });
+
+  bind("hl-higher-btn", async () => {
+    const result = await playHigherLower("higher", getBetInput());
+    if (result) renderCasinoPage();
+  });
+
+  bind("hl-lower-btn", async () => {
+    const result = await playHigherLower("lower", getBetInput());
+    if (result) renderCasinoPage();
+  });
+
+  bind("hl-same-btn", async () => {
+    const result = await playHigherLower("same", getBetInput());
+    if (result) renderCasinoPage();
+  });
+}
