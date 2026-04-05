@@ -1,19 +1,110 @@
 import { AppState, updatePlayer } from "./app.js";
 import { apiAddHistory, apiLogCasino } from "./api.js";
 
-// =====================
+// ======================================================
+// CONSTANTS
+// ======================================================
+const SLOT_SYMBOLS = ["🍒", "🍋", "💎", "7️⃣", "⭐", "🍀"];
+const WHEEL_REWARDS = [
+  { type: "uah", label: "₴ 5,000", value: 5000, chance: 24 },
+  { type: "uah", label: "₴ 15,000", value: 15000, chance: 18 },
+  { type: "uah", label: "₴ 50,000", value: 50000, chance: 12 },
+  { type: "usd", label: "$ 100", value: 100, chance: 10 },
+  { type: "usd", label: "$ 500", value: 500, chance: 6 },
+  { type: "multiplier", label: "x2 next win", value: 2, chance: 8 },
+  { type: "case", label: "Free Safe", value: 1, chance: 10 },
+  { type: "nothing", label: "No reward", value: 0, chance: 12 }
+];
+
+const SAFE_TYPES = [
+  {
+    id: "basic",
+    name: "Basic Safe",
+    priceUAH: 25000,
+    rewards: [
+      { type: "uah", min: 5000, max: 40000, weight: 50 },
+      { type: "usd", min: 20, max: 150, weight: 20 },
+      { type: "crypto", asset: "BTC", min: 0.00005, max: 0.0003, weight: 8 },
+      { type: "crypto", asset: "ETH", min: 0.001, max: 0.01, weight: 10 },
+      { type: "item", label: "Basic Card Skin", weight: 12 }
+    ]
+  },
+  {
+    id: "premium",
+    name: "Premium Safe",
+    priceUAH: 125000,
+    rewards: [
+      { type: "uah", min: 25000, max: 250000, weight: 40 },
+      { type: "usd", min: 100, max: 1000, weight: 20 },
+      { type: "crypto", asset: "BTC", min: 0.0002, max: 0.001, weight: 10 },
+      { type: "crypto", asset: "ETH", min: 0.01, max: 0.05, weight: 12 },
+      { type: "crypto", asset: "SOL", min: 0.5, max: 3, weight: 8 },
+      { type: "item", label: "Neon Card Skin", weight: 10 }
+    ]
+  }
+];
+
+// ======================================================
 // STATE
-// =====================
+// ======================================================
 export const CasinoState = {
+  currentMode: "slots",
   lastResult: null,
-  currentGame: "coinflip"
+  currentWheelResult: null,
+  currentSafeResult: null
 };
 
-// =====================
+// ======================================================
 // HELPERS
-// =====================
+// ======================================================
 function getPlayer() {
   return AppState.player || {};
+}
+
+function ensureCasinoProfile() {
+  const p = getPlayer();
+
+  if (!p.casino_profile || typeof p.casino_profile !== "object" || Array.isArray(p.casino_profile)) {
+    p.casino_profile = {
+      jackpot_bank: 500000,
+      lottery_bank: 250000,
+      daily_wheel_day: "",
+      wheel_bonus_multiplier: 1,
+      free_safes: 0,
+      lottery_tickets: 0,
+      safe_inventory: []
+    };
+  }
+}
+
+function getCasinoProfile() {
+  ensureCasinoProfile();
+  return getPlayer().casino_profile;
+}
+
+function saveCasinoProfile() {
+  updatePlayer({
+    casino_profile: getPlayer().casino_profile
+  });
+}
+
+function numberValue(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formatMoney(n) {
+  return Math.floor(numberValue(n)).toLocaleString("en-US");
+}
+
+function formatCompact(n) {
+  const value = numberValue(n);
+
+  if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + "B";
+  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
+  if (value >= 1_000) return (value / 1_000).toFixed(1) + "K";
+
+  return Math.floor(value).toString();
 }
 
 function setPage(html) {
@@ -23,36 +114,29 @@ function setPage(html) {
   bindCasinoUI();
 }
 
-function normalizeBet(v) {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return 0;
-  return Math.floor(n);
-}
-
-function randInt(min, max) {
+function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function randChoice(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+function randomFloat(min, max) {
+  return Math.random() * (max - min) + min;
 }
 
-function nowISO() {
+function nowIso() {
   return new Date().toISOString();
 }
 
-function formatMoney(n) {
-  return Math.floor(Number(n || 0)).toLocaleString("en-US");
+function todayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
-function formatCompact(n) {
-  const value = Number(n || 0);
-
-  if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + "B";
-  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
-  if (value >= 1_000) return (value / 1_000).toFixed(1) + "K";
-
-  return Math.floor(value).toString();
+function normalizeBet(value) {
+  const n = Math.floor(numberValue(value));
+  return Math.max(0, n);
 }
 
 function getBetInput() {
@@ -60,18 +144,26 @@ function getBetInput() {
   return normalizeBet(input ? input.value : 0);
 }
 
-function canBet(amount) {
-  return amount > 0 && Number(getPlayer().balance || 0) >= amount;
+async function addUAH(amount) {
+  const p = getPlayer();
+  p.balance = numberValue(p.balance) + numberValue(amount);
+  p.total_earned = numberValue(p.total_earned) + Math.max(0, numberValue(amount));
+
+  await updatePlayer({
+    balance: p.balance,
+    total_earned: p.total_earned
+  });
 }
 
-async function spendBet(amount) {
-  if (!canBet(amount)) {
-    alert("Not enough balance");
+async function removeUAH(amount) {
+  const p = getPlayer();
+  const value = numberValue(amount);
+
+  if (numberValue(p.balance) < value) {
     return false;
   }
 
-  const p = getPlayer();
-  p.balance = Number(p.balance || 0) - amount;
+  p.balance = numberValue(p.balance) - value;
 
   await updatePlayer({
     balance: p.balance
@@ -80,197 +172,88 @@ async function spendBet(amount) {
   return true;
 }
 
-async function rewardWin(amount) {
+async function addUSD(amount) {
   const p = getPlayer();
-
-  p.balance = Number(p.balance || 0) + amount;
-  p.total_earned = Number(p.total_earned || 0) + amount;
+  p.usd = numberValue(p.usd) + numberValue(amount);
 
   await updatePlayer({
-    balance: p.balance,
-    total_earned: p.total_earned
+    usd: p.usd
   });
 }
 
-async function saveCasinoLog(game, bet, result) {
-  const username = getPlayer().username;
-
-  await apiLogCasino(username, game, bet, result);
-  await apiAddHistory(username, `Casino: ${game}`, result >= 0 ? result : -bet);
+function ensureCryptoWallet() {
+  const p = getPlayer();
+  if (!p.crypto || typeof p.crypto !== "object" || Array.isArray(p.crypto)) {
+    p.crypto = {};
+  }
 }
 
-function resultBlock() {
-  const r = CasinoState.lastResult;
+async function addCrypto(asset, amount) {
+  ensureCryptoWallet();
+  const p = getPlayer();
 
-  if (!r) {
-    return `
-      <div class="card casino-result">
-        <h3>Latest Result</h3>
-        <p>No game played yet.</p>
-      </div>
-    `;
-  }
+  p.crypto[asset] = numberValue(p.crypto[asset] || 0) + numberValue(amount);
 
-  if (r.game === "coinflip") {
-    return `
-      <div class="card casino-result">
-        <h3>Coinflip</h3>
-        <p>Choice: ${r.choice}</p>
-        <p>Result: ${r.side}</p>
-        <p>Status: ${r.win ? "WIN" : "LOSE"}</p>
-        <p>Profit: ₴ ${formatMoney(r.profit)}</p>
-      </div>
-    `;
-  }
-
-  if (r.game === "dice") {
-    return `
-      <div class="card casino-result">
-        <h3>Dice</h3>
-        <p>Target: ${r.target}</p>
-        <p>Rolled: ${r.rolled}</p>
-        <p>Status: ${r.win ? "WIN" : "LOSE"}</p>
-        <p>Profit: ₴ ${formatMoney(r.profit)}</p>
-      </div>
-    `;
-  }
-
-  if (r.game === "slots") {
-    return `
-      <div class="card casino-result">
-        <h3>Slots</h3>
-        <p>${r.reels.join(" | ")}</p>
-        <p>Multiplier: x${r.multiplier}</p>
-        <p>Status: ${r.win ? "WIN" : "LOSE"}</p>
-        <p>Profit: ₴ ${formatMoney(r.profit)}</p>
-      </div>
-    `;
-  }
-
-  if (r.game === "roulette") {
-    return `
-      <div class="card casino-result">
-        <h3>Roulette</h3>
-        <p>Rolled: ${r.rolled} (${r.color})</p>
-        <p>Bet: ${r.betType} / ${r.betValue}</p>
-        <p>Status: ${r.win ? "WIN" : "LOSE"}</p>
-        <p>Profit: ₴ ${formatMoney(r.profit)}</p>
-      </div>
-    `;
-  }
-
-  if (r.game === "higher-lower") {
-    return `
-      <div class="card casino-result">
-        <h3>Higher / Lower</h3>
-        <p>Current: ${r.current}</p>
-        <p>Next: ${r.next}</p>
-        <p>Prediction: ${r.prediction}</p>
-        <p>Status: ${r.win ? "WIN" : "LOSE"}</p>
-        <p>Profit: ₴ ${formatMoney(r.profit)}</p>
-      </div>
-    `;
-  }
-
-  return `
-    <div class="card casino-result">
-      <h3>Latest Result</h3>
-      <p>Game: ${r.game}</p>
-    </div>
-  `;
+  await updatePlayer({
+    crypto: p.crypto
+  });
 }
 
-function sectionCard(title, subtitle, body) {
-  return `
-    <div class="card">
-      <h3>${title}</h3>
-      ${subtitle ? `<p class="muted" style="margin-bottom:12px;">${subtitle}</p>` : ""}
-      ${body}
-    </div>
-  `;
+async function contributeToJackpot(amount) {
+  const profile = getCasinoProfile();
+  profile.jackpot_bank = numberValue(profile.jackpot_bank) + numberValue(amount);
+  saveCasinoProfile();
 }
 
-// =====================
-// GAMES
-// =====================
-export async function playCoinflip(choice, bet) {
-  const amount = normalizeBet(bet);
-
-  if (!(await spendBet(amount))) return null;
-
-  const side = randChoice(["heads", "tails"]);
-  const win = side === choice;
-
-  let profit = -amount;
-
-  if (win) {
-    const reward = amount * 2;
-    await rewardWin(reward);
-    profit = amount;
-  }
-
-  CasinoState.lastResult = {
-    game: "coinflip",
-    choice,
-    side,
-    bet: amount,
-    win,
-    profit,
-    time: nowISO()
-  };
-
-  await saveCasinoLog("coinflip", amount, profit);
-  return CasinoState.lastResult;
+async function contributeToLottery(amount) {
+  const profile = getCasinoProfile();
+  profile.lottery_bank = numberValue(profile.lottery_bank) + numberValue(amount);
+  saveCasinoProfile();
 }
 
-export async function playDice(target, bet) {
-  const amount = normalizeBet(bet);
-
-  if (!(await spendBet(amount))) return null;
-
-  const rolled = randInt(1, 6);
-  const targetNumber = normalizeBet(target);
-
-  let multiplier = 0;
-  let win = false;
-
-  if (targetNumber >= 1 && targetNumber <= 6 && rolled === targetNumber) {
-    multiplier = 5;
-    win = true;
-  } else if (rolled >= 4) {
-    multiplier = 2;
-    win = true;
+async function spendBetWithContribution(amount) {
+  const value = numberValue(amount);
+  if (value <= 0) {
+    alert("Введи ставку");
+    return false;
   }
 
-  let profit = -amount;
-
-  if (win) {
-    const reward = amount * multiplier;
-    await rewardWin(reward);
-    profit = reward - amount;
+  const ok = await removeUAH(value);
+  if (!ok) {
+    alert("Недостатньо грошей");
+    return false;
   }
 
-  CasinoState.lastResult = {
-    game: "dice",
-    target: targetNumber,
-    rolled,
-    bet: amount,
-    win,
-    profit,
-    time: nowISO()
-  };
-
-  await saveCasinoLog("dice", amount, profit);
-  return CasinoState.lastResult;
+  await contributeToJackpot(Math.floor(value * 0.12));
+  await contributeToLottery(Math.floor(value * 0.04));
+  return true;
 }
 
-const SLOT_SYMBOLS = ["🍒", "🍋", "💎", "7️⃣", "⭐", "🍀"];
+async function logCasino(game, bet, resultText, amountDelta) {
+  await apiLogCasino(getPlayer().username, game, bet, amountDelta);
+  await apiAddHistory(getPlayer().username, `${game}: ${resultText}`, amountDelta);
+}
 
+function weightedRandom(items, weightKey = "weight") {
+  const total = items.reduce((sum, item) => sum + numberValue(item[weightKey]), 0);
+  let roll = Math.random() * total;
+
+  for (const item of items) {
+    roll -= numberValue(item[weightKey]);
+    if (roll <= 0) return item;
+  }
+
+  return items[items.length - 1];
+}
+
+// ======================================================
+// SLOTS
+// ======================================================
 function spinSlots() {
   return [
-    randChoice(SLOT_SYMBOLS),
-    randChoice(SLOT_SYMBOLS),
-    randChoice(SLOT_SYMBOLS)
+    SLOT_SYMBOLS[randomInt(0, SLOT_SYMBOLS.length - 1)],
+    SLOT_SYMBOLS[randomInt(0, SLOT_SYMBOLS.length - 1)],
+    SLOT_SYMBOLS[randomInt(0, SLOT_SYMBOLS.length - 1)]
   ];
 }
 
@@ -278,7 +261,7 @@ function getSlotsMultiplier(reels) {
   const [a, b, c] = reels;
 
   if (a === b && b === c) {
-    if (a === "7️⃣") return 10;
+    if (a === "7️⃣") return 12;
     if (a === "💎") return 8;
     if (a === "⭐") return 6;
     return 5;
@@ -291,255 +274,503 @@ function getSlotsMultiplier(reels) {
   return 0;
 }
 
-export async function playSlots(bet) {
-  const amount = normalizeBet(bet);
-
-  if (!(await spendBet(amount))) return null;
+export async function playSlots() {
+  const bet = getBetInput();
+  const ok = await spendBetWithContribution(bet);
+  if (!ok) return null;
 
   const reels = spinSlots();
   const multiplier = getSlotsMultiplier(reels);
   const win = multiplier > 0;
 
-  let profit = -amount;
+  let profit = -bet;
 
   if (win) {
-    const reward = amount * multiplier;
-    await rewardWin(reward);
-    profit = reward - amount;
+    const profile = getCasinoProfile();
+    const bonusMultiplier = numberValue(profile.wheel_bonus_multiplier || 1);
+    const reward = Math.floor(bet * multiplier * bonusMultiplier);
+
+    await addUAH(reward);
+    profit = reward - bet;
+
+    profile.wheel_bonus_multiplier = 1;
+    saveCasinoProfile();
   }
 
   CasinoState.lastResult = {
     game: "slots",
+    bet,
     reels,
     multiplier,
-    bet: amount,
     win,
     profit,
-    time: nowISO()
+    time: nowIso()
   };
 
-  await saveCasinoLog("slots", amount, profit);
+  await logCasino("Slots", bet, `Result ${reels.join(" | ")}`, profit);
   return CasinoState.lastResult;
 }
 
+// ======================================================
+// ROULETTE
+// ======================================================
 const ROULETTE_COLORS = {
   0: "green",
-  1: "red",
-  2: "black",
-  3: "red",
-  4: "black",
-  5: "red",
-  6: "black",
-  7: "red",
-  8: "black",
-  9: "red",
-  10: "black",
-  11: "black",
-  12: "red",
-  13: "black",
-  14: "red",
-  15: "black",
-  16: "red",
-  17: "black",
-  18: "red",
-  19: "red",
-  20: "black",
-  21: "red",
-  22: "black",
-  23: "red",
-  24: "black",
-  25: "red",
-  26: "black",
-  27: "red",
-  28: "black",
-  29: "black",
-  30: "red",
-  31: "black",
-  32: "red",
-  33: "black",
-  34: "red",
-  35: "black",
-  36: "red"
+  1: "red", 2: "black", 3: "red", 4: "black", 5: "red", 6: "black",
+  7: "red", 8: "black", 9: "red", 10: "black", 11: "black", 12: "red",
+  13: "black", 14: "red", 15: "black", 16: "red", 17: "black", 18: "red",
+  19: "red", 20: "black", 21: "red", 22: "black", 23: "red", 24: "black",
+  25: "red", 26: "black", 27: "red", 28: "black", 29: "black", 30: "red",
+  31: "black", 32: "red", 33: "black", 34: "red", 35: "black", 36: "red"
 };
 
-export async function playRoulette(betType, betValue, bet) {
-  const amount = normalizeBet(bet);
+export async function playRoulette(betType, betValue) {
+  const bet = getBetInput();
+  const ok = await spendBetWithContribution(bet);
+  if (!ok) return null;
 
-  if (!(await spendBet(amount))) return null;
-
-  const rolled = randInt(0, 36);
+  const rolled = randomInt(0, 36);
   const color = ROULETTE_COLORS[rolled];
 
   let multiplier = 0;
   let win = false;
 
-  if (betType === "number" && Number(betValue) === rolled) {
+  if (betType === "number" && numberValue(betValue) === rolled) {
     multiplier = 35;
     win = true;
   }
 
-  if (betType === "color" && String(betValue).toLowerCase() === String(color).toLowerCase()) {
-    multiplier = color === "green" ? 15 : 2;
+  if (betType === "color" && String(betValue).toLowerCase() === color) {
+    multiplier = color === "green" ? 14 : 2;
     win = true;
   }
 
   if (betType === "parity" && rolled !== 0) {
-    if (String(betValue) === "even" && rolled % 2 === 0) {
+    if (betValue === "even" && rolled % 2 === 0) {
       multiplier = 2;
       win = true;
     }
-    if (String(betValue) === "odd" && rolled % 2 !== 0) {
+    if (betValue === "odd" && rolled % 2 !== 0) {
       multiplier = 2;
       win = true;
     }
   }
 
-  let profit = -amount;
+  let profit = -bet;
 
   if (win) {
-    const reward = amount * multiplier;
-    await rewardWin(reward);
-    profit = reward - amount;
+    const reward = Math.floor(bet * multiplier);
+    await addUAH(reward);
+    profit = reward - bet;
   }
 
   CasinoState.lastResult = {
     game: "roulette",
-    betType,
-    betValue,
+    bet,
     rolled,
     color,
-    bet: amount,
+    betType,
+    betValue,
+    multiplier,
     win,
     profit,
-    time: nowISO()
+    time: nowIso()
   };
 
-  await saveCasinoLog("roulette", amount, profit);
+  await logCasino("Roulette", bet, `Rolled ${rolled} ${color}`, profit);
   return CasinoState.lastResult;
 }
 
-export async function playHigherLower(prediction, bet) {
-  const amount = normalizeBet(bet);
+// ======================================================
+// WHEEL
+// ======================================================
+export async function spinDailyWheel() {
+  const profile = getCasinoProfile();
 
-  if (!(await spendBet(amount))) return null;
-
-  const current = randInt(1, 13);
-  const next = randInt(1, 13);
-
-  let win = false;
-
-  if (prediction === "higher" && next > current) win = true;
-  if (prediction === "lower" && next < current) win = true;
-  if (prediction === "same" && next === current) win = true;
-
-  const multiplier = prediction === "same" ? 5 : 2;
-
-  let profit = -amount;
-
-  if (win) {
-    const reward = amount * multiplier;
-    await rewardWin(reward);
-    profit = reward - amount;
+  if (profile.daily_wheel_day === todayKey()) {
+    alert("Безкоштовна прокрутка вже використана сьогодні");
+    return null;
   }
 
-  CasinoState.lastResult = {
-    game: "higher-lower",
-    prediction,
-    current,
-    next,
-    bet: amount,
-    win,
-    profit,
-    time: nowISO()
+  const reward = weightedRandom(WHEEL_REWARDS, "chance");
+  profile.daily_wheel_day = todayKey();
+
+  let resultText = reward.label;
+
+  if (reward.type === "uah") {
+    await addUAH(reward.value);
+  }
+
+  if (reward.type === "usd") {
+    await addUSD(reward.value);
+  }
+
+  if (reward.type === "multiplier") {
+    profile.wheel_bonus_multiplier = reward.value;
+  }
+
+  if (reward.type === "case") {
+    profile.free_safes = numberValue(profile.free_safes || 0) + 1;
+  }
+
+  saveCasinoProfile();
+
+  CasinoState.currentWheelResult = {
+    ...reward,
+    time: nowIso()
   };
 
-  await saveCasinoLog("higher-lower", amount, profit);
+  await apiAddHistory(getPlayer().username, `Daily wheel: ${resultText}`, reward.type === "uah" ? reward.value : 0);
+  return CasinoState.currentWheelResult;
+}
+
+// ======================================================
+// SAFES / LOOTBOXES
+// ======================================================
+function getSafeConfig(id) {
+  return SAFE_TYPES.find((x) => x.id === id) || null;
+}
+
+function rollSafeReward(safe) {
+  return weightedRandom(safe.rewards, "weight");
+}
+
+export async function openSafe(safeId, isFree = false) {
+  const p = getPlayer();
+  const profile = getCasinoProfile();
+  const safe = getSafeConfig(safeId);
+
+  if (!safe) return null;
+
+  if (isFree) {
+    if (numberValue(profile.free_safes || 0) <= 0) {
+      alert("Немає безкоштовних сейфів");
+      return null;
+    }
+    profile.free_safes -= 1;
+  } else {
+    const ok = await removeUAH(safe.priceUAH);
+    if (!ok) {
+      alert("Недостатньо грошей");
+      return null;
+    }
+  }
+
+  const reward = rollSafeReward(safe);
+
+  let rewardText = "";
+
+  if (reward.type === "uah") {
+    const amount = Math.floor(randomInt(reward.min, reward.max));
+    await addUAH(amount);
+    rewardText = `₴ ${formatMoney(amount)}`;
+    CasinoState.currentSafeResult = { type: "uah", label: rewardText, amount };
+    await apiAddHistory(p.username, `${safe.name}: reward`, amount);
+  }
+
+  if (reward.type === "usd") {
+    const amount = Math.floor(randomInt(reward.min, reward.max));
+    await addUSD(amount);
+    rewardText = `$ ${formatMoney(amount)}`;
+    CasinoState.currentSafeResult = { type: "usd", label: rewardText, amount };
+    await apiAddHistory(p.username, `${safe.name}: reward`, amount * 40);
+  }
+
+  if (reward.type === "crypto") {
+    const amount = Number(randomFloat(reward.min, reward.max).toFixed(6));
+    await addCrypto(reward.asset, amount);
+    rewardText = `${amount} ${reward.asset}`;
+    CasinoState.currentSafeResult = { type: "crypto", label: rewardText, amount, asset: reward.asset };
+    await apiAddHistory(p.username, `${safe.name}: crypto ${reward.asset}`, 0);
+  }
+
+  if (reward.type === "item") {
+    if (!Array.isArray(profile.safe_inventory)) {
+      profile.safe_inventory = [];
+    }
+
+    profile.safe_inventory.push({
+      label: reward.label,
+      opened_at: nowIso()
+    });
+
+    rewardText = reward.label;
+    CasinoState.currentSafeResult = { type: "item", label: rewardText };
+    await apiAddHistory(p.username, `${safe.name}: item ${reward.label}`, 0);
+  }
+
+  saveCasinoProfile();
+  return CasinoState.currentSafeResult;
+}
+
+// ======================================================
+// LOTTERY
+// ======================================================
+export async function buyLotteryTicket() {
+  const p = getPlayer();
+  const profile = getCasinoProfile();
+  const ticketPrice = 5000;
+
+  const ok = await removeUAH(ticketPrice);
+  if (!ok) {
+    alert("Недостатньо грошей");
+    return false;
+  }
+
+  profile.lottery_tickets = numberValue(profile.lottery_tickets || 0) + 1;
+  profile.lottery_bank = numberValue(profile.lottery_bank || 0) + Math.floor(ticketPrice * 0.7);
+
+  saveCasinoProfile();
+  await apiAddHistory(p.username, "Lottery ticket", -ticketPrice);
+  return true;
+}
+
+export async function drawLottery() {
+  const profile = getCasinoProfile();
+
+  if (numberValue(profile.lottery_tickets || 0) <= 0) {
+    alert("У тебе немає квитків");
+    return null;
+  }
+
+  const winChance = Math.min(35, numberValue(profile.lottery_tickets || 0) * 2);
+  const rolled = randomInt(1, 100);
+
+  let won = false;
+  let reward = 0;
+
+  if (rolled <= winChance) {
+    won = true;
+    reward = Math.floor(numberValue(profile.lottery_bank || 0));
+
+    await addUAH(reward);
+
+    profile.lottery_bank = 250000;
+    profile.lottery_tickets = 0;
+    saveCasinoProfile();
+
+    CasinoState.lastResult = {
+      game: "lottery",
+      won,
+      reward,
+      rolled,
+      chance: winChance
+    };
+
+    await apiAddHistory(getPlayer().username, "Lottery win", reward);
+    return CasinoState.lastResult;
+  }
+
+  profile.lottery_tickets = 0;
+  saveCasinoProfile();
+
+  CasinoState.lastResult = {
+    game: "lottery",
+    won,
+    reward,
+    rolled,
+    chance: winChance
+  };
+
+  await apiAddHistory(getPlayer().username, "Lottery lose", 0);
   return CasinoState.lastResult;
 }
 
-// =====================
-// RENDER
-// =====================
+// ======================================================
+// JACKPOT
+// ======================================================
+export async function tryJackpotShot() {
+  const profile = getCasinoProfile();
+  const cost = 50000;
+
+  const ok = await removeUAH(cost);
+  if (!ok) {
+    alert("Недостатньо грошей");
+    return null;
+  }
+
+  profile.jackpot_bank = numberValue(profile.jackpot_bank || 0) + Math.floor(cost * 0.75);
+
+  const win = randomInt(1, 1000) === 1;
+  let reward = 0;
+
+  if (win) {
+    reward = Math.floor(numberValue(profile.jackpot_bank || 0));
+    await addUAH(reward);
+    profile.jackpot_bank = 500000;
+  }
+
+  saveCasinoProfile();
+
+  CasinoState.lastResult = {
+    game: "jackpot",
+    win,
+    reward,
+    cost
+  };
+
+  await apiAddHistory(getPlayer().username, win ? "Jackpot win" : "Jackpot try", win ? reward : -cost);
+  return CasinoState.lastResult;
+}
+
+// ======================================================
+// RENDER HELPERS
+// ======================================================
+function sectionCard(title, subtitle, body) {
+  return `
+    <div class="card">
+      <h3>${title}</h3>
+      ${subtitle ? `<p class="muted" style="margin-bottom:12px;">${subtitle}</p>` : ""}
+      ${body}
+    </div>
+  `;
+}
+
+function summaryCards() {
+  const p = getPlayer();
+  const profile = getCasinoProfile();
+
+  return `
+    <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);">
+      <div class="card stat-card">
+        <div class="stat-label">Баланс</div>
+        <div class="stat-value green">₴ ${formatCompact(p.balance)}</div>
+        <div class="stat-sub">Доступно для ставок</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Jackpot</div>
+        <div class="stat-value orange">₴ ${formatCompact(profile.jackpot_bank)}</div>
+        <div class="stat-sub">Поточний джекпот</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Lottery Bank</div>
+        <div class="stat-value blue">₴ ${formatCompact(profile.lottery_bank)}</div>
+        <div class="stat-sub">Тижневий лотобанк</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Free Safes</div>
+        <div class="stat-value">${formatCompact(profile.free_safes)}</div>
+        <div class="stat-sub">Безкоштовні сейфи</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderResultPanel() {
+  const last = CasinoState.lastResult;
+  const wheel = CasinoState.currentWheelResult;
+  const safe = CasinoState.currentSafeResult;
+
+  return `
+    <div class="card">
+      <h3>Останні результати</h3>
+
+      ${
+        last
+          ? `<p><span class="muted">Гра:</span> ${last.game}</p>`
+          : `<p class="muted">Ще не було результатів.</p>`
+      }
+
+      ${
+        last?.game === "slots"
+          ? `
+            <p><span class="muted">Слоти:</span> ${last.reels.join(" | ")}</p>
+            <p><span class="muted">Множник:</span> x${last.multiplier}</p>
+            <p><span class="muted">Профіт:</span> ${last.profit >= 0 ? "+" : ""}${formatMoney(last.profit)}</p>
+          `
+          : ""
+      }
+
+      ${
+        last?.game === "roulette"
+          ? `
+            <p><span class="muted">Рулетка:</span> ${last.rolled} (${last.color})</p>
+            <p><span class="muted">Ставка:</span> ${last.betType} / ${last.betValue}</p>
+            <p><span class="muted">Профіт:</span> ${last.profit >= 0 ? "+" : ""}${formatMoney(last.profit)}</p>
+          `
+          : ""
+      }
+
+      ${
+        last?.game === "lottery"
+          ? `
+            <p><span class="muted">Лотерея:</span> ${last.won ? "Виграш" : "Програш"}</p>
+            <p><span class="muted">Шанс:</span> ${last.chance}%</p>
+            <p><span class="muted">Нагорода:</span> ₴ ${formatMoney(last.reward)}</p>
+          `
+          : ""
+      }
+
+      ${
+        last?.game === "jackpot"
+          ? `
+            <p><span class="muted">Джекпот:</span> ${last.win ? "Виграш" : "Спроба"}</p>
+            <p><span class="muted">Нагорода:</span> ₴ ${formatMoney(last.reward || 0)}</p>
+          `
+          : ""
+      }
+
+      ${
+        wheel
+          ? `<hr><p><span class="muted">Колесо:</span> ${wheel.label}</p>`
+          : ""
+      }
+
+      ${
+        safe
+          ? `<p><span class="muted">Сейф:</span> ${safe.label}</p>`
+          : ""
+      }
+    </div>
+  `;
+}
+
+// ======================================================
+// MAIN PAGE
+// ======================================================
 export function renderCasinoPage() {
   document.body.dataset.currentPage = "casino";
-
-  const p = getPlayer();
+  ensureCasinoProfile();
 
   setPage(`
     <div class="card" style="grid-column:1 / -1;">
-      <h2>Casino Lounge</h2>
-      <p>Premium gaming floor with fast finance-style betting flows and live balance risk.</p>
+      <h2>Casino Ultra</h2>
+      <p>Три режими гри, щоденне колесо, сейфи, лотерея і джекпот в одному казино-модулі.</p>
     </div>
 
-    <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);">
-      <div class="card stat-card">
-        <div class="stat-label">Balance</div>
-        <div class="stat-value green">₴ ${formatCompact(p.balance)}</div>
-        <div class="stat-sub">Available to wager</div>
+    ${summaryCards()}
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3>Universal Bet</h3>
+        <p class="muted" style="margin-bottom:12px;">Одна ставка для слотів і рулетки</p>
+        <div class="profile-actions">
+          <input id="casino-bet" type="number" min="1" step="1" placeholder="Введи ставку">
+        </div>
       </div>
 
-      <div class="card stat-card">
-        <div class="stat-label">Bet Control</div>
-        <div class="stat-value">LIVE</div>
-        <div class="stat-sub">Unified amount input</div>
-      </div>
-
-      <div class="card stat-card">
-        <div class="stat-label">Risk Level</div>
-        <div class="stat-value orange">HIGH</div>
-        <div class="stat-sub">Chance-based outcomes</div>
-      </div>
-
-      <div class="card stat-card">
-        <div class="stat-label">Mode</div>
-        <div class="stat-value blue">VIP</div>
-        <div class="stat-sub">Premium casino room</div>
-      </div>
+      ${renderResultPanel()}
     </div>
 
-    <div class="card" style="grid-column:1 / -1;">
-      <h3>Universal Bet</h3>
-      <div class="profile-actions" style="max-width:360px;">
-        <input id="casino-bet" type="number" min="1" step="1" placeholder="Bet amount">
-      </div>
-    </div>
+    <div class="section-title">3 режими казино</div>
 
     <div class="asset-grid">
       ${sectionCard(
-        "Coinflip",
-        "Classic 50/50 direction play",
-        `
-          <div class="asset-actions">
-            <button id="coinflip-heads-btn">Heads</button>
-            <button class="secondary" id="coinflip-tails-btn">Tails</button>
-          </div>
-        `
-      )}
-
-      ${sectionCard(
-        "Dice",
-        "Predict one number or win on high roll",
-        `
-          <div class="profile-actions">
-            <input id="dice-target" type="number" min="1" max="6" placeholder="Target 1-6">
-            <button id="dice-play-btn">Roll Dice</button>
-          </div>
-        `
-      )}
-
-      ${sectionCard(
         "Slots",
-        "Premium reel machine with multiplier payouts",
+        "Класичні слоти з множниками",
         `
           <div class="profile-actions">
-            <button id="slots-play-btn">Spin Slots</button>
+            <button id="play-slots-btn">Крутити слоти</button>
           </div>
         `
       )}
 
       ${sectionCard(
         "Roulette",
-        "Color / parity / number betting",
+        "Ставки на колір, парність або число",
         `
           <div class="profile-actions">
             <div class="asset-actions">
@@ -550,109 +781,157 @@ export function renderCasinoPage() {
               <button id="roulette-even-btn">Even</button>
               <button class="secondary" id="roulette-odd-btn">Odd</button>
             </div>
-            <input id="roulette-number" type="number" min="0" max="36" placeholder="Specific number">
-            <button id="roulette-number-btn">Bet Number</button>
+            <input id="roulette-number-input" type="number" min="0" max="36" placeholder="Число 0-36">
+            <button id="roulette-number-btn">Ставка на число</button>
           </div>
         `
       )}
 
       ${sectionCard(
-        "Higher / Lower",
-        "Predict next card direction",
+        "Wheel",
+        "Щоденна безкоштовна прокрутка",
         `
-          <div class="asset-actions">
-            <button id="hl-higher-btn">Higher</button>
-            <button class="secondary" id="hl-lower-btn">Lower</button>
+          <div class="profile-actions">
+            <button id="spin-wheel-btn">Безкоштовна прокрутка</button>
           </div>
-          <div class="profile-actions" style="margin-top:10px;">
-            <button class="secondary" id="hl-same-btn">Same</button>
+        `
+      )}
+    </div>
+
+    <div class="section-title">Сейфи / Лутбокси</div>
+
+    <div class="asset-grid">
+      ${sectionCard(
+        "Basic Safe",
+        "Базовий сейф з UAH / USD / crypto / item",
+        `
+          <div class="profile-actions">
+            <button id="open-basic-safe-btn">Відкрити за ₴ ${formatMoney(SAFE_TYPES[0].priceUAH)}</button>
           </div>
         `
       )}
 
-      ${resultBlock()}
+      ${sectionCard(
+        "Premium Safe",
+        "Преміальний сейф з кращими нагородами",
+        `
+          <div class="profile-actions">
+            <button id="open-premium-safe-btn">Відкрити за ₴ ${formatMoney(SAFE_TYPES[1].priceUAH)}</button>
+          </div>
+        `
+      )}
+
+      ${sectionCard(
+        "Free Safe",
+        "Використати безкоштовний сейф з колеса",
+        `
+          <div class="profile-actions">
+            <button id="open-free-safe-btn">Відкрити free safe</button>
+          </div>
+        `
+      )}
+    </div>
+
+    <div class="section-title">Лотерея та джекпот</div>
+
+    <div class="asset-grid">
+      ${sectionCard(
+        "Weekly Lottery",
+        "Купуй квитки і пробуй зірвати великий банк",
+        `
+          <div class="profile-actions">
+            <button id="buy-lottery-ticket-btn">Купити квиток ₴ 5,000</button>
+            <button class="secondary" id="draw-lottery-btn">Розіграти лотерею</button>
+          </div>
+        `
+      )}
+
+      ${sectionCard(
+        "Jackpot Shot",
+        "Дорогий постріл у великий джекпот",
+        `
+          <div class="profile-actions">
+            <button id="jackpot-shot-btn">Спробувати за ₴ 50,000</button>
+          </div>
+        `
+      )}
     </div>
   `);
 }
 
-// =====================
+// ======================================================
 // BIND
-// =====================
+// ======================================================
 function bindCasinoUI() {
   const bind = (id, handler) => {
     const el = document.getElementById(id);
     if (!el) return;
-
     el.addEventListener("click", handler);
-    el.addEventListener(
-      "touchend",
-      (e) => {
-        e.preventDefault();
-        handler();
-      },
-      { passive: false }
-    );
   };
 
-  bind("coinflip-heads-btn", async () => {
-    const result = await playCoinflip("heads", getBetInput());
-    if (result) renderCasinoPage();
-  });
-
-  bind("coinflip-tails-btn", async () => {
-    const result = await playCoinflip("tails", getBetInput());
-    if (result) renderCasinoPage();
-  });
-
-  bind("dice-play-btn", async () => {
-    const target = document.getElementById("dice-target")?.value || 0;
-    const result = await playDice(target, getBetInput());
-    if (result) renderCasinoPage();
-  });
-
-  bind("slots-play-btn", async () => {
-    const result = await playSlots(getBetInput());
+  bind("play-slots-btn", async () => {
+    const result = await playSlots();
     if (result) renderCasinoPage();
   });
 
   bind("roulette-red-btn", async () => {
-    const result = await playRoulette("color", "red", getBetInput());
+    const result = await playRoulette("color", "red");
     if (result) renderCasinoPage();
   });
 
   bind("roulette-black-btn", async () => {
-    const result = await playRoulette("color", "black", getBetInput());
+    const result = await playRoulette("color", "black");
     if (result) renderCasinoPage();
   });
 
   bind("roulette-even-btn", async () => {
-    const result = await playRoulette("parity", "even", getBetInput());
+    const result = await playRoulette("parity", "even");
     if (result) renderCasinoPage();
   });
 
   bind("roulette-odd-btn", async () => {
-    const result = await playRoulette("parity", "odd", getBetInput());
+    const result = await playRoulette("parity", "odd");
     if (result) renderCasinoPage();
   });
 
   bind("roulette-number-btn", async () => {
-    const number = document.getElementById("roulette-number")?.value || 0;
-    const result = await playRoulette("number", number, getBetInput());
+    const value = document.getElementById("roulette-number-input")?.value || 0;
+    const result = await playRoulette("number", value);
     if (result) renderCasinoPage();
   });
 
-  bind("hl-higher-btn", async () => {
-    const result = await playHigherLower("higher", getBetInput());
+  bind("spin-wheel-btn", async () => {
+    const result = await spinDailyWheel();
     if (result) renderCasinoPage();
   });
 
-  bind("hl-lower-btn", async () => {
-    const result = await playHigherLower("lower", getBetInput());
+  bind("open-basic-safe-btn", async () => {
+    const result = await openSafe("basic", false);
     if (result) renderCasinoPage();
   });
 
-  bind("hl-same-btn", async () => {
-    const result = await playHigherLower("same", getBetInput());
+  bind("open-premium-safe-btn", async () => {
+    const result = await openSafe("premium", false);
+    if (result) renderCasinoPage();
+  });
+
+  bind("open-free-safe-btn", async () => {
+    const result = await openSafe("basic", true);
+    if (result) renderCasinoPage();
+  });
+
+  bind("buy-lottery-ticket-btn", async () => {
+    const ok = await buyLotteryTicket();
+    if (ok) renderCasinoPage();
+  });
+
+  bind("draw-lottery-btn", async () => {
+    const result = await drawLottery();
+    if (result) renderCasinoPage();
+  });
+
+  bind("jackpot-shot-btn", async () => {
+    const result = await tryJackpotShot();
     if (result) renderCasinoPage();
   });
 }
