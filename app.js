@@ -1,6 +1,6 @@
 // ======================================================
 // BITBANK - FULL SINGLE FILE APP.JS
-// localStorage version with 40+ real functions
+// localStorage version
 // ======================================================
 
 // ======================================================
@@ -434,6 +434,7 @@ function saveCurrentPlayer() {
 }
 
 function updatePlayer(patch) {
+  if (!AppState.player) return;
   Object.assign(AppState.player, patch);
   saveCurrentPlayer();
   updateHeader();
@@ -455,7 +456,9 @@ function generateCVV() {
 }
 
 function getCardBonus() {
-  const theme = CARD_THEMES[getPlayer()?.card_theme || "classic_blue"];
+  const player = getPlayer();
+  if (!player) return CARD_THEMES.classic_blue;
+  const theme = CARD_THEMES[player.card_theme || "classic_blue"];
   return safeObject(theme);
 }
 
@@ -463,15 +466,31 @@ function getCardBonus() {
 // BONUS HELPERS
 // ======================================================
 function getClassData() {
-  return CLASS_CONFIG[getPlayer()?.class || "none"] || CLASS_CONFIG.none;
+  const player = getPlayer();
+  if (!player) return CLASS_CONFIG.none;
+  return CLASS_CONFIG[player.class || "none"] || CLASS_CONFIG.none;
 }
 
 function getRoleData() {
-  return ROLE_CONFIG[getPlayer()?.role || "none"] || ROLE_CONFIG.none;
+  const player = getPlayer();
+  if (!player) return ROLE_CONFIG.none;
+  return ROLE_CONFIG[player.role || "none"] || ROLE_CONFIG.none;
 }
 
 function getCollectionBonuses() {
-  const state = safeObject(getPlayer()?.collections_state);
+  const player = getPlayer();
+  if (!player) {
+    return {
+      clickBoost: 0,
+      prestige: 0,
+      marketBoost: 0,
+      businessBoost: 0,
+      taxDiscount: 0,
+      lotteryLuck: 0
+    };
+  }
+
+  const state = safeObject(player.collections_state);
   const claimed = safeObject(state.claimed);
 
   const bonus = {
@@ -505,7 +524,10 @@ function getClickIncome() {
 }
 
 function getPrestige() {
-  const cls = getPlayer()?.class || "none";
+  const player = getPlayer();
+  if (!player) return 0;
+
+  const cls = player.class || "none";
   let base = 0;
 
   if (cls === "bronze") base += 1;
@@ -521,7 +543,7 @@ function getPrestige() {
   base += num(getCardBonus().prestige);
   base += num(getCollectionBonuses().prestige);
 
-  const role = getPlayer()?.role || "none";
+  const role = player.role || "none";
   if (["banker", "sports_manager", "media_mogul", "high_roller"].includes(role)) {
     base += 1;
   }
@@ -542,6 +564,8 @@ function getPrestigeLabel() {
 
 function getWealthTier() {
   const player = getPlayer();
+  if (!player) return "Newcomer";
+
   const total = num(player.balance) + num(player.usd) * 40;
 
   if (total >= 500000000) return "Capital Emperor";
@@ -554,6 +578,8 @@ function getWealthTier() {
 
 function rebuildTitles() {
   const player = getPlayer();
+  if (!player) return;
+
   const titles = new Set();
 
   titles.add(getPrestigeLabel());
@@ -579,6 +605,8 @@ function rebuildTitles() {
 // ======================================================
 function addBalance(amount) {
   const player = getPlayer();
+  if (!player) return;
+
   const value = num(amount);
   player.balance += value;
   player.total_earned += Math.max(0, value);
@@ -587,6 +615,8 @@ function addBalance(amount) {
 
 function removeBalance(amount) {
   const player = getPlayer();
+  if (!player) return false;
+
   const value = num(amount);
   if (player.balance < value) return false;
   player.balance -= value;
@@ -596,12 +626,16 @@ function removeBalance(amount) {
 
 function addUSD(amount) {
   const player = getPlayer();
+  if (!player) return;
+
   player.usd += num(amount);
   saveCurrentPlayer();
 }
 
 function removeUSD(amount) {
   const player = getPlayer();
+  if (!player) return false;
+
   const value = num(amount);
   if (player.usd < value) return false;
   player.usd -= value;
@@ -613,14 +647,17 @@ function removeUSD(amount) {
 // CLICK
 // ======================================================
 function handleClick() {
+  const player = getPlayer();
+  if (!player) return;
+
   const income = getClickIncome();
   addBalance(income);
-  AppState.player.clicks += 1;
-  AppState.player.last_seen = nowIso();
+  player.clicks += 1;
+  player.last_seen = nowIso();
   saveCurrentPlayer();
 
-  if (AppState.player.clicks % 100 === 0) {
-    addHistory(`Click milestone: ${AppState.player.clicks}`, income);
+  if (player.clicks % 100 === 0) {
+    addHistory(`Click milestone: ${player.clicks}`, income);
   }
   renderCurrentPage();
 }
@@ -629,35 +666,42 @@ function handleClick() {
 // PROFILE / HEADER
 // ======================================================
 function updateHeader() {
-  if (!getPlayer()) return;
+  const player = getPlayer();
+  if (!player) return;
 
-  if ($("header-username")) $("header-username").textContent = getPlayer().username;
+  if ($("header-username")) $("header-username").textContent = player.username;
   if ($("header-status")) $("header-status").textContent = `Class: ${getClassData().name}`;
-  if ($("header-device")) $("header-device").textContent = `Device: ${getPlayer().device || "desktop"}`;
+  if ($("header-device")) $("header-device").textContent = `Device: ${player.device || "desktop"}`;
   if ($("header-prestige")) $("header-prestige").textContent = `Prestige: ${getPrestigeLabel()}`;
-  if ($("balance-uah")) $("balance-uah").textContent = `₴ ${formatMoney(getPlayer().balance)}`;
-  if ($("balance-usd")) $("balance-usd").textContent = `$ ${formatMoney(getPlayer().usd)}`;
-  if ($("topbar-avatar-text")) $("topbar-avatar-text").textContent = getPlayer().username.charAt(0).toUpperCase();
+  if ($("balance-uah")) $("balance-uah").textContent = `₴ ${formatMoney(player.balance)}`;
+  if ($("balance-usd")) $("balance-usd").textContent = `$ ${formatMoney(player.usd)}`;
+  if ($("topbar-avatar-text")) $("topbar-avatar-text").textContent = player.username.charAt(0).toUpperCase();
 
   const adminBtn = document.querySelector('.nav-btn[data-page="admin"]');
   if (adminBtn) {
-    adminBtn.style.display = getPlayer().is_admin ? "flex" : "none";
+    adminBtn.style.display = player.is_admin ? "flex" : "none";
   }
 }
 
 function renderBankCard() {
+  const player = getPlayer();
+  if (!player) return "";
+
   return `
     <div class="card">
       <h3>Bank Card</h3>
-      <p><span class="muted">Holder:</span> ${getPlayer().card_name}</p>
-      <p><span class="muted">Number:</span> ${getPlayer().card_number}</p>
-      <p><span class="muted">Expiry:</span> ${getPlayer().card_expiry}</p>
-      <p><span class="muted">Theme:</span> ${(CARD_THEMES[getPlayer().card_theme] || CARD_THEMES.classic_blue).name}</p>
+      <p><span class="muted">Holder:</span> ${player.card_name}</p>
+      <p><span class="muted">Number:</span> ${player.card_number}</p>
+      <p><span class="muted">Expiry:</span> ${player.card_expiry}</p>
+      <p><span class="muted">Theme:</span> ${(CARD_THEMES[player.card_theme] || CARD_THEMES.classic_blue).name}</p>
     </div>
   `;
 }
 
 function renderProfilePage() {
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
   rebuildTitles();
 
   return `
@@ -669,7 +713,7 @@ function renderProfilePage() {
     <div class="dashboard-grid">
       <div class="card">
         <h3>Main Account</h3>
-        <p><span class="muted">Username:</span> ${getPlayer().username}</p>
+        <p><span class="muted">Username:</span> ${player.username}</p>
         <p><span class="muted">Class:</span> ${getClassData().name}</p>
         <p><span class="muted">Role:</span> ${getRoleData().name}</p>
         <p><span class="muted">Prestige:</span> ${getPrestigeLabel()} (${getPrestige()})</p>
@@ -688,19 +732,19 @@ function renderProfilePage() {
 
       <div class="card stat-card">
         <div class="stat-label">Total Earned</div>
-        <div class="stat-value green">₴ ${formatCompact(getPlayer().total_earned)}</div>
+        <div class="stat-value green">₴ ${formatCompact(player.total_earned)}</div>
         <div class="stat-sub">Lifetime</div>
       </div>
 
       <div class="card stat-card">
         <div class="stat-label">Clicks</div>
-        <div class="stat-value">${formatCompact(getPlayer().clicks)}</div>
+        <div class="stat-value">${formatCompact(player.clicks)}</div>
         <div class="stat-sub">Total taps</div>
       </div>
 
       <div class="card stat-card">
         <div class="stat-label">Titles</div>
-        <div class="stat-value">${safeArray(getPlayer().titles).length}</div>
+        <div class="stat-value">${safeArray(player.titles).length}</div>
         <div class="stat-sub">Auto generated</div>
       </div>
     </div>
@@ -717,7 +761,7 @@ function renderProfilePage() {
     <div class="card" style="grid-column:1 / -1;">
       <h3>Titles</h3>
       <div class="titles-list">
-        ${safeArray(getPlayer().titles).map(t => `<div class="title-pill">${t}</div>`).join("")}
+        ${safeArray(player.titles).map(t => `<div class="title-pill">${t}</div>`).join("")}
       </div>
     </div>
   `;
@@ -787,12 +831,13 @@ function getStockAsset(id) {
 
 function buyCrypto(id, amount) {
   const asset = getCryptoAsset(id);
-  if (!asset) return false;
+  const player = getPlayer();
+  if (!asset || !player) return false;
 
   const qty = num(amount);
   if (qty <= 0) return false;
 
-  const discount = classMarketDiscount() + (getPlayer().role === "trader" ? 0.04 : 0);
+  const discount = classMarketDiscount() + (player.role === "trader" ? 0.04 : 0);
   const cost = qty * asset.price * (1 - discount);
 
   if (!removeBalance(cost)) {
@@ -800,7 +845,7 @@ function buyCrypto(id, amount) {
     return false;
   }
 
-  getPlayer().crypto[id] = num(getPlayer().crypto[id]) + qty;
+  player.crypto[id] = num(player.crypto[id]) + qty;
   saveCurrentPlayer();
   addHistory(`Buy crypto ${id}`, -cost);
   renderCurrentPage();
@@ -809,17 +854,18 @@ function buyCrypto(id, amount) {
 
 function sellCrypto(id, amount) {
   const asset = getCryptoAsset(id);
-  if (!asset) return false;
+  const player = getPlayer();
+  if (!asset || !player) return false;
 
   const qty = num(amount);
   if (qty <= 0) return false;
-  if (num(getPlayer().crypto[id]) < qty) {
+  if (num(player.crypto[id]) < qty) {
     alert("Недостатньо крипти");
     return false;
   }
 
   const income = qty * asset.price * (1 + roleMarketBoost() + collectionMarketBoost());
-  getPlayer().crypto[id] = num(getPlayer().crypto[id]) - qty;
+  player.crypto[id] = num(player.crypto[id]) - qty;
   addBalance(income);
   saveCurrentPlayer();
   addHistory(`Sell crypto ${id}`, income);
@@ -829,12 +875,13 @@ function sellCrypto(id, amount) {
 
 function buyStock(id, amount) {
   const asset = getStockAsset(id);
-  if (!asset) return false;
+  const player = getPlayer();
+  if (!asset || !player) return false;
 
   const qty = num(amount);
   if (qty <= 0) return false;
 
-  const discount = classMarketDiscount() + (getPlayer().role === "trader" ? 0.04 : 0);
+  const discount = classMarketDiscount() + (player.role === "trader" ? 0.04 : 0);
   const cost = qty * asset.price * (1 - discount);
 
   if (!removeBalance(cost)) {
@@ -842,7 +889,7 @@ function buyStock(id, amount) {
     return false;
   }
 
-  getPlayer().stocks[id] = num(getPlayer().stocks[id]) + qty;
+  player.stocks[id] = num(player.stocks[id]) + qty;
   saveCurrentPlayer();
   addHistory(`Buy stock ${id}`, -cost);
   renderCurrentPage();
@@ -851,17 +898,18 @@ function buyStock(id, amount) {
 
 function sellStock(id, amount) {
   const asset = getStockAsset(id);
-  if (!asset) return false;
+  const player = getPlayer();
+  if (!asset || !player) return false;
 
   const qty = num(amount);
   if (qty <= 0) return false;
-  if (num(getPlayer().stocks[id]) < qty) {
+  if (num(player.stocks[id]) < qty) {
     alert("Недостатньо акцій");
     return false;
   }
 
   const income = qty * asset.price * (1 + roleMarketBoost() + collectionMarketBoost());
-  getPlayer().stocks[id] = num(getPlayer().stocks[id]) - qty;
+  player.stocks[id] = num(player.stocks[id]) - qty;
   addBalance(income);
   saveCurrentPlayer();
   addHistory(`Sell stock ${id}`, income);
@@ -870,7 +918,10 @@ function sellStock(id, amount) {
 }
 
 function renderAssetCard(type, asset) {
-  const owned = type === "crypto" ? num(getPlayer().crypto[asset.id]) : num(getPlayer().stocks[asset.id]);
+  const player = getPlayer();
+  if (!player) return "";
+
+  const owned = type === "crypto" ? num(player.crypto[asset.id]) : num(player.stocks[asset.id]);
 
   return `
     <div class="card asset-card">
@@ -928,9 +979,12 @@ function renderStocksPage() {
 // BUSINESS
 // ======================================================
 function ensureBusinessState() {
+  const player = getPlayer();
+  if (!player) return;
+
   BUSINESS_CONFIG.forEach(cfg => {
-    if (!getPlayer().business_projects[cfg.id]) {
-      getPlayer().business_projects[cfg.id] = {
+    if (!player.business_projects[cfg.id]) {
+      player.business_projects[cfg.id] = {
         unlocked: false,
         level: 1,
         employees: 0,
@@ -947,11 +1001,14 @@ function businessUnlockCost(cfg) {
 }
 
 function unlockBusiness(id) {
+  const player = getPlayer();
+  if (!player) return false;
+
   ensureBusinessState();
   const cfg = BUSINESS_CONFIG.find(x => x.id === id);
   if (!cfg) return false;
 
-  const state = getPlayer().business_projects[id];
+  const state = player.business_projects[id];
   if (state.unlocked) return false;
 
   const cost = businessUnlockCost(cfg);
@@ -987,21 +1044,27 @@ function businessIncome(cfg, state) {
 }
 
 function totalPassiveIncome() {
+  const player = getPlayer();
+  if (!player) return 0;
+
   ensureBusinessState();
   return BUSINESS_CONFIG.reduce((sum, cfg) => {
-    return sum + businessIncome(cfg, getPlayer().business_projects[cfg.id]);
+    return sum + businessIncome(cfg, player.business_projects[cfg.id]);
   }, 0);
 }
 
 function passiveIncomeTick() {
+  const player = getPlayer();
+  if (!player) return;
+
   const income = totalPassiveIncome() / 60 * 5;
   if (income > 0) {
     addBalance(income);
   }
 
   BUSINESS_CONFIG.forEach(cfg => {
-    const state = getPlayer().business_projects[cfg.id];
-    if (!state.unlocked) return;
+    const state = player.business_projects[cfg.id];
+    if (!state || !state.unlocked) return;
     state.stock = Math.max(0, num(state.stock) - 0.25);
   });
 
@@ -1012,7 +1075,12 @@ function passiveIncomeTick() {
 }
 
 function upgradeBusinessLevel(id) {
-  const state = getPlayer().business_projects[id];
+  const player = getPlayer();
+  if (!player) return false;
+
+  const state = player.business_projects[id];
+  if (!state) return false;
+
   const cost = Math.floor(num(state.level) * 6000 + 3000);
 
   if (!removeBalance(cost)) {
@@ -1028,7 +1096,12 @@ function upgradeBusinessLevel(id) {
 }
 
 function hireBusinessEmployee(id) {
-  const state = getPlayer().business_projects[id];
+  const player = getPlayer();
+  if (!player) return false;
+
+  const state = player.business_projects[id];
+  if (!state) return false;
+
   const cost = Math.floor(25000 + num(state.employees) * 5000);
 
   if (!removeBalance(cost)) {
@@ -1044,7 +1117,12 @@ function hireBusinessEmployee(id) {
 }
 
 function buyBusinessStock(id) {
-  const state = getPlayer().business_projects[id];
+  const player = getPlayer();
+  if (!player) return false;
+
+  const state = player.business_projects[id];
+  if (!state) return false;
+
   const cost = 80000;
 
   if (!removeBalance(cost)) {
@@ -1060,7 +1138,12 @@ function buyBusinessStock(id) {
 }
 
 function upgradeBusinessMarketing(id) {
-  const state = getPlayer().business_projects[id];
+  const player = getPlayer();
+  if (!player) return false;
+
+  const state = player.business_projects[id];
+  if (!state) return false;
+
   const cost = Math.floor((num(state.marketing) + 1) * 18000);
 
   if (!removeBalance(cost)) {
@@ -1076,7 +1159,12 @@ function upgradeBusinessMarketing(id) {
 }
 
 function upgradeBusinessQuality(id) {
-  const state = getPlayer().business_projects[id];
+  const player = getPlayer();
+  if (!player) return false;
+
+  const state = player.business_projects[id];
+  if (!state) return false;
+
   const cost = Math.floor((num(state.quality) + 1) * 12000);
 
   if (!removeBalance(cost)) {
@@ -1092,6 +1180,9 @@ function upgradeBusinessQuality(id) {
 }
 
 function renderBusinessPage() {
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
   ensureBusinessState();
 
   return `
@@ -1109,14 +1200,14 @@ function renderBusinessPage() {
 
       <div class="card stat-card">
         <div class="stat-label">Projects</div>
-        <div class="stat-value">${Object.values(getPlayer().business_projects).filter(x => x.unlocked).length}</div>
+        <div class="stat-value">${Object.values(player.business_projects).filter(x => x.unlocked).length}</div>
         <div class="stat-sub">Unlocked</div>
       </div>
     </div>
 
     <div class="asset-grid">
       ${BUSINESS_CONFIG.map(cfg => {
-        const s = getPlayer().business_projects[cfg.id];
+        const s = player.business_projects[cfg.id];
         return `
           <div class="card asset-card">
             <div class="asset-info">
@@ -1158,6 +1249,9 @@ function renderBusinessPage() {
 // FINANCE
 // ======================================================
 function createDeposit(currency, amount, days) {
+  const player = getPlayer();
+  if (!player) return false;
+
   const value = num(amount);
   const term = num(days);
 
@@ -1174,11 +1268,11 @@ function createDeposit(currency, amount, days) {
   }
 
   const annualRate = currency === "UAH" ? 0.18 : 0.08;
-  const roleBonus = getPlayer().role === "banker" ? 0.015 : 0;
+  const roleBonus = player.role === "banker" ? 0.015 : 0;
   const finalRate = annualRate + roleBonus;
   const expectedProfit = value * finalRate * (term / 365);
 
-  getPlayer().finances.deposits.push({
+  player.finances.deposits.push({
     id: `dep_${Date.now()}_${randomInt(1000,9999)}`,
     currency,
     amount: value,
@@ -1197,7 +1291,10 @@ function createDeposit(currency, amount, days) {
 }
 
 function claimDeposit(id) {
-  const dep = getPlayer().finances.deposits.find(x => x.id === id);
+  const player = getPlayer();
+  if (!player) return false;
+
+  const dep = player.finances.deposits.find(x => x.id === id);
   if (!dep || dep.closed) return false;
   if (new Date(dep.matureAt).getTime() > Date.now()) {
     alert("Депозит ще не дозрів");
@@ -1210,7 +1307,7 @@ function claimDeposit(id) {
   else addUSD(reward);
 
   dep.closed = true;
-  getPlayer().finances.stats.total_deposit_profit += dep.expectedProfit;
+  player.finances.stats.total_deposit_profit += dep.expectedProfit;
   saveCurrentPlayer();
   addHistory(`Claim ${dep.currency} deposit`, reward);
   renderCurrentPage();
@@ -1218,18 +1315,21 @@ function claimDeposit(id) {
 }
 
 function takeCredit(amount, days) {
+  const player = getPlayer();
+  if (!player) return false;
+
   const value = num(amount);
   const term = num(days);
 
-  if (getPlayer().finances.credit) {
+  if (player.finances.credit) {
     alert("У тебе вже є кредит");
     return false;
   }
 
   let rate = 0.0025;
-  if (getPlayer().role === "banker") rate *= 0.88;
+  if (player.role === "banker") rate *= 0.88;
 
-  getPlayer().finances.credit = {
+  player.finances.credit = {
     principal: value,
     dueAmount: value * (1 + rate * term),
     dailyRate: rate,
@@ -1247,7 +1347,10 @@ function takeCredit(amount, days) {
 }
 
 function repayCredit(amount) {
-  const credit = getPlayer().finances.credit;
+  const player = getPlayer();
+  if (!player) return false;
+
+  const credit = player.finances.credit;
   if (!credit || !credit.active) return false;
 
   const value = num(amount);
@@ -1258,7 +1361,7 @@ function repayCredit(amount) {
 
   credit.dueAmount -= value;
   if (credit.dueAmount <= 0) {
-    getPlayer().finances.credit = null;
+    player.finances.credit = null;
   }
 
   saveCurrentPlayer();
@@ -1268,7 +1371,10 @@ function repayCredit(amount) {
 }
 
 function financeTick() {
-  const finances = getPlayer().finances;
+  const player = getPlayer();
+  if (!player) return;
+
+  const finances = player.finances;
   const now = Date.now();
   const last = new Date(finances.last_tick || nowIso()).getTime();
   const elapsedDays = (now - last) / 86400000;
@@ -1276,14 +1382,14 @@ function financeTick() {
   if (elapsedDays < 0.25) return;
 
   const passiveTaxRate = Math.max(0, 0.03 - num(getCollectionBonuses().taxDiscount));
-  const totalAssets = num(getPlayer().balance) + num(getPlayer().usd) * 40;
+  const totalAssets = num(player.balance) + num(player.usd) * 40;
   const passiveTax = totalAssets > 100000 ? totalAssets * passiveTaxRate / 30 * elapsedDays : 0;
 
-  const maintenanceCars = safeArray(getPlayer().cars).length * 450 * elapsedDays;
-  const maintenanceRealty = safeArray(getPlayer().realty).length * 800 * elapsedDays;
+  const maintenanceCars = safeArray(player.cars).length * 450 * elapsedDays;
+  const maintenanceRealty = safeArray(player.realty).length * 800 * elapsedDays;
   const maintenance = maintenanceCars + maintenanceRealty;
 
-  getPlayer().balance = Math.max(0, num(getPlayer().balance) - passiveTax - maintenance);
+  player.balance = Math.max(0, num(player.balance) - passiveTax - maintenance);
   finances.stats.total_tax_paid += passiveTax;
   finances.stats.total_maintenance_paid += maintenance;
 
@@ -1304,7 +1410,10 @@ function financeTick() {
 }
 
 function renderFinancePage() {
-  const credit = getPlayer().finances.credit;
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
+  const credit = player.finances.credit;
 
   return `
     <div class="card" style="grid-column:1 / -1;">
@@ -1353,8 +1462,8 @@ function renderFinancePage() {
     <div class="section-title">Deposits</div>
     <div class="asset-grid">
       ${
-        getPlayer().finances.deposits.length
-          ? getPlayer().finances.deposits.map(dep => `
+        player.finances.deposits.length
+          ? player.finances.deposits.map(dep => `
             <div class="card asset-card">
               <div class="asset-info">
                 <div class="asset-head">
@@ -1380,15 +1489,17 @@ function renderFinancePage() {
 // ======================================================
 function transferFeeRate(currency) {
   const base = currency === "USD" ? 0.012 : 0.008;
-  const discount = num(getClassData().transferDiscount) + (getPlayer().role === "banker" ? 0.02 : 0);
+  const discount = num(getClassData().transferDiscount) + (getPlayer()?.role === "banker" ? 0.02 : 0);
   return Math.max(0, base - discount);
 }
 
 function sendUAH(toUser, amount) {
+  const player = getPlayer();
   const target = AppState.players[toUser];
   const value = num(amount);
+  if (!player) return false;
   if (!target) return alert("Отримувача не знайдено"), false;
-  if (target.username === getPlayer().username) return alert("Не можна собі"), false;
+  if (target.username === player.username) return alert("Не можна собі"), false;
 
   const fee = Math.floor(value * transferFeeRate("UAH"));
   const total = value + fee;
@@ -1400,8 +1511,8 @@ function sendUAH(toUser, amount) {
 
   target.balance += value;
   target.transfer_profile.total_received_uah += value;
-  getPlayer().transfer_profile.total_sent_uah += value;
-  getPlayer().transfer_profile.total_transfers += 1;
+  player.transfer_profile.total_sent_uah += value;
+  player.transfer_profile.total_transfers += 1;
 
   savePlayersToStorage();
   addHistory(`Transfer UAH to ${toUser}`, -total);
@@ -1410,10 +1521,12 @@ function sendUAH(toUser, amount) {
 }
 
 function sendUSD(toUser, amount) {
+  const player = getPlayer();
   const target = AppState.players[toUser];
   const value = num(amount);
+  if (!player) return false;
   if (!target) return alert("Отримувача не знайдено"), false;
-  if (target.username === getPlayer().username) return alert("Не можна собі"), false;
+  if (target.username === player.username) return alert("Не можна собі"), false;
 
   const fee = Math.floor(value * transferFeeRate("USD"));
   const total = value + fee;
@@ -1425,8 +1538,8 @@ function sendUSD(toUser, amount) {
 
   target.usd += value;
   target.transfer_profile.total_received_usd += value;
-  getPlayer().transfer_profile.total_sent_usd += value;
-  getPlayer().transfer_profile.total_transfers += 1;
+  player.transfer_profile.total_sent_usd += value;
+  player.transfer_profile.total_transfers += 1;
 
   savePlayersToStorage();
   addHistory(`Transfer USD to ${toUser}`, 0);
@@ -1472,12 +1585,14 @@ function isOnline(player) {
 }
 
 function addFriend(username) {
+  const player = getPlayer();
   const target = AppState.players[username];
+  if (!player) return false;
   if (!target) return alert("Гравця не знайдено"), false;
-  if (username === getPlayer().username) return false;
-  if (getPlayer().friends.includes(username)) return false;
+  if (username === player.username) return false;
+  if (player.friends.includes(username)) return false;
 
-  getPlayer().friends.push(username);
+  player.friends.push(username);
   saveCurrentPlayer();
   addHistory(`Add friend: ${username}`, 0);
   renderCurrentPage();
@@ -1485,7 +1600,10 @@ function addFriend(username) {
 }
 
 function removeFriend(username) {
-  getPlayer().friends = getPlayer().friends.filter(x => x !== username);
+  const player = getPlayer();
+  if (!player) return false;
+
+  player.friends = player.friends.filter(x => x !== username);
   saveCurrentPlayer();
   addHistory(`Remove friend: ${username}`, 0);
   renderCurrentPage();
@@ -1499,7 +1617,10 @@ function getTopPlayers() {
 }
 
 function renderFriendsPage() {
-  const friends = getPlayer().friends.map(name => AppState.players[name]).filter(Boolean);
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
+  const friends = player.friends.map(name => AppState.players[name]).filter(Boolean);
   const top = getTopPlayers();
 
   return `
@@ -1605,20 +1726,22 @@ function renderHistoryPage() {
 // ROLES / CARDS / COLLECTIONS
 // ======================================================
 function chooseRole(roleId) {
+  const player = getPlayer();
+  if (!player) return false;
   if (!ROLE_CONFIG[roleId]) return false;
-  if (getPlayer().role === roleId) return false;
+  if (player.role === roleId) return false;
 
-  const cost = getPlayer().role === "none" ? 25000 : 15000;
+  const cost = player.role === "none" ? 25000 : 15000;
   if (!removeBalance(cost)) {
     alert("Недостатньо грошей");
     return false;
   }
 
-  getPlayer().role = roleId;
-  getPlayer().role_stats.changes_count += 1;
-  getPlayer().role_stats.total_spent_on_roles += cost;
-  if (!getPlayer().role_stats.unlocked_roles.includes(roleId)) {
-    getPlayer().role_stats.unlocked_roles.push(roleId);
+  player.role = roleId;
+  player.role_stats.changes_count += 1;
+  player.role_stats.total_spent_on_roles += cost;
+  if (!player.role_stats.unlocked_roles.includes(roleId)) {
+    player.role_stats.unlocked_roles.push(roleId);
   }
 
   saveCurrentPlayer();
@@ -1628,8 +1751,10 @@ function chooseRole(roleId) {
 }
 
 function buyCardTheme(themeId) {
+  const player = getPlayer();
+  if (!player) return false;
   if (!CARD_THEMES[themeId]) return false;
-  if (getPlayer().card_themes_owned.includes(themeId)) return false;
+  if (player.card_themes_owned.includes(themeId)) return false;
 
   const prices = {
     black_elite: 75000,
@@ -1647,7 +1772,7 @@ function buyCardTheme(themeId) {
     return false;
   }
 
-  getPlayer().card_themes_owned.push(themeId);
+  player.card_themes_owned.push(themeId);
   saveCurrentPlayer();
   addHistory(`Buy card theme ${themeId}`, -cost);
   renderCurrentPage();
@@ -1655,8 +1780,11 @@ function buyCardTheme(themeId) {
 }
 
 function applyCardTheme(themeId) {
-  if (!getPlayer().card_themes_owned.includes(themeId)) return false;
-  getPlayer().card_theme = themeId;
+  const player = getPlayer();
+  if (!player) return false;
+  if (!player.card_themes_owned.includes(themeId)) return false;
+
+  player.card_theme = themeId;
   saveCurrentPlayer();
   addHistory(`Apply card theme ${themeId}`, 0);
   renderCurrentPage();
@@ -1664,12 +1792,15 @@ function applyCardTheme(themeId) {
 }
 
 function checkCollections() {
-  const claimed = getPlayer().collections_state.claimed;
+  const player = getPlayer();
+  if (!player) return;
 
-  const carNames = getPlayer().cars.map(x => x.name || x);
-  const realtyNames = getPlayer().realty.map(x => x.name || x);
-  const themes = getPlayer().card_themes_owned;
-  const roles = getPlayer().role_stats.unlocked_roles;
+  const claimed = player.collections_state.claimed;
+
+  const carNames = player.cars.map(x => x.name || x);
+  const realtyNames = player.realty.map(x => x.name || x);
+  const themes = player.card_themes_owned;
+  const roles = player.role_stats.unlocked_roles;
 
   if (!claimed.cars_sport_set && ["Ferrari", "Lamborghini", "Porsche"].every(x => carNames.includes(x))) {
     claimed.cars_sport_set = true;
@@ -1692,6 +1823,104 @@ function checkCollections() {
   }
 
   saveCurrentPlayer();
+}
+
+function renderRolesPage() {
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
+  return `
+    <div class="card" style="grid-column:1 / -1;">
+      <h2>Roles</h2>
+      <p>Обери роль під свій стиль гри.</p>
+    </div>
+
+    <div class="asset-grid">
+      ${Object.entries(ROLE_CONFIG).map(([id, role]) => `
+        <div class="card asset-card">
+          <div class="asset-info">
+            <div class="asset-head">
+              <div class="asset-name">${role.name}</div>
+              <div class="asset-price">${player.role === id ? "ACTIVE" : "₴ 25,000"}</div>
+            </div>
+            <div class="asset-meta">
+              <span>Click +${role.clickBoost}</span>
+              <span>Market +${Math.floor(role.marketBoost * 100)}%</span>
+              <span>Business +${Math.floor(role.businessBoost * 100)}%</span>
+            </div>
+            <button ${player.role === id ? "disabled" : ""} data-role="${id}">${player.role === id ? "Current" : "Choose"}</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderCardsPage() {
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
+  return `
+    <div class="card" style="grid-column:1 / -1;">
+      <h2>Card Themes</h2>
+      <p>Купуй і застосовуй стилі карток.</p>
+    </div>
+
+    <div class="asset-grid">
+      ${Object.entries(CARD_THEMES).map(([id, theme]) => `
+        <div class="card asset-card">
+          <div class="asset-info">
+            <div class="asset-head">
+              <div class="asset-name">${theme.name}</div>
+              <div class="asset-price">${player.card_theme === id ? "ACTIVE" : player.card_themes_owned.includes(id) ? "OWNED" : "BUY"}</div>
+            </div>
+            <div class="asset-meta">
+              <span>Click +${theme.clickBoost}</span>
+              <span>Prestige +${theme.prestige}</span>
+            </div>
+            <div class="asset-actions">
+              <button ${player.card_themes_owned.includes(id) ? "disabled" : ""} data-buy-theme="${id}">Buy</button>
+              <button class="secondary" ${!player.card_themes_owned.includes(id) || player.card_theme === id ? "disabled" : ""} data-apply-theme="${id}">Apply</button>
+            </div>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderCollectionsPage() {
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
+  const claimed = player.collections_state.claimed;
+
+  return `
+    <div class="card" style="grid-column:1 / -1;">
+      <h2>Collections</h2>
+      <p>Збирай сети для бонусів.</p>
+    </div>
+
+    <div class="asset-grid">
+      <div class="card">
+        <h3>Sport Cars Set</h3>
+        <p>Ferrari + Lamborghini + Porsche</p>
+        <p><span class="muted">Completed:</span> ${claimed.cars_sport_set ? "Yes" : "No"}</p>
+      </div>
+
+      <div class="card">
+        <h3>Premium Card Set</h3>
+        <p>black_elite + gold_luxe + neon_pulse + metal_titan</p>
+        <p><span class="muted">Completed:</span> ${claimed.cards_premium_set ? "Yes" : "No"}</p>
+      </div>
+
+      <div class="card">
+        <h3>Finance Roles Set</h3>
+        <p>trader + banker + entrepreneur</p>
+        <p><span class="muted">Completed:</span> ${claimed.roles_finance_set ? "Yes" : "No"}</p>
+      </div>
+    </div>
+  `;
 }
 
 // ======================================================
@@ -1721,6 +1950,9 @@ function rollLootRarity(type) {
 }
 
 function openLootBox(type) {
+  const player = getPlayer();
+  if (!player) return false;
+
   const prices = {
     basic_safe: 25000,
     premium_safe: 125000,
@@ -1734,8 +1966,8 @@ function openLootBox(type) {
   }
 
   const rarity = rollLootRarity(type);
-  getPlayer().loot_profile.opened_total += 1;
-  getPlayer().loot_profile.rarity_stats[rarity] += 1;
+  player.loot_profile.opened_total += 1;
+  player.loot_profile.rarity_stats[rarity] += 1;
 
   let rewardText = "";
   if (rarity === "common") {
@@ -1747,19 +1979,19 @@ function openLootBox(type) {
     addUSD(usd);
     rewardText = `$ ${formatMoney(usd)}`;
   } else if (rarity === "epic") {
-    getPlayer().inventory.push({ name: "Gold Prestige Frame", rarity: "epic", source: "loot", receivedAt: nowIso() });
+    player.inventory.push({ name: "Gold Prestige Frame", rarity: "epic", source: "loot", receivedAt: nowIso() });
     rewardText = "Gold Prestige Frame";
   } else {
     const options = ["Ferrari", "Villa", "mono_bankish"];
     const picked = options[randomInt(0, options.length - 1)];
 
     if (picked === "Ferrari") {
-      getPlayer().cars.push({ name: "Ferrari", value: 12000000, source: "loot", receivedAt: nowIso() });
+      player.cars.push({ name: "Ferrari", value: 12000000, source: "loot", receivedAt: nowIso() });
     } else if (picked === "Villa") {
-      getPlayer().realty.push({ name: "Villa", value: 25000000, source: "loot", receivedAt: nowIso() });
+      player.realty.push({ name: "Villa", value: 25000000, source: "loot", receivedAt: nowIso() });
     } else {
-      if (!getPlayer().card_themes_owned.includes("mono_bankish")) {
-        getPlayer().card_themes_owned.push("mono_bankish");
+      if (!player.card_themes_owned.includes("mono_bankish")) {
+        player.card_themes_owned.push("mono_bankish");
       }
     }
 
@@ -1803,6 +2035,9 @@ function renderLootPage() {
 // CASINO
 // ======================================================
 function playSlots(bet) {
+  const player = getPlayer();
+  if (!player) return false;
+
   const value = num(bet);
   if (!removeBalance(value)) {
     alert("Недостатньо грошей");
@@ -1821,7 +2056,7 @@ function playSlots(bet) {
   if (reward > 0) addBalance(reward);
 
   AppState.battle.lastResult = null;
-  getPlayer().casino_profile.jackpot_bank += Math.floor(value * 0.12);
+  player.casino_profile.jackpot_bank += Math.floor(value * 0.12);
 
   saveCurrentPlayer();
   addHistory(`Slots ${a}|${b}|${c}`, reward - value);
@@ -1830,7 +2065,10 @@ function playSlots(bet) {
 }
 
 function spinWheel() {
-  if (getPlayer().casino_profile.daily_wheel_day === todayKey()) {
+  const player = getPlayer();
+  if (!player) return false;
+
+  if (player.casino_profile.daily_wheel_day === todayKey()) {
     alert("Сьогодні вже крутив");
     return false;
   }
@@ -1839,12 +2077,12 @@ function spinWheel() {
     () => { addBalance(5000); return "₴ 5,000"; },
     () => { addBalance(15000); return "₴ 15,000"; },
     () => { addUSD(100); return "$ 100"; },
-    () => { getPlayer().loot_profile.free_boxes.basic_safe += 1; saveCurrentPlayer(); return "Free Basic Safe"; },
+    () => { player.loot_profile.free_boxes.basic_safe += 1; saveCurrentPlayer(); return "Free Basic Safe"; },
     () => { return "Nothing"; }
   ];
 
   const result = rewards[randomInt(0, rewards.length - 1)]();
-  getPlayer().casino_profile.daily_wheel_day = todayKey();
+  player.casino_profile.daily_wheel_day = todayKey();
   saveCurrentPlayer();
   addHistory(`Daily wheel: ${result}`, 0);
   renderCurrentPage();
@@ -1852,13 +2090,16 @@ function spinWheel() {
 }
 
 function buyLotteryTicket() {
+  const player = getPlayer();
+  if (!player) return false;
+
   if (!removeBalance(5000)) {
     alert("Недостатньо грошей");
     return false;
   }
 
-  getPlayer().casino_profile.lottery_tickets += 1;
-  getPlayer().casino_profile.lottery_bank += 3500;
+  player.casino_profile.lottery_tickets += 1;
+  player.casino_profile.lottery_bank += 3500;
   saveCurrentPlayer();
   addHistory("Buy lottery ticket", -5000);
   renderCurrentPage();
@@ -1866,7 +2107,10 @@ function buyLotteryTicket() {
 }
 
 function drawLottery() {
-  const tickets = num(getPlayer().casino_profile.lottery_tickets);
+  const player = getPlayer();
+  if (!player) return false;
+
+  const tickets = num(player.casino_profile.lottery_tickets);
   if (tickets <= 0) {
     alert("Немає квитків");
     return false;
@@ -1876,21 +2120,24 @@ function drawLottery() {
   const won = randomInt(1, 100) <= chance;
 
   if (won) {
-    const reward = num(getPlayer().casino_profile.lottery_bank);
+    const reward = num(player.casino_profile.lottery_bank);
     addBalance(reward);
-    getPlayer().casino_profile.lottery_bank = 250000;
+    player.casino_profile.lottery_bank = 250000;
     addHistory("Lottery win", reward);
   } else {
     addHistory("Lottery lose", 0);
   }
 
-  getPlayer().casino_profile.lottery_tickets = 0;
+  player.casino_profile.lottery_tickets = 0;
   saveCurrentPlayer();
   renderCurrentPage();
   return true;
 }
 
 function renderCasinoPage() {
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
   return `
     <div class="card" style="grid-column:1 / -1;">
       <h2>Casino</h2>
@@ -1913,8 +2160,8 @@ function renderCasinoPage() {
 
       <div class="card">
         <h3>Lottery</h3>
-        <p><span class="muted">Bank:</span> ₴ ${formatMoney(getPlayer().casino_profile.lottery_bank)}</p>
-        <p><span class="muted">Tickets:</span> ${getPlayer().casino_profile.lottery_tickets}</p>
+        <p><span class="muted">Bank:</span> ₴ ${formatMoney(player.casino_profile.lottery_bank)}</p>
+        <p><span class="muted">Tickets:</span> ${player.casino_profile.lottery_tickets}</p>
         <div class="asset-actions">
           <button id="buy-ticket-btn">Buy Ticket</button>
           <button class="secondary" id="draw-lottery-btn">Draw</button>
@@ -1928,13 +2175,20 @@ function renderCasinoPage() {
 // BATTLE
 // ======================================================
 function battlePower() {
+  const player = getPlayer();
+
+  if (!player) {
+    return 20;
+  }
+
   let power = 20;
-  power += Math.floor(num(getPlayer().clicks) / 100);
-  power += Math.floor(num(getPlayer().total_earned) / 250000);
+  power += Math.floor(num(player.clicks) / 100);
+  power += Math.floor(num(player.total_earned) / 250000);
   power += num(getClassData().clickBonus) * 2;
   power += num(getRoleData().battleBoost) * 100;
   power += num(getCardBonus().clickBoost) * 3;
   power += getPrestige() * 4;
+
   return Math.max(20, Math.floor(power));
 }
 
@@ -1952,10 +2206,20 @@ function generateEnemy() {
 }
 
 function generateEnemies() {
+  const player = getPlayer();
+
+  if (!player) {
+    AppState.battle.enemies = [];
+    return;
+  }
+
   AppState.battle.enemies = Array.from({ length: 6 }, () => generateEnemy());
 }
 
 function startBattle(enemyId) {
+  const player = getPlayer();
+  if (!player) return false;
+
   if (Date.now() < AppState.battle.cooldownUntil) {
     alert("Cooldown");
     return false;
@@ -1970,15 +2234,15 @@ function startBattle(enemyId) {
 
   if (won) {
     addBalance(enemy.reward);
-    getPlayer().battle_profile.wins += 1;
-    getPlayer().battle_profile.streak += 1;
-    getPlayer().battle_profile.best_streak = Math.max(getPlayer().battle_profile.best_streak, getPlayer().battle_profile.streak);
-    getPlayer().battle_profile.rating += randomInt(12, 24);
+    player.battle_profile.wins += 1;
+    player.battle_profile.streak += 1;
+    player.battle_profile.best_streak = Math.max(player.battle_profile.best_streak, player.battle_profile.streak);
+    player.battle_profile.rating += randomInt(12, 24);
     addHistory(`Battle win vs ${enemy.name}`, enemy.reward);
   } else {
-    getPlayer().battle_profile.losses += 1;
-    getPlayer().battle_profile.streak = 0;
-    getPlayer().battle_profile.rating = Math.max(500, getPlayer().battle_profile.rating - randomInt(8, 18));
+    player.battle_profile.losses += 1;
+    player.battle_profile.streak = 0;
+    player.battle_profile.rating = Math.max(500, player.battle_profile.rating - randomInt(8, 18));
     addHistory(`Battle loss vs ${enemy.name}`, 0);
   }
 
@@ -1992,6 +2256,9 @@ function startBattle(enemyId) {
 }
 
 function renderBattlePage() {
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
   if (!AppState.battle.enemies.length) generateEnemies();
 
   return `
@@ -2009,19 +2276,19 @@ function renderBattlePage() {
 
       <div class="card stat-card">
         <div class="stat-label">Wins</div>
-        <div class="stat-value green">${formatCompact(getPlayer().battle_profile.wins)}</div>
+        <div class="stat-value green">${formatCompact(player.battle_profile.wins)}</div>
         <div class="stat-sub">Victories</div>
       </div>
 
       <div class="card stat-card">
         <div class="stat-label">Losses</div>
-        <div class="stat-value red">${formatCompact(getPlayer().battle_profile.losses)}</div>
+        <div class="stat-value red">${formatCompact(player.battle_profile.losses)}</div>
         <div class="stat-sub">Defeats</div>
       </div>
 
       <div class="card stat-card">
         <div class="stat-label">Rating</div>
-        <div class="stat-value">${formatCompact(getPlayer().battle_profile.rating)}</div>
+        <div class="stat-value">${formatCompact(player.battle_profile.rating)}</div>
         <div class="stat-sub">Arena rating</div>
       </div>
     </div>
@@ -2143,101 +2410,12 @@ function renderAdminPage() {
 }
 
 // ======================================================
-// ROLES / CARDS / COLLECTIONS PAGES
-// ======================================================
-function renderRolesPage() {
-  return `
-    <div class="card" style="grid-column:1 / -1;">
-      <h2>Roles</h2>
-      <p>Обери роль під свій стиль гри.</p>
-    </div>
-
-    <div class="asset-grid">
-      ${Object.entries(ROLE_CONFIG).map(([id, role]) => `
-        <div class="card asset-card">
-          <div class="asset-info">
-            <div class="asset-head">
-              <div class="asset-name">${role.name}</div>
-              <div class="asset-price">${getPlayer().role === id ? "ACTIVE" : "₴ 25,000"}</div>
-            </div>
-            <div class="asset-meta">
-              <span>Click +${role.clickBoost}</span>
-              <span>Market +${Math.floor(role.marketBoost * 100)}%</span>
-              <span>Business +${Math.floor(role.businessBoost * 100)}%</span>
-            </div>
-            <button ${getPlayer().role === id ? "disabled" : ""} data-role="${id}">${getPlayer().role === id ? "Current" : "Choose"}</button>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  `;
-}
-
-function renderCardsPage() {
-  return `
-    <div class="card" style="grid-column:1 / -1;">
-      <h2>Card Themes</h2>
-      <p>Купуй і застосовуй стилі карток.</p>
-    </div>
-
-    <div class="asset-grid">
-      ${Object.entries(CARD_THEMES).map(([id, theme]) => `
-        <div class="card asset-card">
-          <div class="asset-info">
-            <div class="asset-head">
-              <div class="asset-name">${theme.name}</div>
-              <div class="asset-price">${getPlayer().card_theme === id ? "ACTIVE" : getPlayer().card_themes_owned.includes(id) ? "OWNED" : "BUY"}</div>
-            </div>
-            <div class="asset-meta">
-              <span>Click +${theme.clickBoost}</span>
-              <span>Prestige +${theme.prestige}</span>
-            </div>
-            <div class="asset-actions">
-              <button ${getPlayer().card_themes_owned.includes(id) ? "disabled" : ""} data-buy-theme="${id}">Buy</button>
-              <button class="secondary" ${!getPlayer().card_themes_owned.includes(id) || getPlayer().card_theme === id ? "disabled" : ""} data-apply-theme="${id}">Apply</button>
-            </div>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  `;
-}
-
-function renderCollectionsPage() {
-  const claimed = getPlayer().collections_state.claimed;
-
-  return `
-    <div class="card" style="grid-column:1 / -1;">
-      <h2>Collections</h2>
-      <p>Збирай сети для бонусів.</p>
-    </div>
-
-    <div class="asset-grid">
-      <div class="card">
-        <h3>Sport Cars Set</h3>
-        <p>Ferrari + Lamborghini + Porsche</p>
-        <p><span class="muted">Completed:</span> ${claimed.cars_sport_set ? "Yes" : "No"}</p>
-      </div>
-
-      <div class="card">
-        <h3>Premium Card Set</h3>
-        <p>black_elite + gold_luxe + neon_pulse + metal_titan</p>
-        <p><span class="muted">Completed:</span> ${claimed.cards_premium_set ? "Yes" : "No"}</p>
-      </div>
-
-      <div class="card">
-        <h3>Finance Roles Set</h3>
-        <p>trader + banker + entrepreneur</p>
-        <p><span class="muted">Completed:</span> ${claimed.roles_finance_set ? "Yes" : "No"}</p>
-      </div>
-    </div>
-  `;
-}
-
-// ======================================================
 // STATS / INVENTORY
 // ======================================================
 function renderStatsPage() {
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
   return `
     <div class="card" style="grid-column:1 / -1;">
       <h2>Stats</h2>
@@ -2247,15 +2425,15 @@ function renderStatsPage() {
     <div class="premium-stat-grid">
       <div class="card stat-card">
         <div class="stat-label">Balance</div>
-        <div class="stat-value green">₴ ${formatCompact(getPlayer().balance)}</div>
+        <div class="stat-value green">₴ ${formatCompact(player.balance)}</div>
       </div>
       <div class="card stat-card">
         <div class="stat-label">USD</div>
-        <div class="stat-value blue">$ ${formatCompact(getPlayer().usd)}</div>
+        <div class="stat-value blue">$ ${formatCompact(player.usd)}</div>
       </div>
       <div class="card stat-card">
         <div class="stat-label">Clicks</div>
-        <div class="stat-value">${formatCompact(getPlayer().clicks)}</div>
+        <div class="stat-value">${formatCompact(player.clicks)}</div>
       </div>
       <div class="card stat-card">
         <div class="stat-label">Passive</div>
@@ -2266,6 +2444,9 @@ function renderStatsPage() {
 }
 
 function renderInventoryPage() {
+  const player = getPlayer();
+  if (!player) return `<div class="card"><h2>No player</h2></div>`;
+
   return `
     <div class="card" style="grid-column:1 / -1;">
       <h2>Inventory</h2>
@@ -2273,21 +2454,21 @@ function renderInventoryPage() {
     </div>
 
     <div class="asset-grid">
-      ${safeArray(getPlayer().inventory).map(item => `
+      ${safeArray(player.inventory).map(item => `
         <div class="card">
           <h3>${item.name}</h3>
           <p>${item.rarity || "common"}</p>
         </div>
       `).join("")}
 
-      ${safeArray(getPlayer().cars).map(car => `
+      ${safeArray(player.cars).map(car => `
         <div class="card">
           <h3>${car.name}</h3>
           <p>₴ ${formatMoney(car.value || 0)}</p>
         </div>
       `).join("")}
 
-      ${safeArray(getPlayer().realty).map(realty => `
+      ${safeArray(player.realty).map(realty => `
         <div class="card">
           <h3>${realty.name}</h3>
           <p>₴ ${formatMoney(realty.value || 0)}</p>
@@ -2371,7 +2552,9 @@ function bindAuth() {
       return;
     }
 
+    generateEnemies();
     showAppScreen();
+    bindNavigation();
     updateHeader();
     renderCurrentPage();
   });
@@ -2379,13 +2562,19 @@ function bindAuth() {
 
 function bindNavigation() {
   document.querySelectorAll(".nav-btn, .mobile-tab-btn").forEach(btn => {
+    if (btn.dataset.boundNav === "1") return;
+    btn.dataset.boundNav = "1";
+
     btn.addEventListener("click", () => {
       AppState.page = btn.dataset.page || "profile";
       renderCurrentPage();
     });
   });
 
-  $("logout-btn")?.addEventListener("click", logoutUser);
+  if ($("logout-btn") && $("logout-btn").dataset.boundLogout !== "1") {
+    $("logout-btn").dataset.boundLogout = "1";
+    $("logout-btn").addEventListener("click", logoutUser);
+  }
 }
 
 function bindDynamicEvents() {
@@ -2521,13 +2710,13 @@ function boot() {
   AppState.players = loadPlayersFromStorage();
   ensureSpecialAccounts();
   initMarket();
-  generateEnemies();
   bindAuth();
 
   const session = getSessionUser();
   if (session && AppState.players[session] && !AppState.players[session].banned) {
     AppState.currentUser = session;
     AppState.player = normalizePlayer(AppState.players[session]);
+    generateEnemies();
     showAppScreen();
     bindNavigation();
     updateHeader();
@@ -2537,8 +2726,9 @@ function boot() {
   }
 
   setInterval(() => {
-    if (getPlayer()) {
-      getPlayer().last_seen = nowIso();
+    const player = getPlayer();
+    if (player) {
+      player.last_seen = nowIso();
       saveCurrentPlayer();
     }
   }, 10000);
