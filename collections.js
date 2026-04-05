@@ -6,80 +6,145 @@ import { apiAddHistory } from "./api.js";
 // ======================================================
 export const COLLECTIONS = [
   {
-    id: "sport_cars_set",
-    name: "Sport Cars Set",
+    id: "cars_sport_set",
+    name: "Sport Car Set",
     category: "cars",
-    description: "Збери 5 різних спорткарів для постійного бонусу до престижу і кліку.",
-    items: ["ferrari", "lamborghini", "mclaren", "porsche911", "nissan_gtr"],
+    description: "Збери спортивний автопарк і отримай постійний бонус до престижу та доходу.",
+    requiredItems: [
+      "Ferrari",
+      "Lamborghini",
+      "Porsche",
+      "McLaren",
+      "Bugatti"
+    ],
     reward: {
-      type: "passive_bonus",
-      value: 0.03,
-      label: "+3% passive income"
+      type: "passive_boost",
+      value: 0.04,
+      label: "+4% passive income"
     }
   },
 
   {
-    id: "luxury_cars_set",
-    name: "Luxury Cars Set",
+    id: "cars_luxury_set",
+    name: "Luxury Car Set",
     category: "cars",
-    description: "Збери люксовий автосет для бонусу до статусу й багатого вигляду профілю.",
-    items: ["rolls_royce", "bentley", "mercedes_maybach", "range_rover", "bmw7"],
+    description: "Колекція преміальних авто для дорожчого профілю.",
+    requiredItems: [
+      "Rolls-Royce",
+      "Bentley",
+      "Maybach",
+      "Mercedes S-Class",
+      "BMW 7"
+    ],
     reward: {
-      type: "click_bonus",
-      value: 8,
-      label: "+8 click income"
+      type: "prestige",
+      value: 3,
+      label: "+3 prestige"
     }
   },
 
   {
-    id: "property_empire_set",
-    name: "Property Empire",
+    id: "realty_city_set",
+    name: "City Property Set",
     category: "realty",
-    description: "Збери дорогі об'єкти нерухомості, щоб отримати бонус до фінансової стабільності.",
-    items: ["city_apartment", "villa", "penthouse", "office_tower", "private_island"],
+    description: "Збери повний набір міської нерухомості.",
+    requiredItems: [
+      "Apartment",
+      "Penthouse",
+      "Office",
+      "Shopping Mall"
+    ],
     reward: {
-      type: "maintenance_discount",
-      value: 0.12,
-      label: "-12% maintenance"
-    }
-  },
-
-  {
-    id: "card_elite_set",
-    name: "Elite Cards Set",
-    category: "cards",
-    description: "Збери преміальні дизайни карток, щоб отримати додатковий престиж.",
-    items: ["black_elite", "gold_luxe", "neon_pulse", "metal_titan", "mono_bankish"],
-    reward: {
-      type: "prestige_bonus",
-      value: 5,
-      label: "+5 prestige"
-    }
-  },
-
-  {
-    id: "banking_collection",
-    name: "Banking Collection",
-    category: "mixed",
-    description: "Фінансовий сет: банк, преміальна картка, банкір і великий баланс.",
-    items: ["private_bank_project", "gold_luxe", "banker_role", "cash_10m"],
-    reward: {
-      type: "deposit_bonus",
-      value: 0.01,
-      label: "+1% deposit rate"
-    }
-  },
-
-  {
-    id: "sports_empire_set",
-    name: "Sports Empire",
-    category: "mixed",
-    description: "Футбольний клуб + спортивні активи + спортивна роль.",
-    items: ["football_club_project", "sports_manager_role", "gym_project"],
-    reward: {
-      type: "business_bonus",
+      type: "business_boost",
       value: 0.05,
-      label: "+5% sports/business income"
+      label: "+5% business income"
+    }
+  },
+
+  {
+    id: "realty_luxury_set",
+    name: "Luxury Estate Set",
+    category: "realty",
+    description: "Елітна нерухомість для сильного бусту капіталу.",
+    requiredItems: [
+      "Villa",
+      "Mansion",
+      "Private Island",
+      "Sky Palace"
+    ],
+    reward: {
+      type: "tax_discount",
+      value: 0.08,
+      label: "-8% passive tax"
+    }
+  },
+
+  {
+    id: "cards_premium_set",
+    name: "Premium Card Set",
+    category: "cards",
+    description: "Збери преміальні карткові дизайни.",
+    requiredItems: [
+      "black_elite",
+      "gold_luxe",
+      "neon_pulse",
+      "metal_titan"
+    ],
+    reward: {
+      type: "click_boost",
+      value: 5,
+      label: "+5 click bonus"
+    }
+  },
+
+  {
+    id: "cards_elite_set",
+    name: "Elite Card Set",
+    category: "cards",
+    description: "Повний колекційний набір топових карткових стилів.",
+    requiredItems: [
+      "ruby_red",
+      "ice_glass",
+      "mono_bankish"
+    ],
+    reward: {
+      type: "prestige",
+      value: 4,
+      label: "+4 prestige"
+    }
+  },
+
+  {
+    id: "roles_finance_set",
+    name: "Finance Paths Set",
+    category: "roles",
+    description: "Відкрий основні фінансові ролі.",
+    requiredItems: [
+      "trader",
+      "banker",
+      "entrepreneur"
+    ],
+    reward: {
+      type: "market_boost",
+      value: 0.04,
+      label: "+4% market power"
+    }
+  },
+
+  {
+    id: "roles_master_set",
+    name: "Master Roles Set",
+    category: "roles",
+    description: "Збери набір спеціалізованих ролей.",
+    requiredItems: [
+      "sports_manager",
+      "media_mogul",
+      "high_roller"
+    ],
+    reward: {
+      type: "lottery_luck",
+      value: 0.03,
+      label: "+3% lottery luck"
     }
   }
 ];
@@ -108,16 +173,6 @@ function formatMoney(n) {
   return Math.floor(numberValue(n)).toLocaleString("en-US");
 }
 
-function formatCompact(n) {
-  const value = numberValue(n);
-
-  if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + "B";
-  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
-  if (value >= 1_000) return (value / 1_000).toFixed(1) + "K";
-
-  return Math.floor(value).toString();
-}
-
 function setPage(html) {
   const root = document.getElementById("page-content");
   if (!root) return;
@@ -128,124 +183,143 @@ function setPage(html) {
 function ensureCollectionsData() {
   const p = getPlayer();
 
-  if (!p.collection_rewards || typeof p.collection_rewards !== "object" || Array.isArray(p.collection_rewards)) {
-    p.collection_rewards = {};
+  if (!p.collections_state || typeof p.collections_state !== "object" || Array.isArray(p.collections_state)) {
+    p.collections_state = {
+      claimed: {},
+      completed_at: {}
+    };
   }
 
-  if (!p.collection_stats || typeof p.collection_stats !== "object" || Array.isArray(p.collection_stats)) {
-    p.collection_stats = {
-      completed_count: 0,
-      total_prestige_from_collections: 0
-    };
+  if (!safeObject(p.collections_state.claimed)) {
+    p.collections_state.claimed = {};
+  }
+
+  if (!safeObject(p.collections_state.completed_at)) {
+    p.collections_state.completed_at = {};
   }
 }
 
 function saveCollectionsData() {
-  const p = getPlayer();
-
   updatePlayer({
-    collection_rewards: p.collection_rewards,
-    collection_stats: p.collection_stats
+    collections_state: getPlayer().collections_state
   });
 }
 
-function normalizeString(v) {
-  return String(v || "").trim().toLowerCase();
+function getCollectionsState() {
+  ensureCollectionsData();
+  return getPlayer().collections_state;
 }
 
-function normalizeOwnedList(list) {
-  return safeArray(list).map((item) => {
-    if (typeof item === "string") {
-      return normalizeString(item);
-    }
+function getCarsOwnedNames() {
+  const cars = safeArray(getPlayer().cars);
 
-    if (typeof item === "object" && item !== null) {
-      return normalizeString(item.id || item.name || item.label);
-    }
-
+  return cars.map((car) => {
+    if (typeof car === "string") return car;
+    if (car && typeof car === "object") return car.name || car.title || car.model || "";
     return "";
   }).filter(Boolean);
 }
 
-function getOwnedCars() {
-  return normalizeOwnedList(getPlayer().cars);
-}
+function getRealtyOwnedNames() {
+  const realty = safeArray(getPlayer().realty);
 
-function getOwnedRealty() {
-  return normalizeOwnedList(getPlayer().realty);
+  return realty.map((item) => {
+    if (typeof item === "string") return item;
+    if (item && typeof item === "object") return item.name || item.title || item.type || "";
+    return "";
+  }).filter(Boolean);
 }
 
 function getOwnedCardThemes() {
-  return normalizeOwnedList(getPlayer().card_themes_owned);
+  return safeArray(getPlayer().card_themes_owned);
 }
 
-function getBusinessProjects() {
-  const map = safeObject(getPlayer().business_projects);
-  return Object.keys(map).filter((id) => map[id]?.unlocked).map(normalizeString);
+function getOwnedRoles() {
+  const currentRole = String(getPlayer().role || "none");
+  const roleStats = safeObject(getPlayer().role_stats);
+  const unlocked = safeArray(roleStats.unlocked_roles);
+
+  const all = new Set(unlocked);
+  if (currentRole && currentRole !== "none") {
+    all.add(currentRole);
+  }
+
+  return [...all];
 }
 
-function getCurrentRoleId() {
-  return normalizeString(getPlayer().role || "none");
-}
+function getOwnedItemsByCategory(category) {
+  if (category === "cars") return getCarsOwnedNames();
+  if (category === "realty") return getRealtyOwnedNames();
+  if (category === "cards") return getOwnedCardThemes();
+  if (category === "roles") return getOwnedRoles();
 
-function playerHasCash10m() {
-  return numberValue(getPlayer().balance || 0) >= 10000000;
-}
-
-// ======================================================
-// OWNERSHIP CHECK
-// ======================================================
-function hasCollectionItem(itemId) {
-  const id = normalizeString(itemId);
-
-  if (getOwnedCars().includes(id)) return true;
-  if (getOwnedRealty().includes(id)) return true;
-  if (getOwnedCardThemes().includes(id)) return true;
-  if (getBusinessProjects().includes(id.replace("_project", ""))) return true;
-
-  if (id === "banker_role" && getCurrentRoleId() === "banker") return true;
-  if (id === "sports_manager_role" && getCurrentRoleId() === "sports_manager") return true;
-  if (id === "cash_10m" && playerHasCash10m()) return true;
-
-  if (id === "private_bank_project" && getBusinessProjects().includes("private_bank")) return true;
-  if (id === "football_club_project" && getBusinessProjects().includes("football_club")) return true;
-  if (id === "gym_project" && getBusinessProjects().includes("gym")) return true;
-
-  return false;
+  return [];
 }
 
 function collectionProgress(collection) {
-  const ownedCount = collection.items.filter(hasCollectionItem).length;
-  const total = collection.items.length;
-  const completed = ownedCount >= total;
+  const owned = getOwnedItemsByCategory(collection.category);
+  const current = collection.requiredItems.filter((item) => owned.includes(item));
 
   return {
-    ownedCount,
-    total,
-    completed,
-    percent: Math.floor((ownedCount / total) * 100)
+    currentCount: current.length,
+    totalCount: collection.requiredItems.length,
+    ownedItems: current,
+    missingItems: collection.requiredItems.filter((item) => !owned.includes(item)),
+    completed: current.length === collection.requiredItems.length
   };
+}
+
+function progressPercent(collection) {
+  const pg = collectionProgress(collection);
+  return Math.max(0, Math.min(100, (pg.currentCount / Math.max(1, pg.totalCount)) * 100));
+}
+
+function isRewardClaimed(collectionId) {
+  ensureCollectionsData();
+  return !!getCollectionsState().claimed[collectionId];
 }
 
 // ======================================================
 // REWARD SYSTEM
 // ======================================================
-function rewardAlreadyClaimed(collectionId) {
+export function getCollectionBonuses() {
   ensureCollectionsData();
-  return !!getPlayer().collection_rewards[collectionId];
-}
 
-function claimableCollections() {
-  return COLLECTIONS.filter((collection) => {
-    const progress = collectionProgress(collection);
-    return progress.completed && !rewardAlreadyClaimed(collection.id);
+  const state = getCollectionsState();
+
+  const total = {
+    passive_boost: 0,
+    business_boost: 0,
+    market_boost: 0,
+    tax_discount: 0,
+    click_boost: 0,
+    prestige: 0,
+    lottery_luck: 0
+  };
+
+  COLLECTIONS.forEach((collection) => {
+    if (!state.claimed[collection.id]) return;
+
+    const reward = collection.reward;
+    if (!reward) return;
+
+    if (reward.type === "passive_boost") total.passive_boost += numberValue(reward.value);
+    if (reward.type === "business_boost") total.business_boost += numberValue(reward.value);
+    if (reward.type === "market_boost") total.market_boost += numberValue(reward.value);
+    if (reward.type === "tax_discount") total.tax_discount += numberValue(reward.value);
+    if (reward.type === "click_boost") total.click_boost += numberValue(reward.value);
+    if (reward.type === "prestige") total.prestige += numberValue(reward.value);
+    if (reward.type === "lottery_luck") total.lottery_luck += numberValue(reward.value);
   });
+
+  return total;
 }
 
 export async function claimCollectionReward(collectionId) {
   ensureCollectionsData();
 
   const p = getPlayer();
+  const state = getCollectionsState();
   const collection = COLLECTIONS.find((x) => x.id === collectionId);
 
   if (!collection) {
@@ -256,26 +330,17 @@ export async function claimCollectionReward(collectionId) {
   const progress = collectionProgress(collection);
 
   if (!progress.completed) {
-    alert("Колекція ще не зібрана");
+    alert("Колекція ще не завершена");
     return false;
   }
 
-  if (rewardAlreadyClaimed(collectionId)) {
-    alert("Нагорода вже отримана");
+  if (state.claimed[collectionId]) {
+    alert("Нагороду вже отримано");
     return false;
   }
 
-  p.collection_rewards[collectionId] = {
-    claimedAt: new Date().toISOString(),
-    reward: collection.reward
-  };
-
-  p.collection_stats.completed_count = numberValue(p.collection_stats.completed_count) + 1;
-
-  if (collection.reward.type === "prestige_bonus") {
-    p.collection_stats.total_prestige_from_collections =
-      numberValue(p.collection_stats.total_prestige_from_collections) + numberValue(collection.reward.value);
-  }
+  state.claimed[collectionId] = true;
+  state.completed_at[collectionId] = new Date().toISOString();
 
   saveCollectionsData();
 
@@ -284,91 +349,205 @@ export async function claimCollectionReward(collectionId) {
 }
 
 // ======================================================
-// GLOBAL BONUS EXPORTS
+// UI HELPERS
 // ======================================================
-function claimedRewardValueByType(type) {
-  ensureCollectionsData();
-
-  let total = 0;
-
-  Object.values(getPlayer().collection_rewards).forEach((entry) => {
-    if (!entry?.reward) return;
-    if (entry.reward.type === type) {
-      total += numberValue(entry.reward.value || 0);
-    }
-  });
-
-  return total;
+function rewardBadge(reward) {
+  return `
+    <div class="title-pill">${reward.label}</div>
+  `;
 }
 
-export function getCollectionPassiveBonus() {
-  return claimedRewardValueByType("passive_bonus");
+function requiredItemTag(item, owned) {
+  return `
+    <div class="title-pill" style="${owned ? "border-color:rgba(52,210,123,.35);background:rgba(52,210,123,.12);" : ""}">
+      ${owned ? "✅" : "⬜"} ${item}
+    </div>
+  `;
 }
 
-export function getCollectionClickBonus() {
-  return claimedRewardValueByType("click_bonus");
-}
-
-export function getCollectionMaintenanceDiscount() {
-  return claimedRewardValueByType("maintenance_discount");
-}
-
-export function getCollectionPrestigeBonus() {
-  return claimedRewardValueByType("prestige_bonus");
-}
-
-export function getCollectionDepositBonus() {
-  return claimedRewardValueByType("deposit_bonus");
-}
-
-export function getCollectionBusinessBonus() {
-  return claimedRewardValueByType("business_bonus");
-}
-
-// ======================================================
-// RENDER HELPERS
-// ======================================================
-function progressBar(percent) {
-  const safePercent = Math.max(0, Math.min(100, numberValue(percent)));
+function collectionCard(collection) {
+  const progress = collectionProgress(collection);
+  const claimed = isRewardClaimed(collection.id);
+  const percent = progressPercent(collection);
 
   return `
-    <div style="margin-top:8px;">
-      <div style="height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;">
-        <div style="width:${safePercent}%;height:100%;background:linear-gradient(90deg,#8ec5ff,#8ff5db);border-radius:999px;"></div>
+    <div class="card asset-card">
+      <div class="asset-info">
+        <div class="asset-head">
+          <div class="asset-name">${collection.name}</div>
+          <div class="asset-price">${progress.currentCount}/${progress.totalCount}</div>
+        </div>
+
+        <div class="asset-meta">
+          <span>${collection.category}</span>
+          <span>${progress.completed ? "Complete" : "In progress"}</span>
+          <span>${claimed ? "Reward claimed" : "Reward not claimed"}</span>
+        </div>
+
+        <p>${collection.description}</p>
+
+        <div style="margin-top:10px;">
+          <div class="muted" style="font-size:13px;margin-bottom:6px;">Progress: ${Math.floor(percent)}%</div>
+          <div style="height:9px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;">
+            <div style="width:${percent}%;height:100%;background:linear-gradient(90deg,#8ec5ff,#8ff5db);border-radius:999px;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="muted" style="margin-bottom:8px;">Required items</div>
+          <div class="titles-list">
+            ${collection.requiredItems.map((item) => requiredItemTag(item, progress.ownedItems.includes(item))).join("")}
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="muted" style="margin-bottom:8px;">Reward</div>
+          <div class="titles-list">
+            ${rewardBadge(collection.reward)}
+          </div>
+        </div>
+
+        <div class="profile-actions" style="margin-top:14px;">
+          <button
+            data-claim-collection="${collection.id}"
+            ${!progress.completed || claimed ? "disabled" : ""}
+          >
+            ${claimed ? "Reward Claimed" : progress.completed ? "Claim Reward" : "Complete Collection"}
+          </button>
+        </div>
       </div>
     </div>
   `;
 }
 
-function rewardLabel(reward) {
-  if (!reward) return "No reward";
-
-  switch (reward.type) {
-    case "passive_bonus":
-      return `+${Math.floor(numberValue(reward.value) * 100)}% passive income`;
-    case "click_bonus":
-      return `+${numberValue(reward.value)} click income`;
-    case "maintenance_discount":
-      return `-${Math.floor(numberValue(reward.value) * 100)}% maintenance`;
-    case "prestige_bonus":
-      return `+${numberValue(reward.value)} prestige`;
-    case "deposit_bonus":
-      return `+${(numberValue(reward.value) * 100).toFixed(2)}% deposit rate`;
-    case "business_bonus":
-      return `+${Math.floor(numberValue(reward.value) * 100)}% business income`;
-    default:
-      return reward.label || "Reward";
-  }
-}
-
-function itemPill(itemId) {
-  const owned = hasCollectionItem(itemId);
+function collectionSummary() {
+  const completed = COLLECTIONS.filter((c) => collectionProgress(c).completed).length;
+  const claimed = COLLECTIONS.filter((c) => isRewardClaimed(c.id)).length;
+  const bonuses = getCollectionBonuses();
 
   return `
-    <div class="title-pill" style="border-color:${owned ? "rgba(52,210,123,.35)" : "rgba(255,255,255,.08)"};background:${owned ? "rgba(52,210,123,.12)" : "rgba(255,255,255,.04)"};">
-      ${owned ? "✅" : "⬜"} ${itemId}
+    <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);">
+      <div class="card stat-card">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value green">${completed}</div>
+        <div class="stat-sub">Finished sets</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Claimed</div>
+        <div class="stat-value blue">${claimed}</div>
+        <div class="stat-sub">Rewards taken</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Prestige Bonus</div>
+        <div class="stat-value">${numberValue(bonuses.prestige)}</div>
+        <div class="stat-sub">From collections</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Click Bonus</div>
+        <div class="stat-value orange">+${numberValue(bonuses.click_boost)}</div>
+        <div class="stat-sub">Collection boost</div>
+      </div>
     </div>
   `;
 }
 
-function collectionCard
+function bonusesPanel() {
+  const bonuses = getCollectionBonuses();
+
+  return `
+    <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);">
+      <div class="card stat-card">
+        <div class="stat-label">Passive Boost</div>
+        <div class="stat-value green">+${Math.floor(numberValue(bonuses.passive_boost) * 100)}%</div>
+        <div class="stat-sub">From sets</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Business Boost</div>
+        <div class="stat-value blue">+${Math.floor(numberValue(bonuses.business_boost) * 100)}%</div>
+        <div class="stat-sub">Business collections</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Market Boost</div>
+        <div class="stat-value">+${Math.floor(numberValue(bonuses.market_boost) * 100)}%</div>
+        <div class="stat-sub">Role collections</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Tax Discount</div>
+        <div class="stat-value orange">-${Math.floor(numberValue(bonuses.tax_discount) * 100)}%</div>
+        <div class="stat-sub">Luxury realty reward</div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);margin-top:16px;">
+      <div class="card stat-card">
+        <div class="stat-label">Lottery Luck</div>
+        <div class="stat-value">${Math.floor(numberValue(bonuses.lottery_luck) * 100)}%</div>
+        <div class="stat-sub">Master roles set</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Click Boost</div>
+        <div class="stat-value blue">+${numberValue(bonuses.click_boost)}</div>
+        <div class="stat-sub">Card sets</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Prestige</div>
+        <div class="stat-value green">+${numberValue(bonuses.prestige)}</div>
+        <div class="stat-sub">Luxury rewards</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-label">Collections</div>
+        <div class="stat-value">${COLLECTIONS.length}</div>
+        <div class="stat-sub">Total available sets</div>
+      </div>
+    </div>
+  `;
+}
+
+// ======================================================
+// MAIN PAGE
+// ======================================================
+export function renderCollectionsPage() {
+  ensureCollectionsData();
+  document.body.dataset.currentPage = "collections";
+
+  setPage(`
+    <div class="card" style="grid-column:1 / -1;">
+      <h2>Collections</h2>
+      <p>Збирай машини, нерухомість, карткові дизайни та ролі, щоб відкривати постійні бонуси для профілю і економіки.</p>
+    </div>
+
+    ${collectionSummary()}
+
+    <div class="section-title">Collection Bonuses</div>
+    ${bonusesPanel()}
+
+    <div class="section-title">Available Collections</div>
+    <div class="asset-grid">
+      ${COLLECTIONS.map(collectionCard).join("")}
+    </div>
+  `);
+}
+
+// ======================================================
+// BIND
+// ======================================================
+function bindCollectionsUI() {
+  document.querySelectorAll("[data-claim-collection]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-claim-collection");
+      const ok = await claimCollectionReward(id);
+      if (ok) {
+        renderCollectionsPage();
+      }
+    });
+  });
+}
