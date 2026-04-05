@@ -1,12 +1,17 @@
 import { AppState, updatePlayer } from "./app.js";
-import { removeBalance, addBalance } from "./player.js";
 import { apiAddHistory } from "./api.js";
+import { removeBalance, addBalance } from "./player.js";
 import { getCurrentClassConfig } from "./economy.js";
-import { t, renderLanguageSwitcher, bindLanguageSwitcher } from "./i18n.js";
+import {
+  getRoleMarketProfitBoost,
+  getRoleCryptoDiscount,
+  getRoleStockDiscount
+} from "./roles.js";
+import { getCollectionBonuses } from "./collections.js";
 
-// =====================
-// CRYPTO DATA
-// =====================
+// ======================================================
+// DATA
+// ======================================================
 export const CRYPTO_ASSETS = [
   { id: "BTC", name: "Bitcoin", symbol: "BTC", price: 2500000, min: 600000, max: 5000000, volatility: 0.035, img: "https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=040" },
   { id: "ETH", name: "Ethereum", symbol: "ETH", price: 120000, min: 30000, max: 400000, volatility: 0.04, img: "https://cryptologos.cc/logos/ethereum-eth-logo.png?v=040" },
@@ -30,9 +35,6 @@ export const CRYPTO_ASSETS = [
   { id: "ICP", name: "Internet Computer", symbol: "ICP", price: 500, min: 40, max: 2500, volatility: 0.07, img: "https://cryptologos.cc/logos/internet-computer-icp-logo.png?v=040" }
 ];
 
-// =====================
-// STOCKS DATA
-// =====================
 export const STOCK_ASSETS = [
   { id: "AAPL", name: "Apple", symbol: "AAPL", price: 9500, min: 3000, max: 25000, volatility: 0.02, img: "https://logo.clearbit.com/apple.com" },
   { id: "MSFT", name: "Microsoft", symbol: "MSFT", price: 11000, min: 4000, max: 30000, volatility: 0.02, img: "https://logo.clearbit.com/microsoft.com" },
@@ -51,20 +53,21 @@ export const STOCK_ASSETS = [
   { id: "PYPL", name: "PayPal", symbol: "PYPL", price: 4300, min: 900, max: 14000, volatility: 0.03, img: "https://logo.clearbit.com/paypal.com" }
 ];
 
-// =====================
+// ======================================================
 // STATE
-// =====================
+// ======================================================
 export const MarketState = {
   trend: 1,
   sentiment: "neutral",
   crypto: structuredClone(CRYPTO_ASSETS),
   stocks: structuredClone(STOCK_ASSETS),
-  lastUpdate: Date.now()
+  lastUpdate: Date.now(),
+  lastAction: null
 };
 
-// =====================
+// ======================================================
 // HELPERS
-// =====================
+// ======================================================
 function getPlayer() {
   return AppState.player || {};
 }
@@ -73,12 +76,31 @@ function safeObject(v) {
   return v && typeof v === "object" && !Array.isArray(v) ? v : {};
 }
 
+function numberValue(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function formatCompact(n) {
-  const value = Number(n || 0);
+  const value = numberValue(n);
   if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + "B";
   if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
   if (value >= 1_000) return (value / 1_000).toFixed(1) + "K";
   return Math.floor(value).toString();
+}
+
+function ensureWallets() {
+  const p = getPlayer();
+
+  if (!p.crypto || typeof p.crypto !== "object" || Array.isArray(p.crypto)) p.crypto = {};
+  if (!p.stocks || typeof p.stocks !== "object" || Array.isArray(p.stocks)) p.stocks = {};
+}
+
+function setPage(html) {
+  const root = document.getElementById("page-content");
+  if (!root) return;
+  root.innerHTML = html;
+  bindMarketUI();
 }
 
 function randomBetween(min, max) {
@@ -93,12 +115,6 @@ function roundPrice(value) {
   return Math.max(1, Math.round(value));
 }
 
-function ensureWallets() {
-  const p = getPlayer();
-  if (!p.crypto || typeof p.crypto !== "object" || Array.isArray(p.crypto)) p.crypto = {};
-  if (!p.stocks || typeof p.stocks !== "object" || Array.isArray(p.stocks)) p.stocks = {};
-}
-
 function getAssetList(type) {
   return type === "crypto" ? MarketState.crypto : MarketState.stocks;
 }
@@ -111,8 +127,11 @@ function getHolding(type, id) {
   const p = getPlayer();
   ensureWallets();
 
-  if (type === "crypto") return Number(p.crypto[id] || 0);
-  return Number(p.stocks[id] || 0);
+  if (type === "crypto") {
+    return numberValue(p.crypto[id] || 0);
+  }
+
+  return numberValue(p.stocks[id] || 0);
 }
 
 function setHolding(type, id, amount) {
@@ -126,45 +145,85 @@ function setHolding(type, id, amount) {
   }
 }
 
+function getCurrentPage() {
+  return document.body.dataset.currentPage || "profile";
+}
+
+function classMarketDiscount() {
+  const cls = getCurrentClassConfig();
+  return numberValue(cls.marketDiscount || 0);
+}
+
+function roleMarketBoost() {
+  return numberValue(getRoleMarketProfitBoost() || 0);
+}
+
+function cryptoRoleDiscount() {
+  return numberValue(getRoleCryptoDiscount() || 0);
+}
+
+function stockRoleDiscount() {
+  return numberValue(getRoleStockDiscount() || 0);
+}
+
+function collectionMarketBoost() {
+  const bonuses = getCollectionBonuses();
+  return numberValue(bonuses.market_boost || 0);
+}
+
+function collectionTaxStyleBonus() {
+  const bonuses = getCollectionBonuses();
+  return numberValue(bonuses.tax_discount || 0);
+}
+
+function discountPrice(basePrice, type) {
+  let discount = classMarketDiscount();
+
+  if (type === "crypto") {
+    discount += cryptoRoleDiscount();
+  } else {
+    discount += stockRoleDiscount();
+  }
+
+  return Math.max(1, basePrice * (1 - discount));
+}
+
+function boostedSellPrice(basePrice) {
+  const boost = roleMarketBoost() + collectionMarketBoost();
+  return Math.max(1, basePrice * (1 + boost));
+}
+
 function getPortfolioValue(type) {
   const assets = getAssetList(type);
 
   return assets.reduce((sum, asset) => {
-    return sum + getHolding(type, asset.id) * Number(asset.price || 0);
+    return sum + getHolding(type, asset.id) * numberValue(asset.price || 0);
   }, 0);
 }
 
 function getPositionCount(type) {
   const source = type === "crypto" ? safeObject(getPlayer().crypto) : safeObject(getPlayer().stocks);
-  return Object.keys(source).filter((key) => Number(source[key] || 0) > 0).length;
+  return Object.keys(source).filter((key) => numberValue(source[key] || 0) > 0).length;
 }
 
-function getCurrentPage() {
-  return document.body.dataset.currentPage || "profile";
+function getAmountInput(type, id) {
+  const el = document.getElementById(`${type}-amount-${id}`);
+  return el ? numberValue(el.value) : 0;
 }
 
-function discountPrice(basePrice) {
-  const cls = getCurrentClassConfig();
-  const discount = Number(cls.marketDiscount || 0);
-  return Math.max(1, basePrice * (1 - discount));
-}
+async function persistWallet(type) {
+  const p = getPlayer();
 
-function setPage(html, rerenderFn = null) {
-  const root = document.getElementById("page-content");
-  if (!root) return;
-  root.innerHTML = html;
-  bindMarketUI();
-
-  if (rerenderFn) {
-    bindLanguageSwitcher(() => {
-      rerenderFn();
-    });
+  if (type === "crypto") {
+    await updatePlayer({ crypto: p.crypto });
+  } else {
+    await updatePlayer({ stocks: p.stocks });
   }
 }
 
-// =====================
+// ======================================================
 // ACCESS
-// =====================
+// ======================================================
 export function canUseCrypto() {
   return true;
 }
@@ -183,9 +242,9 @@ export function canUseStocks() {
   ].includes(cls);
 }
 
-// =====================
+// ======================================================
 // ENGINE
-// =====================
+// ======================================================
 function updateMarketSentiment() {
   const roll = Math.random();
 
@@ -221,7 +280,7 @@ function tickAsset(asset) {
   const noise = randomBetween(-asset.volatility, asset.volatility);
   const wave = Math.sin(Date.now() / 20000) * (asset.volatility / 3);
 
-  let nextPrice = Number(asset.price || 0) * (1 + noise + wave);
+  let nextPrice = numberValue(asset.price || 0) * (1 + noise + wave);
   nextPrice *= MarketState.trend;
   nextPrice = clamp(nextPrice, asset.min, asset.max);
 
@@ -241,19 +300,9 @@ export function marketTick() {
   if (page === "stocks") renderStocksPage();
 }
 
-// =====================
+// ======================================================
 // BUY / SELL
-// =====================
-async function persistWallet(type) {
-  const p = getPlayer();
-
-  if (type === "crypto") {
-    await updatePlayer({ crypto: p.crypto });
-  } else {
-    await updatePlayer({ stocks: p.stocks });
-  }
-}
-
+// ======================================================
 export async function buyCrypto(id, amount) {
   if (!canUseCrypto()) {
     alert("Crypto is unavailable");
@@ -263,16 +312,17 @@ export async function buyCrypto(id, amount) {
   const asset = getAsset("crypto", id);
   if (!asset) return false;
 
-  const qty = Number(amount);
+  const qty = numberValue(amount);
   if (!qty || qty <= 0) {
-    alert("Invalid amount");
+    alert("Невірна кількість");
     return false;
   }
 
-  const cost = qty * discountPrice(Number(asset.price || 0));
+  const cost = qty * discountPrice(numberValue(asset.price || 0), "crypto");
 
-  if (!removeBalance(cost)) {
-    alert("Not enough balance");
+  const ok = removeBalance(cost);
+  if (!ok) {
+    alert("Недостатньо балансу");
     return false;
   }
 
@@ -282,6 +332,14 @@ export async function buyCrypto(id, amount) {
   await persistWallet("crypto");
   await apiAddHistory(getPlayer().username, `Buy crypto ${id}`, -cost);
 
+  MarketState.lastAction = {
+    type: "buy",
+    market: "crypto",
+    symbol: id,
+    qty,
+    value: cost
+  };
+
   return true;
 }
 
@@ -289,25 +347,33 @@ export async function sellCrypto(id, amount) {
   const asset = getAsset("crypto", id);
   if (!asset) return false;
 
-  const qty = Number(amount);
+  const qty = numberValue(amount);
   if (!qty || qty <= 0) {
-    alert("Invalid amount");
+    alert("Невірна кількість");
     return false;
   }
 
   const current = getHolding("crypto", id);
   if (current < qty) {
-    alert("Not enough crypto");
+    alert("Недостатньо crypto");
     return false;
   }
 
-  const income = qty * Number(asset.price || 0);
+  const income = qty * boostedSellPrice(numberValue(asset.price || 0));
 
   setHolding("crypto", id, current - qty);
   addBalance(income);
 
   await persistWallet("crypto");
   await apiAddHistory(getPlayer().username, `Sell crypto ${id}`, income);
+
+  MarketState.lastAction = {
+    type: "sell",
+    market: "crypto",
+    symbol: id,
+    qty,
+    value: income
+  };
 
   return true;
 }
@@ -321,16 +387,17 @@ export async function buyStock(id, amount) {
   const asset = getAsset("stocks", id);
   if (!asset) return false;
 
-  const qty = Number(amount);
+  const qty = numberValue(amount);
   if (!qty || qty <= 0) {
-    alert("Invalid amount");
+    alert("Невірна кількість");
     return false;
   }
 
-  const cost = qty * discountPrice(Number(asset.price || 0));
+  const cost = qty * discountPrice(numberValue(asset.price || 0), "stocks");
 
-  if (!removeBalance(cost)) {
-    alert("Not enough balance");
+  const ok = removeBalance(cost);
+  if (!ok) {
+    alert("Недостатньо балансу");
     return false;
   }
 
@@ -340,6 +407,14 @@ export async function buyStock(id, amount) {
   await persistWallet("stocks");
   await apiAddHistory(getPlayer().username, `Buy stock ${id}`, -cost);
 
+  MarketState.lastAction = {
+    type: "buy",
+    market: "stocks",
+    symbol: id,
+    qty,
+    value: cost
+  };
+
   return true;
 }
 
@@ -347,19 +422,19 @@ export async function sellStock(id, amount) {
   const asset = getAsset("stocks", id);
   if (!asset) return false;
 
-  const qty = Number(amount);
+  const qty = numberValue(amount);
   if (!qty || qty <= 0) {
-    alert("Invalid amount");
+    alert("Невірна кількість");
     return false;
   }
 
   const current = getHolding("stocks", id);
   if (current < qty) {
-    alert("Not enough stocks");
+    alert("Недостатньо акцій");
     return false;
   }
 
-  const income = qty * Number(asset.price || 0);
+  const income = qty * boostedSellPrice(numberValue(asset.price || 0));
 
   setHolding("stocks", id, current - qty);
   addBalance(income);
@@ -367,12 +442,20 @@ export async function sellStock(id, amount) {
   await persistWallet("stocks");
   await apiAddHistory(getPlayer().username, `Sell stock ${id}`, income);
 
+  MarketState.lastAction = {
+    type: "sell",
+    market: "stocks",
+    symbol: id,
+    qty,
+    value: income
+  };
+
   return true;
 }
 
-// =====================
-// RENDER
-// =====================
+// ======================================================
+// RENDER HELPERS
+// ======================================================
 function pageHeader(title, text) {
   return `
     <div class="card" style="grid-column:1 / -1;">
@@ -390,7 +473,7 @@ function renderMarketSummary(type) {
   return `
     <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);">
       <div class="card stat-card">
-        <div class="stat-label">${type === "crypto" ? `${t("crypto")} ${t("portfolio")}` : `${t("stocks")} ${t("portfolio")}`}</div>
+        <div class="stat-label">${type === "crypto" ? "Crypto Portfolio" : "Stocks Portfolio"}</div>
         <div class="stat-value blue">₴ ${formatCompact(totalValue)}</div>
         <div class="stat-sub">Live market value</div>
       </div>
@@ -404,22 +487,49 @@ function renderMarketSummary(type) {
       <div class="card stat-card">
         <div class="stat-label">Sentiment</div>
         <div class="stat-value">${MarketState.sentiment}</div>
-        <div class="stat-sub">${t("market")} mood</div>
+        <div class="stat-sub">Market mood</div>
       </div>
 
       <div class="card stat-card">
-        <div class="stat-label">Discount</div>
-        <div class="stat-value green">-${Math.floor((cls.marketDiscount || 0) * 100)}%</div>
-        <div class="stat-sub">${cls.name} class bonus</div>
+        <div class="stat-label">Bonuses</div>
+        <div class="stat-value green">
+          ${Math.floor((classMarketDiscount() + roleMarketBoost() + collectionMarketBoost()) * 100)}%
+        </div>
+        <div class="stat-sub">${cls.name} + role + collections</div>
       </div>
+    </div>
+  `;
+}
+
+function renderLastAction() {
+  if (!MarketState.lastAction) {
+    return `
+      <div class="card">
+        <h3>Last Action</h3>
+        <p class="muted">Ще не було торгових дій.</p>
+      </div>
+    `;
+  }
+
+  const a = MarketState.lastAction;
+
+  return `
+    <div class="card">
+      <h3>Last Action</h3>
+      <p><span class="muted">Type:</span> ${a.type}</p>
+      <p><span class="muted">Market:</span> ${a.market}</p>
+      <p><span class="muted">Symbol:</span> ${a.symbol}</p>
+      <p><span class="muted">Qty:</span> ${a.qty}</p>
+      <p><span class="muted">Value:</span> ₴ ${formatCompact(a.value)}</p>
     </div>
   `;
 }
 
 function renderAssetCard(type, asset) {
   const owned = getHolding(type, asset.id);
-  const value = owned * Number(asset.price || 0);
-  const buyPrice = discountPrice(Number(asset.price || 0));
+  const value = owned * numberValue(asset.price || 0);
+  const buyPrice = discountPrice(numberValue(asset.price || 0), type);
+  const sellPrice = boostedSellPrice(numberValue(asset.price || 0));
 
   return `
     <div class="card asset-card">
@@ -441,16 +551,17 @@ function renderAssetCard(type, asset) {
         </div>
 
         <div class="asset-meta">
-          <span>${t("owned")}: ${owned}</span>
+          <span>Owned: ${owned}</span>
           <span>Value: ₴ ${formatCompact(value)}</span>
-          <span>${t("buy")}: ₴ ${formatCompact(buyPrice)}</span>
+          <span>Buy: ₴ ${formatCompact(buyPrice)}</span>
+          <span>Sell: ₴ ${formatCompact(sellPrice)}</span>
         </div>
 
         <div class="profile-actions">
           <input id="${type}-amount-${asset.id}" type="number" min="0.0001" step="0.0001" placeholder="Amount">
           <div class="asset-actions">
-            <button data-market-buy="${type}:${asset.id}">${t("buy")}</button>
-            <button class="secondary" data-market-sell="${type}:${asset.id}">${t("sell")}</button>
+            <button data-market-buy="${type}:${asset.id}">Buy</button>
+            <button class="secondary" data-market-sell="${type}:${asset.id}">Sell</button>
           </div>
         </div>
       </div>
@@ -458,23 +569,33 @@ function renderAssetCard(type, asset) {
   `;
 }
 
-function getAmountInput(type, id) {
-  const el = document.getElementById(`${type}-amount-${id}`);
-  return el ? Number(el.value) : 0;
-}
-
+// ======================================================
+// MAIN PAGES
+// ======================================================
 export function renderCryptoPage() {
   document.body.dataset.currentPage = "crypto";
 
   const cards = MarketState.crypto.map((asset) => renderAssetCard("crypto", asset)).join("");
 
   setPage(`
-    ${pageHeader(`${t("crypto")} ${t("portfolio")}`, "Premium digital asset dashboard with live prices and full wallet overview.")}
-    ${renderLanguageSwitcher()}
+    ${pageHeader("Crypto Portfolio", "Портфель криптовалют з ролями, класами і бонусами колекцій.")}
     ${renderMarketSummary("crypto")}
-    <div class="section-title">${t("crypto")}</div>
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3>Market Perks</h3>
+        <p><span class="muted">Class discount:</span> ${(classMarketDiscount() * 100).toFixed(2)}%</p>
+        <p><span class="muted">Role market boost:</span> ${(roleMarketBoost() * 100).toFixed(2)}%</p>
+        <p><span class="muted">Crypto discount:</span> ${(cryptoRoleDiscount() * 100).toFixed(2)}%</p>
+        <p><span class="muted">Collection market boost:</span> ${(collectionMarketBoost() * 100).toFixed(2)}%</p>
+      </div>
+
+      ${renderLastAction()}
+    </div>
+
+    <div class="section-title">Crypto Assets</div>
     <div class="asset-grid">${cards}</div>
-  `, renderCryptoPage);
+  `);
 }
 
 export function renderStocksPage() {
@@ -482,30 +603,41 @@ export function renderStocksPage() {
 
   if (!canUseStocks()) {
     setPage(`
-      ${pageHeader(`${t("stocks")} ${t("portfolio")}`, "Unlock stocks with Silver class or higher.")}
-      ${renderLanguageSwitcher()}
+      ${pageHeader("Stocks Portfolio", "Акції відкриваються з Silver class і вище.")}
       <div class="card" style="grid-column:1 / -1;">
-        <h3>${t("stocks")} Locked</h3>
-        <p>You need a stronger account class to access stock trading.</p>
+        <h3>Stocks Locked</h3>
+        <p>Потрібен Silver class або вище.</p>
       </div>
-    `, renderStocksPage);
+    `);
     return;
   }
 
   const cards = MarketState.stocks.map((asset) => renderAssetCard("stocks", asset)).join("");
 
   setPage(`
-    ${pageHeader(`${t("stocks")} ${t("portfolio")}`, "Modern premium equity dashboard with clean company cards and market access.")}
-    ${renderLanguageSwitcher()}
+    ${pageHeader("Stock Portfolio", "Портфель акцій з бонусами ролей і колекцій.")}
     ${renderMarketSummary("stocks")}
-    <div class="section-title">${t("stocks")}</div>
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3>Market Perks</h3>
+        <p><span class="muted">Class discount:</span> ${(classMarketDiscount() * 100).toFixed(2)}%</p>
+        <p><span class="muted">Role market boost:</span> ${(roleMarketBoost() * 100).toFixed(2)}%</p>
+        <p><span class="muted">Stock discount:</span> ${(stockRoleDiscount() * 100).toFixed(2)}%</p>
+        <p><span class="muted">Collection market boost:</span> ${(collectionMarketBoost() * 100).toFixed(2)}%</p>
+      </div>
+
+      ${renderLastAction()}
+    </div>
+
+    <div class="section-title">Stock Assets</div>
     <div class="asset-grid">${cards}</div>
-  `, renderStocksPage);
+  `);
 }
 
-// =====================
+// ======================================================
 // BIND
-// =====================
+// ======================================================
 function bindMarketUI() {
   document.querySelectorAll("[data-market-buy]").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -540,9 +672,9 @@ function bindMarketUI() {
   });
 }
 
-// =====================
+// ======================================================
 // LOOP
-// =====================
+// ======================================================
 export function startMarketLoop() {
   setInterval(() => {
     marketTick();
