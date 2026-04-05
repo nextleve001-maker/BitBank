@@ -1,10 +1,10 @@
 import { AppState, updatePlayer } from "./app.js";
-import { addBalance, removeBalance } from "./player.js";
+import { removeBalance } from "./player.js";
 import { apiAddHistory } from "./api.js";
 
-// =====================================================
+// ======================================================
 // CLASSES
-// =====================================================
+// ======================================================
 export const PLAYER_CLASSES = [
   {
     id: "none",
@@ -16,11 +16,13 @@ export const PLAYER_CLASSES = [
     transferDiscount: 0,
     businessDiscount: 0,
     businessBoost: 0,
+    salaryDiscount: 0,
+    stockDiscount: 0,
     label: "Базовий акаунт",
     perks: [
-      "Стандартний профіль",
-      "Без бонусів до пасиву",
-      "Базовий доступ до економіки"
+      "Базовий дохід",
+      "Без бонусів",
+      "Стандартний доступ до економіки"
     ]
   },
   {
@@ -29,10 +31,12 @@ export const PLAYER_CLASSES = [
     price: 5000,
     clickBonus: 2,
     passiveBoost: 0.03,
-    marketDiscount: 0.00,
-    transferDiscount: 0.00,
+    marketDiscount: 0,
+    transferDiscount: 0,
     businessDiscount: 0.01,
     businessBoost: 0.03,
+    salaryDiscount: 0.01,
+    stockDiscount: 0.01,
     label: "Початковий інвестор",
     perks: [
       "+2 до кліку",
@@ -47,14 +51,16 @@ export const PLAYER_CLASSES = [
     clickBonus: 5,
     passiveBoost: 0.06,
     marketDiscount: 0.01,
-    transferDiscount: 0.00,
+    transferDiscount: 0,
     businessDiscount: 0.02,
-    businessBoost: 0.05,
+    businessBoost: 0.06,
+    salaryDiscount: 0.02,
+    stockDiscount: 0.02,
     label: "Зростаючий капітал",
     perks: [
       "+5 до кліку",
-      "+6% до пасивного доходу",
-      "-2% на відкриття бізнесів",
+      "+6% до пасиву",
+      "-2% на бізнеси",
       "-1% на ринок"
     ]
   },
@@ -63,17 +69,19 @@ export const PLAYER_CLASSES = [
     name: "Gold",
     price: 100000,
     clickBonus: 10,
-    passiveBoost: 0.10,
+    passiveBoost: 0.1,
     marketDiscount: 0.02,
     transferDiscount: 0.01,
     businessDiscount: 0.03,
-    businessBoost: 0.08,
+    businessBoost: 0.1,
+    salaryDiscount: 0.03,
+    stockDiscount: 0.03,
     label: "Преміальний клієнт",
     perks: [
       "+10 до кліку",
       "+10% до пасиву",
       "-3% на бізнеси",
-      "-2% на ринок"
+      "-1% на перекази"
     ]
   },
   {
@@ -85,13 +93,15 @@ export const PLAYER_CLASSES = [
     marketDiscount: 0.03,
     transferDiscount: 0.01,
     businessDiscount: 0.04,
-    businessBoost: 0.12,
+    businessBoost: 0.14,
+    salaryDiscount: 0.04,
+    stockDiscount: 0.04,
     label: "Елітний клієнт",
     perks: [
       "+20 до кліку",
       "+15% до пасиву",
       "-4% на бізнеси",
-      "Сильніший профіль"
+      "Сильніший ріст компаній"
     ]
   },
   {
@@ -103,7 +113,9 @@ export const PLAYER_CLASSES = [
     marketDiscount: 0.04,
     transferDiscount: 0.02,
     businessDiscount: 0.05,
-    businessBoost: 0.18,
+    businessBoost: 0.2,
+    salaryDiscount: 0.05,
+    stockDiscount: 0.05,
     label: "Diamond wealth",
     perks: [
       "+35 до кліку",
@@ -117,11 +129,13 @@ export const PLAYER_CLASSES = [
     name: "Black",
     price: 5000000,
     clickBonus: 60,
-    passiveBoost: 0.30,
+    passiveBoost: 0.3,
     marketDiscount: 0.05,
     transferDiscount: 0.02,
     businessDiscount: 0.06,
-    businessBoost: 0.25,
+    businessBoost: 0.28,
+    salaryDiscount: 0.06,
+    stockDiscount: 0.06,
     label: "Black banking",
     perks: [
       "+60 до кліку",
@@ -135,11 +149,13 @@ export const PLAYER_CLASSES = [
     name: "VIP",
     price: 15000000,
     clickBonus: 100,
-    passiveBoost: 0.40,
+    passiveBoost: 0.4,
     marketDiscount: 0.06,
     transferDiscount: 0.03,
     businessDiscount: 0.07,
-    businessBoost: 0.35,
+    businessBoost: 0.38,
+    salaryDiscount: 0.08,
+    stockDiscount: 0.08,
     label: "VIP wealth",
     perks: [
       "+100 до кліку",
@@ -157,7 +173,9 @@ export const PLAYER_CLASSES = [
     marketDiscount: 0.08,
     transferDiscount: 0.04,
     businessDiscount: 0.08,
-    businessBoost: 0.50,
+    businessBoost: 0.55,
+    salaryDiscount: 0.1,
+    stockDiscount: 0.1,
     label: "Legend investor",
     perks: [
       "+180 до кліку",
@@ -172,11 +190,13 @@ export const PLAYER_CLASSES = [
     price: 250000000,
     clickBonus: 300,
     passiveBoost: 0.75,
-    marketDiscount: 0.10,
+    marketDiscount: 0.1,
     transferDiscount: 0.05,
-    businessDiscount: 0.10,
-    businessBoost: 0.70,
-    label: "Absolute tier",
+    businessDiscount: 0.1,
+    businessBoost: 0.75,
+    salaryDiscount: 0.12,
+    stockDiscount: 0.12,
+    label: "Абсолютний tier",
     perks: [
       "+300 до кліку",
       "+75% до пасиву",
@@ -187,15 +207,69 @@ export const PLAYER_CLASSES = [
   }
 ];
 
-// =====================================================
+// ======================================================
 // BUSINESS PROJECTS
-// =====================================================
+// ======================================================
 export const BUSINESS_PROJECTS = [
+  {
+    id: "transport",
+    name: "Транспортна компанія",
+    icon: "🚚",
+    category: "Logistics",
+    unlockCost: 1200000,
+    baseIncome: 8500,
+    employeeUnit: "Водій",
+    employeeSalary: 180,
+    employeeHireCost: 22000,
+    employeeSoftCap: 24,
+    stockItem: "Пальне",
+    stockStep: 80,
+    stockCost: 65000,
+    stockUsagePerMinute: 4,
+    qualityBonusStep: 0.07,
+    marketingBonusStep: 0.06,
+    requirements: [
+      { id: "balance", label: "Баланс", type: "balance", need: 1200000 },
+      { id: "earned", label: "Загальний заробіток", type: "total_earned", need: 300000 }
+    ],
+    potentialEffect: [
+      "Стабільний логістичний дохід",
+      "Добре росте від працівників і рівня",
+      "Потрібен для відкриття більших бізнесів"
+    ]
+  },
+  {
+    id: "small_factory",
+    name: "Невелике виробництво",
+    icon: "🏭",
+    category: "Factory",
+    unlockCost: 1800000,
+    baseIncome: 12000,
+    employeeUnit: "Робітник",
+    employeeSalary: 220,
+    employeeHireCost: 32000,
+    employeeSoftCap: 26,
+    stockItem: "Сировина",
+    stockStep: 70,
+    stockCost: 85000,
+    stockUsagePerMinute: 4,
+    qualityBonusStep: 0.08,
+    marketingBonusStep: 0.04,
+    requirements: [
+      { id: "balance", label: "Баланс", type: "balance", need: 1800000 },
+      { id: "earned", label: "Загальний заробіток", type: "total_earned", need: 700000 }
+    ],
+    potentialEffect: [
+      "Сильний виробничий дохід",
+      "Відкриває шлях до брендів і космосу",
+      "Якість сильно впливає на прибуток"
+    ]
+  },
   {
     id: "fashion_brand",
     name: "Бренд одягу",
     icon: "👔",
-    theme: "fashion",
+    category: "Fashion",
     unlockCost: 3000000,
     baseIncome: 18000,
     employeeUnit: "Дизайнер",
@@ -206,101 +280,81 @@ export const BUSINESS_PROJECTS = [
     stockStep: 60,
     stockCost: 120000,
     stockUsagePerMinute: 3,
-    potentialEffect: [
-      "Пасивний дохід від продажу колекцій",
-      "Бонус до престижу профілю",
-      "Сильний ріст через маркетинг і якість"
-    ],
+    qualityBonusStep: 0.1,
+    marketingBonusStep: 0.08,
     requirements: [
       { id: "balance", label: "Баланс", type: "balance", need: 3000000 },
-      { id: "retail_count", label: "Крупна мережа магазинів", type: "opened_count", need: 2 },
-      { id: "transport_count", label: "Перевозки", type: "opened_specific", projectId: "transport_company", need: 1 },
-      { id: "factory_count", label: "Невелике виробництво", type: "opened_specific", projectId: "small_factory", need: 1 }
-    ]
-  },
-  {
-    id: "transport_company",
-    name: "Перевозки",
-    icon: "🚚",
-    theme: "transport",
-    unlockCost: 1200000,
-    baseIncome: 9500,
-    employeeUnit: "Водій",
-    employeeSalary: 190,
-    employeeHireCost: 22000,
-    employeeSoftCap: 24,
-    stockItem: "Пальне",
-    stockStep: 80,
-    stockCost: 65000,
-    stockUsagePerMinute: 4,
-    potentialEffect: [
-      "Стабільний дохід від рейсів",
-      "Підсилює логістику інших бізнесів",
-      "Добре масштабується через працівників"
+      { id: "transport", label: "Транспортна компанія", type: "opened_specific", projectId: "transport", need: 1 },
+      { id: "factory", label: "Невелике виробництво", type: "opened_specific", projectId: "small_factory", need: 1 }
     ],
-    requirements: [
-      { id: "balance", label: "Баланс", type: "balance", need: 1200000 },
-      { id: "owned_business_units", label: "Базові бізнеси", type: "owned_units", need: 3 }
-    ]
-  },
-  {
-    id: "small_factory",
-    name: "Невелике виробництво",
-    icon: "🏭",
-    theme: "factory",
-    unlockCost: 1800000,
-    baseIncome: 12500,
-    employeeUnit: "Робітник",
-    employeeSalary: 220,
-    employeeHireCost: 30000,
-    employeeSoftCap: 26,
-    stockItem: "Сировина",
-    stockStep: 70,
-    stockCost: 80000,
-    stockUsagePerMinute: 4,
     potentialEffect: [
-      "Виробничий дохід",
-      "Відкриває шлях до великих проектів",
-      "Сильний приріст від рівня і якості"
-    ],
-    requirements: [
-      { id: "balance", label: "Баланс", type: "balance", need: 1800000 },
-      { id: "business_value", label: "Цінність бізнесів", type: "business_value", need: 1000000 }
+      "Дохід від продажу колекцій",
+      "Маркетинг має великий ефект",
+      "Сильно росте через якість і бренд"
     ]
   },
   {
-    id: "supermarket_chain",
-    name: "Крупна сеть магазинов / Супермаркет",
+    id: "supermarket",
+    name: "Супермаркет",
     icon: "🛒",
-    theme: "supermarket",
+    category: "Retail",
     unlockCost: 6500000,
-    baseIncome: 38000,
+    baseIncome: 42000,
     employeeUnit: "Касир",
-    employeeSalary: 350,
+    employeeSalary: 360,
     employeeHireCost: 45000,
     employeeSoftCap: 60,
     stockItem: "Їжа та товари",
     stockStep: 220,
     stockCost: 300000,
     stockUsagePerMinute: 10,
-    potentialEffect: [
-      "Сильний щоденний обіг",
-      "Доходи ростуть від касирів, товару, якості і реклами",
-      "Один із найкращих бізнесів середнього етапу"
-    ],
+    qualityBonusStep: 0.05,
+    marketingBonusStep: 0.09,
     requirements: [
       { id: "balance", label: "Баланс", type: "balance", need: 6500000 },
-      { id: "transport_company", label: "Перевозки", type: "opened_specific", projectId: "transport_company", need: 1 },
-      { id: "small_factory", label: "Невелике виробництво", type: "opened_specific", projectId: "small_factory", need: 1 }
+      { id: "transport", label: "Перевозки", type: "opened_specific", projectId: "transport", need: 1 },
+      { id: "factory", label: "Виробництво", type: "opened_specific", projectId: "small_factory", need: 1 }
+    ],
+    potentialEffect: [
+      "Великий щоденний оборот",
+      "Товар критично важливий для доходу",
+      "Касири, якість і реклама сильно впливають"
+    ]
+  },
+  {
+    id: "restaurant_chain",
+    name: "Мережа ресторанів",
+    icon: "🍽️",
+    category: "Food",
+    unlockCost: 9000000,
+    baseIncome: 52000,
+    employeeUnit: "Шеф",
+    employeeSalary: 520,
+    employeeHireCost: 85000,
+    employeeSoftCap: 30,
+    stockItem: "Преміум продукти",
+    stockStep: 120,
+    stockCost: 380000,
+    stockUsagePerMinute: 6,
+    qualityBonusStep: 0.1,
+    marketingBonusStep: 0.07,
+    requirements: [
+      { id: "balance", label: "Баланс", type: "balance", need: 9000000 },
+      { id: "supermarket", label: "Супермаркет", type: "opened_specific", projectId: "supermarket", need: 1 }
+    ],
+    potentialEffect: [
+      "Високий преміальний дохід",
+      "Якість їжі дає сильний буст",
+      "Добре масштабується по рівнях"
     ]
   },
   {
     id: "football_club",
     name: "Футбольний клуб",
     icon: "⚽",
-    theme: "football",
-    unlockCost: 9000000,
-    baseIncome: 42000,
+    category: "Sport",
+    unlockCost: 12000000,
+    baseIncome: 48000,
     employeeUnit: "Персонал",
     employeeSalary: 420,
     employeeHireCost: 70000,
@@ -309,76 +363,25 @@ export const BUSINESS_PROJECTS = [
     stockStep: 40,
     stockCost: 240000,
     stockUsagePerMinute: 2,
+    qualityBonusStep: 0.05,
+    marketingBonusStep: 0.11,
+    requirements: [
+      { id: "balance", label: "Баланс", type: "balance", need: 12000000 },
+      { id: "supermarket", label: "Супермаркет", type: "opened_specific", projectId: "supermarket", need: 1 },
+      { id: "class", label: "Клас не нижче Gold", type: "class_at_least", needClass: "gold" }
+    ],
     potentialEffect: [
-      "Дохід від матчів і бренду клубу",
+      "Дохід від клубу, матчів та бренду",
       "Можна купувати футболістів",
       "Можна купувати тренерів",
-      "Маркетинг сильно впливає на ріст"
-    ],
-    requirements: [
-      { id: "balance", label: "Баланс", type: "balance", need: 9000000 },
-      { id: "supermarket_chain", label: "Крупна мережа магазинів", type: "opened_specific", projectId: "supermarket_chain", need: 1 },
-      { id: "class", label: "Клас не нижче Gold", type: "class_at_least", needClass: "gold" }
-    ]
-  },
-  {
-    id: "space_agency",
-    name: "Космічне агентство",
-    icon: "🚀",
-    theme: "space",
-    unlockCost: 60000000,
-    baseIncome: 260000,
-    employeeUnit: "Інженер",
-    employeeSalary: 1800,
-    employeeHireCost: 420000,
-    employeeSoftCap: 45,
-    stockItem: "Космічні модулі",
-    stockStep: 80,
-    stockCost: 1600000,
-    stockUsagePerMinute: 3,
-    potentialEffect: [
-      "Дуже високий ендгейм-дохід",
-      "Сильний буст від працівників і рівня",
-      "Один із найпотужніших бізнесів у грі"
-    ],
-    requirements: [
-      { id: "balance", label: "Баланс", type: "balance", need: 60000000 },
-      { id: "factory_count", label: "Крупне виробництво", type: "opened_specific", projectId: "small_factory", need: 1 },
-      { id: "transport_count", label: "Перевозки", type: "opened_specific", projectId: "transport_company", need: 1 },
-      { id: "construction_income", label: "Загальний заробіток", type: "total_earned", need: 60000000 }
-    ]
-  },
-  {
-    id: "private_bank",
-    name: "Приватний банк",
-    icon: "🏦",
-    theme: "bank",
-    unlockCost: 35000000,
-    baseIncome: 160000,
-    employeeUnit: "Менеджер",
-    employeeSalary: 1200,
-    employeeHireCost: 260000,
-    employeeSoftCap: 30,
-    stockItem: "Системи та безпека",
-    stockStep: 35,
-    stockCost: 900000,
-    stockUsagePerMinute: 1,
-    potentialEffect: [
-      "Великий фінансовий дохід",
-      "Добре поєднується з високим класом",
-      "Підсилює банківський стиль профілю"
-    ],
-    requirements: [
-      { id: "balance", label: "Баланс", type: "balance", need: 35000000 },
-      { id: "class", label: "Клас не нижче Platinum", type: "class_at_least", needClass: "platinum" },
-      { id: "business_value", label: "Вартість бізнесів", type: "business_value", need: 20000000 }
+      "Маркетинг має підвищений вплив"
     ]
   },
   {
     id: "media_empire",
     name: "Медіа імперія",
     icon: "🎬",
-    theme: "media",
+    category: "Media",
     unlockCost: 22000000,
     baseIncome: 98000,
     employeeUnit: "Продюсер",
@@ -389,27 +392,82 @@ export const BUSINESS_PROJECTS = [
     stockStep: 50,
     stockCost: 550000,
     stockUsagePerMinute: 2,
-    potentialEffect: [
-      "Дохід від контенту і бренду",
-      "Маркетинг має підвищений вплив",
-      "Сильний середньо-пізній бізнес"
-    ],
+    qualityBonusStep: 0.07,
+    marketingBonusStep: 0.12,
     requirements: [
       { id: "balance", label: "Баланс", type: "balance", need: 22000000 },
-      { id: "opened_projects", label: "Відкрито бізнесів", type: "opened_count", need: 4 }
+      { id: "opened", label: "Відкрито бізнесів", type: "opened_count", need: 4 }
+    ],
+    potentialEffect: [
+      "Дохід від контенту і бренду",
+      "Маркетинг має дуже сильний ефект",
+      "Один із найкращих середньопізніх бізнесів"
+    ]
+  },
+  {
+    id: "private_bank",
+    name: "Приватний банк",
+    icon: "🏦",
+    category: "Finance",
+    unlockCost: 35000000,
+    baseIncome: 160000,
+    employeeUnit: "Менеджер",
+    employeeSalary: 1200,
+    employeeHireCost: 260000,
+    employeeSoftCap: 30,
+    stockItem: "Системи та безпека",
+    stockStep: 35,
+    stockCost: 900000,
+    stockUsagePerMinute: 1,
+    qualityBonusStep: 0.09,
+    marketingBonusStep: 0.05,
+    requirements: [
+      { id: "balance", label: "Баланс", type: "balance", need: 35000000 },
+      { id: "class", label: "Клас не нижче Platinum", type: "class_at_least", needClass: "platinum" },
+      { id: "opened", label: "Відкрито бізнесів", type: "opened_count", need: 5 }
+    ],
+    potentialEffect: [
+      "Дуже сильний фінансовий дохід",
+      "Добре масштабується через рівень",
+      "Сильно підкреслює банківський стиль гри"
+    ]
+  },
+  {
+    id: "space_agency",
+    name: "Космічне агентство",
+    icon: "🚀",
+    category: "Space",
+    unlockCost: 60000000,
+    baseIncome: 260000,
+    employeeUnit: "Інженер",
+    employeeSalary: 1800,
+    employeeHireCost: 420000,
+    employeeSoftCap: 45,
+    stockItem: "Космічні модулі",
+    stockStep: 80,
+    stockCost: 1600000,
+    stockUsagePerMinute: 3,
+    qualityBonusStep: 0.08,
+    marketingBonusStep: 0.06,
+    requirements: [
+      { id: "balance", label: "Баланс", type: "balance", need: 60000000 },
+      { id: "factory", label: "Невелике виробництво", type: "opened_specific", projectId: "small_factory", need: 1 },
+      { id: "transport", label: "Перевозки", type: "opened_specific", projectId: "transport", need: 1 },
+      { id: "earned", label: "Заробіток за весь час", type: "total_earned", need: 60000000 }
+    ],
+    potentialEffect: [
+      "Один із найсильніших ендгейм бізнесів",
+      "Високий дохід від рівнів і працівників",
+      "Дорогий в обслуговуванні, але дуже вигідний"
     ]
   }
 ];
 
-// =====================================================
+// ======================================================
 // HELPERS
-// =====================================================
+// ======================================================
 function getPlayer() {
   return AppState.player || {};
-}
-
-function safeArray(v) {
-  return Array.isArray(v) ? v : [];
 }
 
 function safeObject(v) {
@@ -419,18 +477,6 @@ function safeObject(v) {
 function numberValue(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
-}
-
-function formatMoney(n) {
-  return Math.floor(numberValue(n)).toLocaleString("en-US");
-}
-
-function formatCompact(n) {
-  const value = numberValue(n);
-  if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + "B";
-  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
-  if (value >= 1_000) return (value / 1_000).toFixed(1) + "K";
-  return Math.floor(value).toString();
 }
 
 function setPage(html) {
@@ -448,13 +494,13 @@ function ensureEconomyData() {
   }
 }
 
+function getProjectConfig(id) {
+  return BUSINESS_PROJECTS.find((x) => x.id === id) || null;
+}
+
 function getProjectsMap() {
   ensureEconomyData();
   return safeObject(getPlayer().business_projects);
-}
-
-function getProjectConfig(id) {
-  return BUSINESS_PROJECTS.find((x) => x.id === id) || null;
 }
 
 function getProjectState(id) {
@@ -476,19 +522,11 @@ function getProjectState(id) {
   return map[id];
 }
 
-function saveProjectState() {
-  const p = getPlayer();
+function saveProjects() {
   updatePlayer({
-    business_projects: p.business_projects
+    business_projects: getPlayer().business_projects
   });
 }
-
-function getCurrentClassConfig() {
-  const current = getPlayer().class || "none";
-  return PLAYER_CLASSES.find((x) => x.id === current) || PLAYER_CLASSES[0];
-}
-
-export { getCurrentClassConfig };
 
 function getClassOrder() {
   return PLAYER_CLASSES.map((x) => x.id);
@@ -499,9 +537,15 @@ function classAtLeast(currentClass, neededClass) {
   return order.indexOf(currentClass) >= order.indexOf(neededClass);
 }
 
+function getCurrentClassConfig() {
+  const current = getPlayer().class || "none";
+  return PLAYER_CLASSES.find((x) => x.id === current) || PLAYER_CLASSES[0];
+}
+
+export { getCurrentClassConfig };
+
 function openedProjectsCount() {
   const map = getProjectsMap();
-
   return Object.values(map).filter((x) => x?.unlocked).length;
 }
 
@@ -516,6 +560,7 @@ function totalBusinessValue() {
   Object.keys(map).forEach((id) => {
     const cfg = getProjectConfig(id);
     const st = getProjectState(id);
+
     if (!cfg || !st.unlocked) return;
 
     total += numberValue(cfg.unlockCost);
@@ -534,9 +579,9 @@ function totalBusinessValue() {
   return total;
 }
 
-// =====================================================
-// REQUIREMENT SYSTEM
-// =====================================================
+// ======================================================
+// REQUIREMENTS
+// ======================================================
 function requirementProgress(req) {
   const p = getPlayer();
 
@@ -546,6 +591,13 @@ function requirementProgress(req) {
         current: numberValue(p.balance),
         need: numberValue(req.need),
         done: numberValue(p.balance) >= numberValue(req.need)
+      };
+
+    case "total_earned":
+      return {
+        current: numberValue(p.total_earned),
+        need: numberValue(req.need),
+        done: numberValue(p.total_earned) >= numberValue(req.need)
       };
 
     case "opened_count":
@@ -562,32 +614,11 @@ function requirementProgress(req) {
         done: projectOpened(req.projectId)
       };
 
-    case "business_value":
-      return {
-        current: totalBusinessValue(),
-        need: numberValue(req.need),
-        done: totalBusinessValue() >= numberValue(req.need)
-      };
-
-    case "total_earned":
-      return {
-        current: numberValue(p.total_earned),
-        need: numberValue(req.need),
-        done: numberValue(p.total_earned) >= numberValue(req.need)
-      };
-
     case "class_at_least":
       return {
         current: classAtLeast(p.class || "none", req.needClass) ? 1 : 0,
         need: 1,
         done: classAtLeast(p.class || "none", req.needClass)
-      };
-
-    case "owned_units":
-      return {
-        current: openedProjectsCount(),
-        need: numberValue(req.need),
-        done: openedProjectsCount() >= numberValue(req.need)
       };
 
     default:
@@ -606,13 +637,27 @@ function canUnlockProject(id) {
   return cfg.requirements.every((req) => requirementProgress(req).done);
 }
 
-// =====================================================
+// ======================================================
 // COST HELPERS
-// =====================================================
+// ======================================================
+function classBusinessDiscount() {
+  return numberValue(getCurrentClassConfig().businessDiscount || 0);
+}
+
+function classBusinessBoost() {
+  return numberValue(getCurrentClassConfig().businessBoost || 0);
+}
+
+function classSalaryDiscount() {
+  return numberValue(getCurrentClassConfig().salaryDiscount || 0);
+}
+
+function classStockDiscount() {
+  return numberValue(getCurrentClassConfig().stockDiscount || 0);
+}
+
 function projectUnlockCost(cfg) {
-  const cls = getCurrentClassConfig();
-  const discount = numberValue(cls.businessDiscount || 0);
-  return Math.max(1, Math.floor(numberValue(cfg.unlockCost) * (1 - discount)));
+  return Math.max(1, Math.floor(numberValue(cfg.unlockCost) * (1 - classBusinessDiscount())));
 }
 
 function levelUpgradeCost(st) {
@@ -620,11 +665,12 @@ function levelUpgradeCost(st) {
 }
 
 function employeeHireCost(cfg, st) {
-  return Math.floor(numberValue(cfg.employeeHireCost) * (1 + numberValue(st.employees || 0) * 0.08));
+  const raw = Math.floor(numberValue(cfg.employeeHireCost) * (1 + numberValue(st.employees || 0) * 0.08));
+  return Math.max(1, Math.floor(raw * (1 - classBusinessDiscount())));
 }
 
 function stockBuyCost(cfg) {
-  return numberValue(cfg.stockCost);
+  return Math.max(1, Math.floor(numberValue(cfg.stockCost) * (1 - classStockDiscount())));
 }
 
 function qualityUpgradeCost(st) {
@@ -643,13 +689,27 @@ function footballTrainerCost(st) {
   return Math.floor(1600000 + numberValue(st.trainers || 0) * 450000);
 }
 
-// =====================================================
-// INCOME
-// =====================================================
+// ======================================================
+// INCOME LOGIC
+// ======================================================
+function salaryPerMinute(cfg, st) {
+  const rawBase = numberValue(cfg.employeeSalary || 0) * numberValue(st.employees || 0);
+  const discountedBase = rawBase * (1 - classSalaryDiscount());
+
+  if (cfg.id !== "football_club") {
+    return discountedBase;
+  }
+
+  const playerSalary = numberValue(st.players || 0) * 4200;
+  const trainerSalary = numberValue(st.trainers || 0) * 6500;
+
+  return discountedBase + playerSalary + trainerSalary;
+}
+
 function stockPenaltyFactor(cfg, st) {
   if (numberValue(cfg.stockUsagePerMinute || 0) <= 0) return 1;
   if (numberValue(st.stock || 0) <= 0) return 0.25;
-  if (numberValue(st.stock || 0) < numberValue(cfg.stockUsagePerMinute || 1) * 3) return 0.65;
+  if (numberValue(st.stock || 0) < numberValue(cfg.stockUsagePerMinute || 0) * 3) return 0.65;
   return 1;
 }
 
@@ -659,53 +719,34 @@ function employeeFactor(cfg, st) {
 
   if (employees <= 0) return 0.45;
 
-  return Math.min(1.35, 0.55 + (employees / softCap));
+  return Math.min(1.35, 0.55 + employees / softCap);
 }
 
-function qualityFactor(st) {
-  return 1 + numberValue(st.quality || 0) * 0.08;
+function qualityFactor(cfg, st) {
+  return 1 + numberValue(st.quality || 0) * numberValue(cfg.qualityBonusStep || 0.06);
 }
 
-function marketingFactor(st, cfg) {
-  let boost = 0.06;
-  if (cfg.id === "media_empire") boost = 0.10;
-  return 1 + numberValue(st.marketing || 0) * boost;
+function marketingFactor(cfg, st) {
+  return 1 + numberValue(st.marketing || 0) * numberValue(cfg.marketingBonusStep || 0.06);
 }
 
-function footballFactor(st) {
+function footballExtraFactor(st) {
   return 1 + numberValue(st.players || 0) * 0.05 + numberValue(st.trainers || 0) * 0.12;
-}
-
-function salaryPerMinute(cfg, st) {
-  const base = numberValue(cfg.employeeSalary || 0) * numberValue(st.employees || 0);
-
-  if (cfg.id !== "football_club") {
-    return base;
-  }
-
-  const playerSalary = numberValue(st.players || 0) * 4200;
-  const trainerSalary = numberValue(st.trainers || 0) * 6500;
-
-  return base + playerSalary + trainerSalary;
-}
-
-function classBusinessBoost() {
-  return numberValue(getCurrentClassConfig().businessBoost || 0);
 }
 
 function projectIncomePerMinute(cfg, st) {
   if (!st.unlocked) return 0;
 
   let income =
-    numberValue(cfg.baseIncome) *
+    numberValue(cfg.baseIncome || 0) *
     (1 + (numberValue(st.level || 1) - 1) * 0.18) *
     employeeFactor(cfg, st) *
     stockPenaltyFactor(cfg, st) *
-    qualityFactor(st) *
-    marketingFactor(st, cfg);
+    qualityFactor(cfg, st) *
+    marketingFactor(cfg, st);
 
   if (cfg.id === "football_club") {
-    income *= footballFactor(st);
+    income *= footballExtraFactor(st);
   }
 
   income *= (1 + classBusinessBoost());
@@ -716,6 +757,7 @@ function projectIncomePerMinute(cfg, st) {
 
 function totalIncomePerMinute() {
   let total = 0;
+
   BUSINESS_PROJECTS.forEach((cfg) => {
     const st = getProjectState(cfg.id);
     total += projectIncomePerMinute(cfg, st);
@@ -729,9 +771,9 @@ export function calcPassiveIncome() {
   return totalIncomePerMinute();
 }
 
-// =====================================================
-// CLASS BUY
-// =====================================================
+// ======================================================
+// ACTIONS
+// ======================================================
 export function buyPlayerClass(classId) {
   const p = getPlayer();
   const target = PLAYER_CLASSES.find((x) => x.id === classId);
@@ -759,17 +801,15 @@ export function buyPlayerClass(classId) {
   return true;
 }
 
-// =====================================================
-// BUSINESS ACTIONS
-// =====================================================
 export function unlockProject(id) {
   const p = getPlayer();
   const cfg = getProjectConfig(id);
   if (!cfg) return false;
 
   const st = getProjectState(id);
+
   if (st.unlocked) {
-    alert("Бізнес уже відкритий");
+    alert("Проєкт уже відкритий");
     return false;
   }
 
@@ -779,6 +819,7 @@ export function unlockProject(id) {
   }
 
   const cost = projectUnlockCost(cfg);
+
   if (!removeBalance(cost)) {
     alert("Недостатньо грошей");
     return false;
@@ -787,13 +828,13 @@ export function unlockProject(id) {
   st.unlocked = true;
   st.level = 1;
   st.employees = 1;
-  st.stock = numberValue(cfg.stockStep) * 2;
+  st.stock = numberValue(cfg.stockStep || 0) * 2;
   st.quality = 0;
   st.marketing = 0;
   st.players = 0;
   st.trainers = 0;
 
-  saveProjectState();
+  saveProjects();
   apiAddHistory(p.username, `Unlock project: ${cfg.name}`, -cost);
   return true;
 }
@@ -816,8 +857,8 @@ export function upgradeProjectLevel(id) {
   }
 
   st.level += 1;
-  saveProjectState();
-  apiAddHistory(p.username, `Upgrade level: ${cfg.name}`, -cost);
+  saveProjects();
+  apiAddHistory(p.username, `Upgrade project level: ${cfg.name}`, -cost);
   return true;
 }
 
@@ -839,7 +880,7 @@ export function hireEmployee(id) {
   }
 
   st.employees += 1;
-  saveProjectState();
+  saveProjects();
   apiAddHistory(p.username, `Hire employee: ${cfg.name}`, -cost);
   return true;
 }
@@ -861,8 +902,8 @@ export function buyBusinessStock(id) {
     return false;
   }
 
-  st.stock += numberValue(cfg.stockStep);
-  saveProjectState();
+  st.stock += numberValue(cfg.stockStep || 0);
+  saveProjects();
   apiAddHistory(p.username, `Buy stock: ${cfg.name}`, -cost);
   return true;
 }
@@ -885,7 +926,7 @@ export function upgradeQuality(id) {
   }
 
   st.quality += 1;
-  saveProjectState();
+  saveProjects();
   apiAddHistory(p.username, `Upgrade quality: ${cfg.name}`, -cost);
   return true;
 }
@@ -908,7 +949,7 @@ export function upgradeMarketing(id) {
   }
 
   st.marketing += 1;
-  saveProjectState();
+  saveProjects();
   apiAddHistory(p.username, `Upgrade marketing: ${cfg.name}`, -cost);
   return true;
 }
@@ -929,7 +970,7 @@ export function buyFootballPlayer() {
   }
 
   st.players += 1;
-  saveProjectState();
+  saveProjects();
   apiAddHistory(p.username, "Buy football player", -cost);
   return true;
 }
@@ -950,14 +991,14 @@ export function buyFootballTrainer() {
   }
 
   st.trainers += 1;
-  saveProjectState();
+  saveProjects();
   apiAddHistory(p.username, "Buy football trainer", -cost);
   return true;
 }
 
-// =====================================================
+// ======================================================
 // PASSIVE TICK
-// =====================================================
+// ======================================================
 export function passiveIncomeTick() {
   const p = getPlayer();
   ensureEconomyData();
@@ -983,9 +1024,9 @@ export function passiveIncomeTick() {
   });
 }
 
-// =====================================================
-// UI
-// =====================================================
+// ======================================================
+// UI HELPERS
+// ======================================================
 function progressBar(current, need) {
   const percent = Math.max(0, Math.min(100, (numberValue(current) / Math.max(1, numberValue(need))) * 100));
 
@@ -1013,7 +1054,7 @@ function classCard(item) {
           <span>Click +${item.clickBonus}</span>
           <span>Passive +${Math.floor(item.passiveBoost * 100)}%</span>
           <span>Business +${Math.floor(item.businessBoost * 100)}%</span>
-          <span>Market -${Math.floor(item.marketDiscount * 100)}%</span>
+          <span>Salary -${Math.floor(item.salaryDiscount * 100)}%</span>
         </div>
 
         <p class="muted" style="margin-top:4px;">${item.label}</p>
@@ -1140,7 +1181,7 @@ function projectCard(cfg) {
 
         <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
           <div>
-            <div class="muted" style="font-size:13px;">Вложения для открытия</div>
+            <div class="muted" style="font-size:13px;">Вкладення для відкриття</div>
             <div style="font-size:30px;font-weight:900;color:#fff;">₴ ${formatMoney(projectUnlockCost(cfg))}</div>
           </div>
 
@@ -1164,9 +1205,9 @@ function projectCard(cfg) {
   `;
 }
 
-// =====================================================
+// ======================================================
 // PUBLIC RENDER
-// =====================================================
+// ======================================================
 export function renderBusinessPremiumPage() {
   document.body.dataset.currentPage = "business";
 
@@ -1175,7 +1216,7 @@ export function renderBusinessPremiumPage() {
   setPage(`
     <div class="card" style="grid-column:1 / -1;">
       <h2>Бізнес-імперія</h2>
-      <p>Бізнеси у форматі великих проєктів: виконуй умови, відкривай напрямки, качай персонал, склад, маркетинг, якість і рости далі.</p>
+      <p>Великі бізнес-проєкти з умовами відкриття, прогресом, вкладеннями, складом, працівниками, маркетингом, якістю та окремими механіками для супермаркету й футбольного клубу.</p>
     </div>
 
     <div class="dashboard-grid" style="grid-template-columns:repeat(4,1fr);">
@@ -1216,9 +1257,9 @@ export function renderBusinessPremiumPage() {
   `);
 }
 
-// =====================================================
+// ======================================================
 // BIND
-// =====================================================
+// ======================================================
 function bindEconomyUI() {
   document.querySelectorAll("[data-buy-class]").forEach((btn) => {
     btn.addEventListener("click", () => {
