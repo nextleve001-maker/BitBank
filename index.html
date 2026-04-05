@@ -2,95 +2,185 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
   <title>BitBank</title>
-
-  <link rel="stylesheet" href="style.css?v=500" />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="./style.css?v=1201" />
 </head>
 <body>
   <!-- AUTH -->
-  <div id="login-screen" class="auth-screen">
-    <div class="auth-box">
-      <div class="auth-header">
-        <h1>BitBank</h1>
-        <p>Digital bank • crypto • economy • premium dashboard</p>
+  <section id="login-screen" class="auth-screen">
+    <div class="auth-shell">
+      <div class="auth-side auth-brand">
+        <div class="auth-brand-badge">BitBank</div>
+        <h1>Online Idle Economy</h1>
+        <p>
+          Банківська економічна гра з криптою, акціями, бізнесами, фінансами,
+          картками, лутом, рейтингом і адмінкою.
+        </p>
+
+        <div class="auth-feature-list">
+          <div class="auth-feature-card">
+            <strong>Crypto & Stocks</strong>
+            <span>Ринок, портфель, динамічні ціни, бонуси класів і ролей</span>
+          </div>
+
+          <div class="auth-feature-card">
+            <strong>Business Empire</strong>
+            <span>Проєкти, супермаркет, футбольний клуб, пасивний дохід</span>
+          </div>
+
+          <div class="auth-feature-card">
+            <strong>Finance App Style</strong>
+            <span>Преміальний dark UI для телефону і ПК</span>
+          </div>
+        </div>
       </div>
 
-      <div class="auth-tabs">
-        <button id="tab-login" class="auth-tab active" type="button">Login</button>
-        <button id="tab-register" class="auth-tab" type="button">Register</button>
-      </div>
+      <div class="auth-side auth-panel">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-mini-badge">Secure Access</div>
+            <h2>BitBank Login</h2>
+            <p>Увійди або створи новий акаунт</p>
+          </div>
 
-      <div id="auth-message" class="auth-message"></div>
+          <div class="auth-tabs">
+            <button id="tab-login" class="auth-tab active" type="button">Login</button>
+            <button id="tab-register" class="auth-tab" type="button">Register</button>
+          </div>
 
-      <div id="login-form" class="auth-form">
-        <label for="login-username">Username</label>
-        <input
-          id="login-username"
-          type="text"
-          placeholder="Enter username"
-          autocomplete="username"
-        />
+          <div id="auth-message" class="auth-message"></div>
 
-        <label for="login-password">Password</label>
-        <input
-          id="login-password"
-          type="password"
-          placeholder="Enter password"
-          autocomplete="current-password"
-        />
+          <div class="auth-form">
+            <label for="auth-username">Username</label>
+            <input id="auth-username" type="text" autocomplete="username" placeholder="your_username" />
 
-        <button id="login-btn" class="primary-btn" type="button">Login</button>
-      </div>
+            <label for="auth-password">Password</label>
+            <input id="auth-password" type="password" autocomplete="current-password" placeholder="••••••••" />
 
-      <div id="register-form" class="auth-form hidden">
-        <label for="register-username">Username</label>
-        <input
-          id="register-username"
-          type="text"
-          placeholder="Create username"
-          autocomplete="username"
-        />
+            <div id="register-extra" class="register-extra hidden">
+              <div class="auth-note">
+                Логін: 3–20 символів, тільки букви, цифри або _
+              </div>
+            </div>
 
-        <label for="register-password">Password</label>
-        <input
-          id="register-password"
-          type="password"
-          placeholder="Create password"
-          autocomplete="new-password"
-        />
+            <button id="auth-submit-btn" class="primary-btn" type="button">
+              Continue
+            </button>
 
-        <button id="register-btn" class="primary-btn" type="button">Register</button>
+            <div class="auth-footer-note">
+              Адмін створюється автоматично: <strong>admin / 9009</strong>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
   <!-- APP -->
-  <div id="app-screen" class="app-screen hidden">
-    <aside class="sidebar" id="sidebar">
+  <section id="app-screen" class="app-screen hidden">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
       <div class="sidebar-top">
         <div class="brand-block">
-          <h2>BitBank</h2>
-          <p>Premium economy platform</p>
+          <div class="brand-mark">₿</div>
+          <div>
+            <h2>BitBank</h2>
+            <p>Online Idle Economy</p>
+          </div>
         </div>
       </div>
 
       <nav class="sidebar-nav">
-        <button class="nav-btn" data-page="profile" type="button">👤 Profile</button>
-        <button class="nav-btn" data-page="business" type="button">🏢 Business</button>
-        <button class="nav-btn" data-page="crypto" type="button">🪙 Crypto</button>
-        <button class="nav-btn" data-page="stocks" type="button">📈 Stocks</button>
-        <button class="nav-btn" data-page="realty" type="button">🏝 Realty</button>
-        <button class="nav-btn" data-page="cars" type="button">🚗 Cars</button>
-        <button class="nav-btn" data-page="inventory" type="button">🎒 Inventory</button>
-        <button class="nav-btn" data-page="friends" type="button">👥 Friends</button>
-        <button class="nav-btn" data-page="battle" type="button">⚔️ Battle</button>
-        <button class="nav-btn" data-page="casino" type="button">🎰 Casino</button>
-        <button class="nav-btn" data-page="transfers" type="button">💸 Transfers</button>
-        <button class="nav-btn" data-page="card" type="button">💳 Card</button>
-        <button class="nav-btn" data-page="history" type="button">📜 History</button>
-        <button class="nav-btn" data-page="stats" type="button">📊 Stats</button>
-        <button class="nav-btn" data-page="admin" type="button">👑 Admin</button>
+        <button class="nav-btn active" data-page="profile" type="button">
+          <span class="nav-emoji">👤</span>
+          <span class="nav-label">Profile</span>
+        </button>
+
+        <button class="nav-btn" data-page="business" type="button">
+          <span class="nav-emoji">🏢</span>
+          <span class="nav-label">Business</span>
+        </button>
+
+        <button class="nav-btn" data-page="crypto" type="button">
+          <span class="nav-emoji">🪙</span>
+          <span class="nav-label">Crypto</span>
+        </button>
+
+        <button class="nav-btn" data-page="stocks" type="button">
+          <span class="nav-emoji">📈</span>
+          <span class="nav-label">Stocks</span>
+        </button>
+
+        <button class="nav-btn" data-page="finance" type="button">
+          <span class="nav-emoji">🏦</span>
+          <span class="nav-label">Finance</span>
+        </button>
+
+        <button class="nav-btn" data-page="cards" type="button">
+          <span class="nav-emoji">💳</span>
+          <span class="nav-label">Cards</span>
+        </button>
+
+        <button class="nav-btn" data-page="friends" type="button">
+          <span class="nav-emoji">🧑‍🤝‍🧑</span>
+          <span class="nav-label">Friends</span>
+        </button>
+
+        <button class="nav-btn" data-page="battle" type="button">
+          <span class="nav-emoji">⚔️</span>
+          <span class="nav-label">Battle</span>
+        </button>
+
+        <button class="nav-btn" data-page="casino" type="button">
+          <span class="nav-emoji">🎰</span>
+          <span class="nav-label">Casino</span>
+        </button>
+
+        <button class="nav-btn" data-page="loot" type="button">
+          <span class="nav-emoji">🎁</span>
+          <span class="nav-label">Loot</span>
+        </button>
+
+        <button class="nav-btn" data-page="collections" type="button">
+          <span class="nav-emoji">🏆</span>
+          <span class="nav-label">Collections</span>
+        </button>
+
+        <button class="nav-btn" data-page="roles" type="button">
+          <span class="nav-emoji">🧠</span>
+          <span class="nav-label">Roles</span>
+        </button>
+
+        <button class="nav-btn" data-page="inventory" type="button">
+          <span class="nav-emoji">🎒</span>
+          <span class="nav-label">Inventory</span>
+        </button>
+
+        <button class="nav-btn" data-page="history" type="button">
+          <span class="nav-emoji">📜</span>
+          <span class="nav-label">History</span>
+        </button>
+
+        <button class="nav-btn" data-page="stats" type="button">
+          <span class="nav-emoji">📊</span>
+          <span class="nav-label">Stats</span>
+        </button>
+
+        <button class="nav-btn" data-page="admin" type="button">
+          <span class="nav-emoji">👑</span>
+          <span class="nav-label">Admin</span>
+        </button>
       </nav>
 
       <div class="sidebar-bottom">
@@ -98,52 +188,75 @@
       </div>
     </aside>
 
+    <!-- MAIN -->
     <main class="main-layout">
       <header class="topbar">
         <div class="topbar-left">
-          <h1 id="header-username">Player</h1>
+          <div class="topbar-title-row">
+            <div class="topbar-avatar">
+              <span id="topbar-avatar-text">B</span>
+            </div>
 
-          <div class="top-meta">
-            <span id="header-status">Class: none</span>
-            <span id="header-device">Device: desktop</span>
+            <div>
+              <h1 id="header-username">Player</h1>
+              <div class="top-meta">
+                <span id="header-status">Class: none</span>
+                <span id="header-device">Device: desktop</span>
+                <span id="header-prestige">Prestige: Starter</span>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="topbar-right">
-         <select id="lang-switcher">
-    <option value="ua">UA</option>
-      <option value="en">EN</option>
-        <option value="fr">FR</option>
-        <option value="it">IT</option>
-          </select>
-            <div class="balance-chip">
-                <span>UAH</span>
-                <strong id="balance-uah">₴ 0</strong>
-            </div>
+          <div class="balance-chip balance-chip-uah">
+            <span>UAH Balance</span>
+            <strong id="balance-uah">₴ 0</strong>
+          </div>
 
-          <div class="balance-chip">
-            <span>USD</span>
+          <div class="balance-chip balance-chip-usd">
+            <span>USD Balance</span>
             <strong id="balance-usd">$ 0</strong>
           </div>
         </div>
       </header>
 
-      <section class="content-wrap">
+      <div class="content-wrap">
         <div id="global-message" class="global-message"></div>
-
         <div id="battle-widget"></div>
-
-        <div id="page-content" class="page-content">
-          <div class="card" style="grid-column:1 / -1;">
-            <h2>Loading...</h2>
-            <p>BitBank is starting.</p>
-          </div>
-        </div>
-      </section>
+        <div id="page-content" class="page-content"></div>
+      </div>
     </main>
-  </div>
 
-  <link rel="stylesheet" href="style.css?v=902  ">
-<script type="module" src="./app.js?v=902"></script>
+    <!-- MOBILE TABBAR -->
+    <nav class="mobile-tabbar">
+      <button class="mobile-tab-btn active" data-page="profile" type="button">
+        <span>👤</span>
+        <small>Profile</small>
+      </button>
+
+      <button class="mobile-tab-btn" data-page="business" type="button">
+        <span>🏢</span>
+        <small>Business</small>
+      </button>
+
+      <button class="mobile-tab-btn mobile-tab-center" data-page="crypto" type="button">
+        <span>🪙</span>
+        <small>Market</small>
+      </button>
+
+      <button class="mobile-tab-btn" data-page="cards" type="button">
+        <span>💳</span>
+        <small>Cards</small>
+      </button>
+
+      <button class="mobile-tab-btn" data-page="friends" type="button">
+        <span>🧑‍🤝‍🧑</span>
+        <small>Friends</small>
+      </button>
+    </nav>
+  </section>
+
+  <script type="module" src="./app.js?v=1201"></script>
 </body>
 </html>
