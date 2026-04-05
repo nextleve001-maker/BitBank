@@ -1,6 +1,5 @@
 import { bindAuthEvents } from "./auth.js";
 import {
-  supabaseClient,
   apiGetPlayer,
   apiGetAllPlayers,
   apiGetGameState,
@@ -11,9 +10,8 @@ import {
 import {
   renderProfilePage,
   renderStatsPage,
-  renderFriendsPage,
   renderInventoryPage,
-  renderBusinessPage
+  refreshTopbarProfileBits
 } from "./ui.js";
 
 import {
@@ -31,22 +29,32 @@ import { renderCasinoPage } from "./casino.js";
 import { renderTransfersPage, renderCardSettingsPage } from "./transfers.js";
 import { renderAdminPage, isAdmin } from "./admin.js";
 import { passiveIncomeTick, renderBusinessPremiumPage } from "./economy.js";
+import { renderHistoryPage } from "./history.js";
+import { renderFriendsPage } from "./friends.js";
+import { renderFinancePage, financeTick } from "./finance.js";
+import { renderRolesPage } from "./roles.js";
+import { renderCardsPage } from "./cards.js";
+import { renderCollectionsPage } from "./collections.js";
+import { renderLootPage } from "./loot.js";
+import { normalizePlayerState, rebuildAutoTitles, getPlayerOverviewStats } from "./player.js";
 
+// ======================================================
+// GLOBAL STATE
+// ======================================================
 export const AppState = {
   currentUser: null,
   player: null,
   allPlayers: [],
   gameState: null,
-  lang: "ua",
   initialized: false,
   currentPage: "profile",
   intervalsStarted: false,
   isPhone: false
 };
 
-// =====================
+// ======================================================
 // SESSION
-// =====================
+// ======================================================
 export function saveSession(username) {
   localStorage.setItem("bb_user", username);
 }
@@ -64,9 +72,13 @@ export function logout() {
   location.reload();
 }
 
-// =====================
-// DEVICE / UI MODE
-// =====================
+// ======================================================
+// HELPERS
+// ======================================================
+function $(id) {
+  return document.getElementById(id);
+}
+
 function currentDeviceType() {
   return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     ? "phone"
@@ -78,67 +90,36 @@ function detectPhoneMode() {
   document.body.classList.toggle("mobile-mode", AppState.isPhone);
 }
 
-function applyTouchFeedback() {
-  document.querySelectorAll("button, .nav-btn").forEach((btn) => {
-    if (btn.dataset.touchBound === "1") return;
-    btn.dataset.touchBound = "1";
-
-    btn.addEventListener(
-      "touchstart",
-      () => {
-        btn.classList.add("tap-active");
-      },
-      { passive: true }
-    );
-
-    btn.addEventListener(
-      "touchend",
-      () => {
-        btn.classList.remove("tap-active");
-      },
-      { passive: true }
-    );
-
-    btn.addEventListener(
-      "touchcancel",
-      () => {
-        btn.classList.remove("tap-active");
-      },
-      { passive: true }
-    );
-  });
-}
-
-function setupPhoneUX() {
-  detectPhoneMode();
-  applyTouchFeedback();
-}
-
-// =====================
-// SCREEN STATE
-// =====================
 function showLogin() {
-  const loginScreen = document.getElementById("login-screen");
-  const appScreen = document.getElementById("app-screen");
-
-  if (loginScreen) loginScreen.classList.remove("hidden");
-  if (appScreen) appScreen.classList.add("hidden");
+  $("login-screen")?.classList.remove("hidden");
+  $("app-screen")?.classList.add("hidden");
 }
 
 function showApp() {
-  const loginScreen = document.getElementById("login-screen");
-  const appScreen = document.getElementById("app-screen");
-
-  if (loginScreen) loginScreen.classList.add("hidden");
-  if (appScreen) appScreen.classList.remove("hidden");
+  $("login-screen")?.classList.add("hidden");
+  $("app-screen")?.classList.remove("hidden");
 }
 
-// =====================
+function formatMoney(n) {
+  return Math.floor(Number(n || 0)).toLocaleString("en-US");
+}
+
+function ensurePlayerLoaded() {
+  if (!AppState.player) return false;
+  normalizePlayerState();
+  rebuildAutoTitles();
+  return true;
+}
+
+// ======================================================
 // DATA LOAD
-// =====================
+// ======================================================
 async function loadPlayer() {
   if (!AppState.currentUser) return;
   AppState.player = await apiGetPlayer(AppState.currentUser);
+  if (AppState.player) {
+    normalizePlayerState();
+  }
 }
 
 async function loadAllPlayers() {
@@ -149,32 +130,39 @@ async function loadGameState() {
   AppState.gameState = await apiGetGameState();
 }
 
-// =====================
+// ======================================================
 // PLAYER PATCH
-// =====================
+// ======================================================
 export async function updatePlayer(patch) {
-  if (!AppState.player?.username) return;
+  if (!AppState.player?.username) return null;
 
-  await apiUpdatePlayer(AppState.player.username, patch);
-  Object.assign(AppState.player, patch);
+  const fresh = await apiUpdatePlayer(AppState.player.username, patch);
+  if (fresh) {
+    AppState.player = fresh;
+  } else {
+    Object.assign(AppState.player, patch);
+  }
 
+  normalizePlayerState();
+  rebuildAutoTitles();
   updateHeader();
-  rerenderCurrentPageIfNeeded();
+
+  return AppState.player;
 }
 
-// =====================
+// ======================================================
 // HEADER / NAV
-// =====================
+// ======================================================
 export function updateHeader() {
   const p = AppState.player;
   if (!p) return;
 
-  const usernameEl = document.getElementById("header-username");
-  const statusEl = document.getElementById("header-status");
-  const deviceEl = document.getElementById("header-device");
-  const balanceUAHEl = document.getElementById("balance-uah");
-  const balanceUSDEl = document.getElementById("balance-usd");
-  const globalMessageEl = document.getElementById("global-message");
+  const usernameEl = $("header-username");
+  const statusEl = $("header-status");
+  const deviceEl = $("header-device");
+  const balanceUAHEl = $("balance-uah");
+  const balanceUSDEl = $("balance-usd");
+  const globalMessageEl = $("global-message");
 
   if (usernameEl) {
     usernameEl.textContent = p.username || "Player";
@@ -189,24 +177,24 @@ export function updateHeader() {
   }
 
   if (balanceUAHEl) {
-    balanceUAHEl.textContent = `₴ ${Math.floor(Number(p.balance || 0)).toLocaleString("en-US")}`;
+    balanceUAHEl.textContent = `₴ ${formatMoney(p.balance || 0)}`;
   }
 
   if (balanceUSDEl) {
-    balanceUSDEl.textContent = `$ ${Math.floor(Number(p.usd || 0)).toLocaleString("en-US")}`;
+    balanceUSDEl.textContent = `$ ${formatMoney(p.usd || 0)}`;
   }
 
   if (globalMessageEl) {
     globalMessageEl.textContent = AppState.gameState?.global_message || "";
   }
 
+  refreshTopbarProfileBits();
+  highlightActiveNav();
+
   const adminBtn = document.querySelector('.nav-btn[data-page="admin"]');
   if (adminBtn) {
     adminBtn.style.display = isAdmin() ? "flex" : "none";
   }
-
-  document.body.dataset.currentPage = AppState.currentPage || "profile";
-  highlightActiveNav();
 }
 
 function highlightActiveNav() {
@@ -215,46 +203,27 @@ function highlightActiveNav() {
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.page === page);
   });
+
+  document.querySelectorAll(".mobile-tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.page === page);
+  });
 }
 
-// =====================
-// PAGE HELPERS
-// =====================
-function renderRealtyPlaceholder() {
-  const root = document.getElementById("page-content");
-  if (!root) return;
+function updateTopbarAvatar() {
+  const el = $("topbar-avatar-text");
+  if (!el || !AppState.player?.username) return;
 
-  root.innerHTML = `
-    <div class="card" style="grid-column:1 / -1;">
-      <h2>Realty</h2>
-      <p>Premium realty page can be connected here next.</p>
-    </div>
-  `;
+  el.textContent = String(AppState.player.username).charAt(0).toUpperCase();
 }
 
-function renderCarsPlaceholder() {
-  const root = document.getElementById("page-content");
-  if (!root) return;
-
-  root.innerHTML = `
-    <div class="card" style="grid-column:1 / -1;">
-      <h2>Cars</h2>
-      <p>Premium cars page can be connected here next.</p>
-    </div>
-  `;
+function rerenderCurrentPageIfNeeded() {
+  if (!AppState.initialized) return;
+  renderPage(AppState.currentPage || "profile");
 }
 
-function renderMarketFallback() {
-  renderCryptoPage();
-}
-
-function renderDefaultPage() {
-  renderProfilePage();
-}
-
-// =====================
-// PAGE ROUTER
-// =====================
+// ======================================================
+// ROUTER
+// ======================================================
 export function renderPage(page) {
   AppState.currentPage = page || "profile";
   document.body.dataset.currentPage = AppState.currentPage;
@@ -276,20 +245,20 @@ export function renderPage(page) {
       renderStocksPage();
       break;
 
-    case "realty":
-      renderRealtyPlaceholder();
+    case "finance":
+      renderFinancePage();
       break;
 
-    case "cars":
-      renderCarsPlaceholder();
+    case "transfers":
+      renderTransfersPage();
       break;
 
-    case "inventory":
-      renderInventoryPage();
+    case "card":
+      renderCardSettingsPage();
       break;
 
-    case "market":
-      renderMarketFallback();
+    case "cards":
+      renderCardsPage();
       break;
 
     case "friends":
@@ -304,12 +273,20 @@ export function renderPage(page) {
       renderCasinoPage();
       break;
 
-    case "transfers":
-      renderTransfersPage();
+    case "loot":
+      renderLootPage();
       break;
 
-    case "card":
-      renderCardSettingsPage();
+    case "collections":
+      renderCollectionsPage();
+      break;
+
+    case "roles":
+      renderRolesPage();
+      break;
+
+    case "inventory":
+      renderInventoryPage();
       break;
 
     case "history":
@@ -325,49 +302,25 @@ export function renderPage(page) {
       break;
 
     default:
-      renderDefaultPage();
+      renderProfilePage();
       break;
   }
 
+  updateHeader();
+  updateTopbarAvatar();
   highlightActiveNav();
-  applyTouchFeedback();
 }
 
-// =====================
-// SAFE RERENDER
-// =====================
-function rerenderCurrentPageIfNeeded() {
-  if (!AppState.initialized) return;
-  renderPage(AppState.currentPage || "profile");
-}
-
-// =====================
+// ======================================================
 // EVENTS
-// =====================
-function bindGlobalEvents() {
-  const logoutBtn = document.getElementById("logout-btn");
-  if (logoutBtn && logoutBtn.dataset.bound !== "1") {
-    logoutBtn.dataset.bound = "1";
-    logoutBtn.addEventListener("click", logout);
-  }
+// ======================================================
+function bindNavButtons() {
+  const bindPageButtons = (selector) => {
+    document.querySelectorAll(selector).forEach((btn) => {
+      if (btn.dataset.bound === "1") return;
+      btn.dataset.bound = "1";
 
-  document.querySelectorAll(".nav-btn").forEach((btn) => {
-    if (btn.dataset.bound === "1") return;
-    btn.dataset.bound = "1";
-
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const page = btn.dataset.page;
-      if (!page) return;
-
-      renderPage(page);
-    });
-
-    btn.addEventListener(
-      "touchend",
-      (e) => {
+      btn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
 
@@ -375,20 +328,50 @@ function bindGlobalEvents() {
         if (!page) return;
 
         renderPage(page);
-      },
-      { passive: false }
-    );
-  });
+      });
 
-  window.addEventListener("resize", () => {
-    detectPhoneMode();
-    updateHeader();
-  });
+      btn.addEventListener(
+        "touchend",
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const page = btn.dataset.page;
+          if (!page) return;
+
+          renderPage(page);
+        },
+        { passive: false }
+      );
+    });
+  };
+
+  bindPageButtons(".nav-btn");
+  bindPageButtons(".mobile-tab-btn");
 }
 
-// =====================
+function bindGlobalEvents() {
+  const logoutBtn = $("logout-btn");
+
+  if (logoutBtn && logoutBtn.dataset.bound !== "1") {
+    logoutBtn.dataset.bound = "1";
+    logoutBtn.addEventListener("click", logout);
+  }
+
+  bindNavButtons();
+
+  if (!window.__bb_resize_bound__) {
+    window.__bb_resize_bound__ = true;
+    window.addEventListener("resize", () => {
+      detectPhoneMode();
+      updateHeader();
+    });
+  }
+}
+
+// ======================================================
 // PRESENCE
-// =====================
+// ======================================================
 async function presenceTick() {
   if (!AppState.player?.username) return;
 
@@ -406,126 +389,118 @@ async function presenceTick() {
   updateHeader();
 }
 
-// =====================
-// REFRESH RUNTIME DATA
-// =====================
-async function softRefreshRuntimeData() {
-  if (!AppState.player?.username) return;
-
-  try {
-    await loadAllPlayers();
-    const freshGameState = await apiGetGameState();
-
-    if (freshGameState) {
-      AppState.gameState = freshGameState;
-    }
-
-    updateHeader();
-  } catch (error) {
-    console.error("softRefreshRuntimeData error:", error);
-  }
-}
-
-// =====================
+// ======================================================
 // LOOPS
-// =====================
-function startLoops() {
+// ======================================================
+function startCoreLoops() {
   if (AppState.intervalsStarted) return;
   AppState.intervalsStarted = true;
 
-  setInterval(async () => {
-    if (!AppState.player) return;
+  startMarketLoop();
+  startBattleLoop();
 
+  setInterval(async () => {
     try {
       passiveIncomeTick();
-    } catch (error) {
-      console.error("passiveIncomeTick error:", error);
-    }
-  }, 1000);
-
-  setInterval(async () => {
-    if (!AppState.player) return;
-
-    try {
-      await presenceTick();
-    } catch (error) {
-      console.error("presence loop error:", error);
+    } catch (e) {
+      console.error("passiveIncomeTick error:", e);
     }
   }, 5000);
 
   setInterval(async () => {
-    if (!AppState.player) return;
-
     try {
-      await softRefreshRuntimeData();
-    } catch (error) {
-      console.error("refresh loop error:", error);
+      await financeTick();
+    } catch (e) {
+      console.error("financeTick error:", e);
     }
-  }, 8000);
+  }, 45000);
 
-  try {
-    startMarketLoop();
-  } catch (error) {
-    console.error("startMarketLoop error:", error);
-  }
+  setInterval(async () => {
+    try {
+      await presenceTick();
+    } catch (e) {
+      console.error("presenceTick error:", e);
+    }
+  }, 10000);
 
-  try {
-    startBattleLoop();
-  } catch (error) {
-    console.error("startBattleLoop error:", error);
-  }
+  setInterval(async () => {
+    try {
+      await loadAllPlayers();
+    } catch (e) {
+      console.error("loadAllPlayers loop error:", e);
+    }
+  }, 20000);
+
+  setInterval(async () => {
+    try {
+      const fresh = await apiGetPlayer(AppState.currentUser);
+      if (fresh) {
+        AppState.player = fresh;
+        normalizePlayerState();
+        rebuildAutoTitles();
+        updateHeader();
+      }
+    } catch (e) {
+      console.error("player refresh loop error:", e);
+    }
+  }, 25000);
 }
 
-// =====================
-// START APP
-// =====================
-export async function startApp(username) {
-  AppState.currentUser = username;
+// ======================================================
+// STARTUP
+// ======================================================
+export async function startApp(username = null) {
+  const sessionUser = username || loadSession();
 
-  showApp();
-  setupPhoneUX();
+  detectPhoneMode();
+  bindGlobalEvents();
 
-  await loadPlayer();
-  await loadAllPlayers();
-  await loadGameState();
-
-  if (!AppState.player) {
-    clearSession();
+  if (!sessionUser) {
+    AppState.currentUser = null;
+    AppState.player = null;
     showLogin();
+    AppState.initialized = true;
     return;
   }
 
-  AppState.player.device = currentDeviceType();
-  AppState.currentPage = "profile";
+  AppState.currentUser = sessionUser;
 
+  await loadPlayer();
+
+  if (!AppState.player) {
+    clearSession();
+    AppState.currentUser = null;
+    showLogin();
+    AppState.initialized = true;
+    return;
+  }
+
+  if (AppState.player.banned) {
+    clearSession();
+    AppState.currentUser = null;
+    showLogin();
+    alert("Акаунт заблоковано");
+    AppState.initialized = true;
+    return;
+  }
+
+  await loadAllPlayers();
+  await loadGameState();
+
+  showApp();
+  ensurePlayerLoaded();
   updateHeader();
-  renderDefaultPage();
+  updateTopbarAvatar();
+  renderPage(AppState.currentPage || "profile");
+  startCoreLoops();
 
   AppState.initialized = true;
 }
 
-// =====================
-// INIT
-// =====================
-export async function initApp() {
+// ======================================================
+// AUTO START
+// ======================================================
+document.addEventListener("DOMContentLoaded", async () => {
   bindAuthEvents();
-  bindGlobalEvents();
-  setupPhoneUX();
-
-  const session = loadSession();
-
-  if (session) {
-    await startApp(session);
-  } else {
-    showLogin();
-  }
-
-  startLoops();
-
-  console.log("BitBank app started", {
-    supabase: !!supabaseClient,
-    device: currentDeviceType()
-  });
-}
-
-initApp();
+  await startApp();
+});
