@@ -1,19 +1,15 @@
 import { AppState, updatePlayer } from "./app.js";
 import { apiAddHistory } from "./api.js";
+import { getCurrentClassConfig } from "./economy.js";
+import { getCurrentRoleConfig, getRoleClickBoost } from "./roles.js";
+import { getCardThemeBonus } from "./cards.js";
+import { getCollectionBonuses } from "./collections.js";
 
-// =====================
+// ======================================================
 // HELPERS
-// =====================
+// ======================================================
 function getPlayer() {
-  return AppState.player;
-}
-
-function safeArray(v) {
-  return Array.isArray(v) ? v : [];
-}
-
-function safeObject(v) {
-  return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  return AppState.player || {};
 }
 
 function numberValue(v) {
@@ -21,12 +17,149 @@ function numberValue(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
-// =====================
-// BALANCE
-// =====================
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function ensurePlayerArrays() {
+  const p = getPlayer();
+
+  if (!Array.isArray(p.titles)) p.titles = [];
+  if (!Array.isArray(p.inventory)) p.inventory = [];
+  if (!Array.isArray(p.friends)) p.friends = [];
+  if (!Array.isArray(p.cars)) p.cars = [];
+  if (!Array.isArray(p.realty)) p.realty = [];
+  if (!Array.isArray(p.card_themes_owned)) p.card_themes_owned = ["classic_blue"];
+
+  if (!p.crypto || typeof p.crypto !== "object" || Array.isArray(p.crypto)) p.crypto = {};
+  if (!p.stocks || typeof p.stocks !== "object" || Array.isArray(p.stocks)) p.stocks = {};
+  if (!p.business_projects || typeof p.business_projects !== "object" || Array.isArray(p.business_projects)) p.business_projects = {};
+  if (!p.collections_state || typeof p.collections_state !== "object" || Array.isArray(p.collections_state)) {
+    p.collections_state = { claimed: {}, completed_at: {} };
+  }
+}
+
+function classClickBonus() {
+  const cls = getCurrentClassConfig();
+  return numberValue(cls.clickBonus || 0);
+}
+
+function roleClickBonus() {
+  return numberValue(getRoleClickBoost() || 0);
+}
+
+function cardClickBonus() {
+  const bonus = getCardThemeBonus();
+  return numberValue(bonus.clickBoost || 0);
+}
+
+function collectionClickBonus() {
+  const bonus = getCollectionBonuses();
+  return numberValue(bonus.click_boost || 0);
+}
+
+function baseClickValue() {
+  return 5;
+}
+
+export function getClickIncome() {
+  return (
+    baseClickValue() +
+    classClickBonus() +
+    roleClickBonus() +
+    cardClickBonus() +
+    collectionClickBonus()
+  );
+}
+
+function prestigeFromClass() {
+  const cls = getCurrentClassConfig();
+  const id = String(cls.id || "none");
+
+  if (id === "bronze") return 1;
+  if (id === "silver") return 2;
+  if (id === "gold") return 3;
+  if (id === "platinum") return 4;
+  if (id === "diamond") return 5;
+  if (id === "black") return 6;
+  if (id === "vip") return 7;
+  if (id === "legend") return 9;
+  if (id === "creator") return 12;
+
+  return 0;
+}
+
+function prestigeFromRole() {
+  const role = getCurrentRoleConfig();
+  const id = String(role.id || "none");
+
+  if (id === "media_mogul") return 2;
+  if (id === "banker") return 1;
+  if (id === "sports_manager") return 1;
+  if (id === "high_roller") return 1;
+
+  return 0;
+}
+
+function prestigeFromCard() {
+  const bonus = getCardThemeBonus();
+  return numberValue(bonus.prestige || 0);
+}
+
+function prestigeFromCollections() {
+  const bonus = getCollectionBonuses();
+  return numberValue(bonus.prestige || 0);
+}
+
+export function getTotalPrestige() {
+  return (
+    prestigeFromClass() +
+    prestigeFromRole() +
+    prestigeFromCard() +
+    prestigeFromCollections()
+  );
+}
+
+export function getPrestigeLabel() {
+  const value = getTotalPrestige();
+
+  if (value >= 18) return "Mythic";
+  if (value >= 14) return "Royal";
+  if (value >= 10) return "Elite";
+  if (value >= 7) return "Luxury";
+  if (value >= 4) return "Premium";
+  if (value >= 2) return "Rising";
+
+  return "Starter";
+}
+
+export function getWealthTier() {
+  const p = getPlayer();
+  const balance = numberValue(p.balance || 0);
+  const usd = numberValue(p.usd || 0) * 40;
+  const total = balance + usd;
+
+  if (total >= 500000000) return "Capital Emperor";
+  if (total >= 100000000) return "Mega Tycoon";
+  if (total >= 10000000) return "Tycoon";
+  if (total >= 1000000) return "Investor";
+  if (total >= 100000) return "Builder";
+
+  return "Newcomer";
+}
+
+// ======================================================
+// MONEY
+// ======================================================
+export function canAfford(amount) {
+  return numberValue(getPlayer().balance) >= numberValue(amount);
+}
+
 export function addBalance(amount) {
   const p = getPlayer();
   const value = numberValue(amount);
+
+  if (value <= 0) return true;
 
   p.balance = numberValue(p.balance) + value;
   p.total_earned = numberValue(p.total_earned) + value;
@@ -36,16 +169,15 @@ export function addBalance(amount) {
     total_earned: p.total_earned
   });
 
-  apiAddHistory(p.username, "Earn", value);
+  return true;
 }
 
 export function removeBalance(amount) {
   const p = getPlayer();
   const value = numberValue(amount);
 
-  if (numberValue(p.balance) < value) {
-    return false;
-  }
+  if (value <= 0) return true;
+  if (numberValue(p.balance) < value) return false;
 
   p.balance = numberValue(p.balance) - value;
 
@@ -53,16 +185,14 @@ export function removeBalance(amount) {
     balance: p.balance
   });
 
-  apiAddHistory(p.username, "Spend", -value);
   return true;
 }
 
-// =====================
-// USD
-// =====================
 export function addUSD(amount) {
   const p = getPlayer();
   const value = numberValue(amount);
+
+  if (value <= 0) return true;
 
   p.usd = numberValue(p.usd) + value;
 
@@ -70,16 +200,15 @@ export function addUSD(amount) {
     usd: p.usd
   });
 
-  apiAddHistory(p.username, "USD earn", value);
+  return true;
 }
 
 export function removeUSD(amount) {
   const p = getPlayer();
   const value = numberValue(amount);
 
-  if (numberValue(p.usd) < value) {
-    return false;
-  }
+  if (value <= 0) return true;
+  if (numberValue(p.usd) < value) return false;
 
   p.usd = numberValue(p.usd) - value;
 
@@ -87,214 +216,424 @@ export function removeUSD(amount) {
     usd: p.usd
   });
 
-  apiAddHistory(p.username, "USD spend", -value);
   return true;
 }
 
-// =====================
-// CLICK INCOME
-// =====================
-export function getClickValue() {
+// ======================================================
+// CLICK / PROGRESSION
+// ======================================================
+export async function handleClick() {
+  ensurePlayerArrays();
+
   const p = getPlayer();
-  const cls = p.class || p.status || "none";
+  const income = getClickIncome();
 
-  if (cls === "basic") return 15;
-  if (cls === "medium") return 50;
-  if (cls === "vip") return 200;
-  if (cls === "creator") return 500;
+  p.balance = numberValue(p.balance) + income;
+  p.total_earned = numberValue(p.total_earned) + income;
+  p.clicks = numberValue(p.clicks || 0) + 1;
+  p.last_seen = nowIso();
 
-  return 5;
-}
-
-export function handleClick() {
-  const reward = getClickValue();
-  addBalance(reward);
-}
-
-// =====================
-// INVENTORY
-// =====================
-export function getInventory() {
-  const p = getPlayer();
-  return safeArray(p.inventory);
-}
-
-export function addItem(item) {
-  const p = getPlayer();
-  const inventory = safeArray(p.inventory);
-
-  inventory.push(item);
-  p.inventory = inventory;
-
-  updatePlayer({
-    inventory: p.inventory
-  });
-}
-
-export function removeItem(index) {
-  const p = getPlayer();
-  const inventory = safeArray(p.inventory);
-
-  if (!inventory[index]) return false;
-
-  inventory.splice(index, 1);
-  p.inventory = inventory;
-
-  updatePlayer({
-    inventory: p.inventory
+  await updatePlayer({
+    balance: p.balance,
+    total_earned: p.total_earned,
+    clicks: p.clicks,
+    last_seen: p.last_seen
   });
 
-  return true;
-}
-
-// =====================
-// FRIENDS
-// =====================
-export function getFriendsList() {
-  const p = getPlayer();
-  return safeArray(p.friends);
-}
-
-export function addFriend(id) {
-  const p = getPlayer();
-  const friends = safeArray(p.friends);
-
-  if (!friends.includes(id)) {
-    friends.push(id);
-    p.friends = friends;
-
-    updatePlayer({
-      friends: p.friends
-    });
+  if (p.clicks % 100 === 0) {
+    await apiAddHistory(p.username, `Click milestone: ${p.clicks}`, income);
   }
 }
 
-export function removeFriend(id) {
+export function getPlayerOverviewStats() {
   const p = getPlayer();
-  const friends = safeArray(p.friends).filter((x) => x !== id);
 
-  p.friends = friends;
+  return {
+    clickIncome: getClickIncome(),
+    prestige: getTotalPrestige(),
+    prestigeLabel: getPrestigeLabel(),
+    wealthTier: getWealthTier(),
+    totalEarned: numberValue(p.total_earned || 0),
+    totalClicks: numberValue(p.clicks || 0),
+    balance: numberValue(p.balance || 0),
+    usd: numberValue(p.usd || 0)
+  };
+}
+
+// ======================================================
+// TITLES
+// ======================================================
+export function rebuildAutoTitles() {
+  ensurePlayerArrays();
+
+  const p = getPlayer();
+  const titles = new Set();
+
+  const prestige = getTotalPrestige();
+  const wealthTier = getWealthTier();
+  const role = getCurrentRoleConfig();
+  const cls = getCurrentClassConfig();
+
+  titles.add(wealthTier);
+  titles.add(getPrestigeLabel());
+
+  if (prestige >= 10) titles.add("Prestige Elite");
+  if (numberValue(p.total_earned) >= 1000000) titles.add("Million Earner");
+  if (numberValue(p.total_earned) >= 100000000) titles.add("Capital Machine");
+  if (numberValue(p.clicks) >= 1000) titles.add("Tap Grinder");
+  if (numberValue(p.clicks) >= 10000) titles.add("Tap Legend");
+
+  if (String(role.id || "none") !== "none") {
+    titles.add(role.name);
+  }
+
+  if (String(cls.id || "none") !== "none") {
+    titles.add(cls.name);
+  }
+
+  p.titles = [...titles];
 
   updatePlayer({
-    friends: p.friends
+    titles: p.titles
   });
+
+  return p.titles;
 }
 
-// =====================
-// CLASS / STATUS
-// =====================
-export function setClass(nextClass) {
+// ======================================================
+// START / PATCH
+// ======================================================
+export function normalizePlayerState() {
+  ensurePlayerArrays();
+
   const p = getPlayer();
 
-  p.class = nextClass;
+  p.balance = numberValue(p.balance || 0);
+  p.usd = numberValue(p.usd || 0);
+  p.total_earned = numberValue(p.total_earned || 0);
+  p.clicks = numberValue(p.clicks || 0);
+
+  if (!p.class) p.class = "none";
+  if (!p.role) p.role = "none";
+
+  return p;
+}import { AppState, updatePlayer } from "./app.js";
+import { apiAddHistory } from "./api.js";
+import { getCurrentClassConfig } from "./economy.js";
+import { getCurrentRoleConfig, getRoleClickBoost } from "./roles.js";
+import { getCardThemeBonus } from "./cards.js";
+import { getCollectionBonuses } from "./collections.js";
+
+// ======================================================
+// HELPERS
+// ======================================================
+function getPlayer() {
+  return AppState.player || {};
+}
+
+function numberValue(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function ensurePlayerArrays() {
+  const p = getPlayer();
+
+  if (!Array.isArray(p.titles)) p.titles = [];
+  if (!Array.isArray(p.inventory)) p.inventory = [];
+  if (!Array.isArray(p.friends)) p.friends = [];
+  if (!Array.isArray(p.cars)) p.cars = [];
+  if (!Array.isArray(p.realty)) p.realty = [];
+  if (!Array.isArray(p.card_themes_owned)) p.card_themes_owned = ["classic_blue"];
+
+  if (!p.crypto || typeof p.crypto !== "object" || Array.isArray(p.crypto)) p.crypto = {};
+  if (!p.stocks || typeof p.stocks !== "object" || Array.isArray(p.stocks)) p.stocks = {};
+  if (!p.business_projects || typeof p.business_projects !== "object" || Array.isArray(p.business_projects)) p.business_projects = {};
+  if (!p.collections_state || typeof p.collections_state !== "object" || Array.isArray(p.collections_state)) {
+    p.collections_state = { claimed: {}, completed_at: {} };
+  }
+}
+
+function classClickBonus() {
+  const cls = getCurrentClassConfig();
+  return numberValue(cls.clickBonus || 0);
+}
+
+function roleClickBonus() {
+  return numberValue(getRoleClickBoost() || 0);
+}
+
+function cardClickBonus() {
+  const bonus = getCardThemeBonus();
+  return numberValue(bonus.clickBoost || 0);
+}
+
+function collectionClickBonus() {
+  const bonus = getCollectionBonuses();
+  return numberValue(bonus.click_boost || 0);
+}
+
+function baseClickValue() {
+  return 5;
+}
+
+export function getClickIncome() {
+  return (
+    baseClickValue() +
+    classClickBonus() +
+    roleClickBonus() +
+    cardClickBonus() +
+    collectionClickBonus()
+  );
+}
+
+function prestigeFromClass() {
+  const cls = getCurrentClassConfig();
+  const id = String(cls.id || "none");
+
+  if (id === "bronze") return 1;
+  if (id === "silver") return 2;
+  if (id === "gold") return 3;
+  if (id === "platinum") return 4;
+  if (id === "diamond") return 5;
+  if (id === "black") return 6;
+  if (id === "vip") return 7;
+  if (id === "legend") return 9;
+  if (id === "creator") return 12;
+
+  return 0;
+}
+
+function prestigeFromRole() {
+  const role = getCurrentRoleConfig();
+  const id = String(role.id || "none");
+
+  if (id === "media_mogul") return 2;
+  if (id === "banker") return 1;
+  if (id === "sports_manager") return 1;
+  if (id === "high_roller") return 1;
+
+  return 0;
+}
+
+function prestigeFromCard() {
+  const bonus = getCardThemeBonus();
+  return numberValue(bonus.prestige || 0);
+}
+
+function prestigeFromCollections() {
+  const bonus = getCollectionBonuses();
+  return numberValue(bonus.prestige || 0);
+}
+
+export function getTotalPrestige() {
+  return (
+    prestigeFromClass() +
+    prestigeFromRole() +
+    prestigeFromCard() +
+    prestigeFromCollections()
+  );
+}
+
+export function getPrestigeLabel() {
+  const value = getTotalPrestige();
+
+  if (value >= 18) return "Mythic";
+  if (value >= 14) return "Royal";
+  if (value >= 10) return "Elite";
+  if (value >= 7) return "Luxury";
+  if (value >= 4) return "Premium";
+  if (value >= 2) return "Rising";
+
+  return "Starter";
+}
+
+export function getWealthTier() {
+  const p = getPlayer();
+  const balance = numberValue(p.balance || 0);
+  const usd = numberValue(p.usd || 0) * 40;
+  const total = balance + usd;
+
+  if (total >= 500000000) return "Capital Emperor";
+  if (total >= 100000000) return "Mega Tycoon";
+  if (total >= 10000000) return "Tycoon";
+  if (total >= 1000000) return "Investor";
+  if (total >= 100000) return "Builder";
+
+  return "Newcomer";
+}
+
+// ======================================================
+// MONEY
+// ======================================================
+export function canAfford(amount) {
+  return numberValue(getPlayer().balance) >= numberValue(amount);
+}
+
+export function addBalance(amount) {
+  const p = getPlayer();
+  const value = numberValue(amount);
+
+  if (value <= 0) return true;
+
+  p.balance = numberValue(p.balance) + value;
+  p.total_earned = numberValue(p.total_earned) + value;
 
   updatePlayer({
-    class: nextClass
-  });
-
-  apiAddHistory(p.username, `Class set: ${nextClass}`, 0);
-}
-
-// =====================
-// CRYPTO / STOCK HELPERS
-// =====================
-export function getCryptoWallet() {
-  const p = getPlayer();
-  return safeObject(p.crypto);
-}
-
-export function getStocksWallet() {
-  const p = getPlayer();
-  return safeObject(p.stocks);
-}
-
-export function setCryptoWallet(wallet) {
-  const p = getPlayer();
-
-  p.crypto = safeObject(wallet);
-
-  updatePlayer({
-    crypto: p.crypto
-  });
-}
-
-export function setStocksWallet(wallet) {
-  const p = getPlayer();
-
-  p.stocks = safeObject(wallet);
-
-  updatePlayer({
-    stocks: p.stocks
-  });
-}
-
-// =====================
-// CARD HELPERS
-// =====================
-export function setCardName(cardName) {
-  const p = getPlayer();
-
-  p.card_name = cardName;
-
-  updatePlayer({
-    card_name: cardName
-  });
-}
-
-export function setCardColor(cardColor) {
-  const p = getPlayer();
-
-  p.card_color = cardColor;
-
-  updatePlayer({
-    card_color: cardColor
-  });
-}
-
-export function setCardCVV(cardCVV) {
-  const p = getPlayer();
-
-  p.card_cvv = cardCVV;
-
-  updatePlayer({
-    card_cvv: cardCVV
-  });
-}
-
-// =====================
-// SAVE FULL PLAYER
-// =====================
-export function saveFullPlayer() {
-  const p = getPlayer();
-
-  updatePlayer({
-    username: p.username,
-    password: p.password,
-    class: p.class,
     balance: p.balance,
-    usd: p.usd,
-    total_earned: p.total_earned,
-    card_name: p.card_name,
-    card_color: p.card_color,
-    card_cvv: p.card_cvv,
-    card_number: p.card_number,
-    card_expiry: p.card_expiry,
-    device: p.device,
-    banned: p.banned,
-    last_seen: p.last_seen,
-    crypto: p.crypto,
-    stocks: p.stocks,
-    businesses: p.businesses,
-    business_levels: p.business_levels,
-    realty: p.realty,
-    cars: p.cars,
-    inventory: p.inventory,
-    titles: p.titles,
-    friends: p.friends,
-    achievements: p.achievements,
-    completed_quests: p.completed_quests,
-    bank: p.bank,
-    loan: p.loan,
-    insurance: p.insurance
+    total_earned: p.total_earned
   });
+
+  return true;
+}
+
+export function removeBalance(amount) {
+  const p = getPlayer();
+  const value = numberValue(amount);
+
+  if (value <= 0) return true;
+  if (numberValue(p.balance) < value) return false;
+
+  p.balance = numberValue(p.balance) - value;
+
+  updatePlayer({
+    balance: p.balance
+  });
+
+  return true;
+}
+
+export function addUSD(amount) {
+  const p = getPlayer();
+  const value = numberValue(amount);
+
+  if (value <= 0) return true;
+
+  p.usd = numberValue(p.usd) + value;
+
+  updatePlayer({
+    usd: p.usd
+  });
+
+  return true;
+}
+
+export function removeUSD(amount) {
+  const p = getPlayer();
+  const value = numberValue(amount);
+
+  if (value <= 0) return true;
+  if (numberValue(p.usd) < value) return false;
+
+  p.usd = numberValue(p.usd) - value;
+
+  updatePlayer({
+    usd: p.usd
+  });
+
+  return true;
+}
+
+// ======================================================
+// CLICK / PROGRESSION
+// ======================================================
+export async function handleClick() {
+  ensurePlayerArrays();
+
+  const p = getPlayer();
+  const income = getClickIncome();
+
+  p.balance = numberValue(p.balance) + income;
+  p.total_earned = numberValue(p.total_earned) + income;
+  p.clicks = numberValue(p.clicks || 0) + 1;
+  p.last_seen = nowIso();
+
+  await updatePlayer({
+    balance: p.balance,
+    total_earned: p.total_earned,
+    clicks: p.clicks,
+    last_seen: p.last_seen
+  });
+
+  if (p.clicks % 100 === 0) {
+    await apiAddHistory(p.username, `Click milestone: ${p.clicks}`, income);
+  }
+}
+
+export function getPlayerOverviewStats() {
+  const p = getPlayer();
+
+  return {
+    clickIncome: getClickIncome(),
+    prestige: getTotalPrestige(),
+    prestigeLabel: getPrestigeLabel(),
+    wealthTier: getWealthTier(),
+    totalEarned: numberValue(p.total_earned || 0),
+    totalClicks: numberValue(p.clicks || 0),
+    balance: numberValue(p.balance || 0),
+    usd: numberValue(p.usd || 0)
+  };
+}
+
+// ======================================================
+// TITLES
+// ======================================================
+export function rebuildAutoTitles() {
+  ensurePlayerArrays();
+
+  const p = getPlayer();
+  const titles = new Set();
+
+  const prestige = getTotalPrestige();
+  const wealthTier = getWealthTier();
+  const role = getCurrentRoleConfig();
+  const cls = getCurrentClassConfig();
+
+  titles.add(wealthTier);
+  titles.add(getPrestigeLabel());
+
+  if (prestige >= 10) titles.add("Prestige Elite");
+  if (numberValue(p.total_earned) >= 1000000) titles.add("Million Earner");
+  if (numberValue(p.total_earned) >= 100000000) titles.add("Capital Machine");
+  if (numberValue(p.clicks) >= 1000) titles.add("Tap Grinder");
+  if (numberValue(p.clicks) >= 10000) titles.add("Tap Legend");
+
+  if (String(role.id || "none") !== "none") {
+    titles.add(role.name);
+  }
+
+  if (String(cls.id || "none") !== "none") {
+    titles.add(cls.name);
+  }
+
+  p.titles = [...titles];
+
+  updatePlayer({
+    titles: p.titles
+  });
+
+  return p.titles;
+}
+
+// ======================================================
+// START / PATCH
+// ======================================================
+export function normalizePlayerState() {
+  ensurePlayerArrays();
+
+  const p = getPlayer();
+
+  p.balance = numberValue(p.balance || 0);
+  p.usd = numberValue(p.usd || 0);
+  p.total_earned = numberValue(p.total_earned || 0);
+  p.clicks = numberValue(p.clicks || 0);
+
+  if (!p.class) p.class = "none";
+  if (!p.role) p.role = "none";
+
+  return p;
 }
