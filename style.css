@@ -760,6 +760,27 @@ select:focus{
   line-height:1.15;
   color:#fff;
   overflow-wrap:anywhere;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.crypto-icon{
+  width:30px;
+  height:30px;
+  min-width:30px;
+  border-radius:50%;
+  object-fit:cover;
+  box-shadow:0 3px 8px rgba(0,0,0,0.3);
+  background:rgba(255,255,255,0.08);
+}
+
+.stock-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  border:1px solid rgba(255,255,255,0.16);
 }
 
 .asset-price{
@@ -797,6 +818,61 @@ select:focus{
 .profile-actions{
   display:grid;
   gap:10px;
+}
+
+.click-panel{
+  grid-column:1 / -1;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:18px 20px;
+  border-radius:22px;
+  border:1px solid var(--line);
+  background:linear-gradient(160deg,rgba(14,25,41,0.96),rgba(10,18,30,0.9));
+}
+
+.click-button{
+  width:100px;
+  height:100px;
+  min-width:100px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.24);
+  background:radial-gradient(circle at 30% 28%, #ffcb74 0%, #ffb84c 35%, #f7931a 70%, #d97400 100%);
+  color:#fff7ea;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  box-shadow:0 12px 24px rgba(247,147,26,0.42), 0 0 18px rgba(247,147,26,0.45), inset 0 2px 8px rgba(255,255,255,0.28);
+  transition:transform .12s ease, box-shadow .2s ease, filter .2s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.click-button:hover{
+  filter:brightness(1.03);
+  box-shadow:0 14px 26px rgba(247,147,26,0.48), 0 0 30px rgba(255,184,76,0.58), inset 0 2px 8px rgba(255,255,255,0.32);
+}
+
+.click-button:active{
+  transform:scale(.93);
+  box-shadow:0 6px 12px rgba(168,96,7,0.45), 0 0 14px rgba(247,147,26,0.45), inset 0 4px 10px rgba(0,0,0,0.22);
+}
+
+.click-button.is-tapping{
+  animation:coinPulse .28s ease-out;
+}
+
+.bitcoin-icon{
+  width:48px;
+  height:48px;
+  color:#fff7ea;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,0.22));
+}
+
+@keyframes coinPulse{
+  0%{ transform:scale(1); }
+  45%{ transform:scale(0.9); }
+  100%{ transform:scale(1.06); }
 }
 
 .section-title{
@@ -1020,6 +1096,22 @@ select:focus{
 
   .asset-price{
     font-size:18px;
+  }
+
+  .click-panel{
+    padding:16px;
+    align-items:flex-start;
+  }
+
+  .click-button{
+    width:92px;
+    height:92px;
+    min-width:92px;
+  }
+
+  .bitcoin-icon{
+    width:44px;
+    height:44px;
   }
 
   .stat-value{
