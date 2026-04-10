@@ -105,7 +105,20 @@ const CRYPTO_ICON_MAP = {
   BNB: "https://cryptologos.cc/logos/bnb-bnb-logo.png?v=040",
   XRP: "https://cryptologos.cc/logos/xrp-xrp-logo.png?v=040",
   DOGE: "https://cryptologos.cc/logos/dogecoin-doge-logo.png?v=040",
-  ADA: "https://cryptologos.cc/logos/cardano-ada-logo.png?v=040"
+  ADA: "https://cryptologos.cc/logos/cardano-ada-logo.png?v=040",
+  TON: "https://cryptologos.cc/logos/toncoin-ton-logo.png?v=040",
+  DOT: "https://cryptologos.cc/logos/polkadot-new-dot-logo.png?v=040",
+  AVAX: "https://cryptologos.cc/logos/avalanche-avax-logo.png?v=040",
+  MATIC: "https://cryptologos.cc/logos/polygon-matic-logo.png?v=040",
+  LINK: "https://cryptologos.cc/logos/chainlink-link-logo.png?v=040",
+  TRX: "https://cryptologos.cc/logos/tron-trx-logo.png?v=040",
+  LTC: "https://cryptologos.cc/logos/litecoin-ltc-logo.png?v=040",
+  BCH: "https://cryptologos.cc/logos/bitcoin-cash-bch-logo.png?v=040",
+  UNI: "https://cryptologos.cc/logos/uniswap-uni-logo.png?v=040",
+  ATOM: "https://cryptologos.cc/logos/cosmos-atom-logo.png?v=040",
+  ETC: "https://cryptologos.cc/logos/ethereum-classic-etc-logo.png?v=040",
+  NEAR: "https://cryptologos.cc/logos/near-protocol-near-logo.png?v=040",
+  ICP: "https://cryptologos.cc/logos/internet-computer-icp-logo.png?v=040"
 };
 
 // ======================================================
