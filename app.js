@@ -768,7 +768,6 @@ function renderProfilePage() {
       </div>
       <button id="main-click-btn" class="click-button" type="button" aria-label="Tap for income">
         <svg class="bitcoin-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <circle cx="32" cy="32" r="31" fill="none" />
           <path d="M36.8 15h-4.3v4.4h-3.8V15h-4.3v4.4h-5.5v4.3h2.4c1.2 0 1.7.7 1.8 1.8v16.9c-.1 1.1-.6 1.8-1.8 1.8h-2.4v4.3h5.5V53h4.3v-4.4h2V53h4.3v-4.5c7.2-.3 12.3-2.7 12.3-9.8 0-4.8-2.9-7.2-7-8 3.3-.9 5.4-3.1 5.4-6.8 0-6-4.7-8.5-11.7-8.9V15Zm-.5 27.9h-7.6V34h7.6c3.2 0 5.1 1.4 5.1 4.4s-1.9 4.5-5.1 4.5Zm-.8-12.9h-6.8v-8h6.8c2.9 0 4.7 1.2 4.7 4 0 2.7-1.8 4-4.7 4Z" fill="currentColor"/>
         </svg>
       </button>
@@ -938,9 +937,11 @@ function renderAssetCard(type, asset) {
   if (!player) return "";
 
   const owned = type === "crypto" ? num(player.crypto[asset.id]) : num(player.stocks[asset.id]);
-  const icon = CRYPTO_ICON_MAP[asset.id] || CRYPTO_ICON_MAP.BTC;
+  const icon = CRYPTO_ICON_MAP[asset.id] || null;
   const iconMarkup = type === "crypto"
-    ? `<img class="crypto-icon" src="${icon}" alt="${asset.name} logo" loading="lazy" referrerpolicy="no-referrer">`
+    ? (icon
+      ? `<img class="crypto-icon" src="${icon}" alt="${asset.name} logo" loading="lazy" referrerpolicy="no-referrer">`
+      : `<span class="crypto-icon stock-icon" aria-hidden="true">🪙</span>`)
     : `<span class="crypto-icon stock-icon" aria-hidden="true">📈</span>`;
 
   return `

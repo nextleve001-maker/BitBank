@@ -144,7 +144,11 @@ function renderAssetIcon(type, asset) {
     return `<span class="crypto-icon stock-icon" aria-hidden="true">📈</span>`;
   }
 
-  const icon = CRYPTO_ICON_MAP[asset.id] || asset.img || "";
+  const icon = CRYPTO_ICON_MAP[asset.id] || asset.img || null;
+  if (!icon) {
+    return `<span class="crypto-icon stock-icon" aria-hidden="true">🪙</span>`;
+  }
+
   return `<img class="crypto-icon" src="${icon}" alt="${asset.name} logo" loading="lazy" referrerpolicy="no-referrer">`;
 }
 
