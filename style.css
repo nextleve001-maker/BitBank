@@ -870,9 +870,9 @@ select:focus{
 }
 
 @keyframes coinPulse{
-  0%{ transform:scale(1); }
-  45%{ transform:scale(0.9); }
-  100%{ transform:scale(1.06); }
+  0% { transform: scale(1); }
+  45% { transform: scale(0.9); }
+  100% { transform: scale(1.06); }
 }
 
 .section-title{
