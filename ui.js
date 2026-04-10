@@ -507,6 +507,7 @@ function bindUIEvents() {
   if (clickBtn) {
     clickBtn.addEventListener("click", async () => {
       clickBtn.classList.remove("is-tapping");
+      // Force reflow so the pulse animation restarts on every tap.
       void clickBtn.offsetWidth;
       clickBtn.classList.add("is-tapping");
       await handleClick();

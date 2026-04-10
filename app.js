@@ -2603,6 +2603,7 @@ function bindDynamicEvents() {
   if (clickBtn) {
     clickBtn.addEventListener("click", () => {
       clickBtn.classList.remove("is-tapping");
+      // Force reflow so the pulse animation restarts on every tap.
       void clickBtn.offsetWidth;
       clickBtn.classList.add("is-tapping");
       handleClick();
