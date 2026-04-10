@@ -115,6 +115,43 @@ function roundPrice(value) {
   return Math.max(1, Math.round(value));
 }
 
+const CRYPTO_ICON_MAP = {
+  BTC: "https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=040",
+  ETH: "https://cryptologos.cc/logos/ethereum-eth-logo.png?v=040",
+  USDT: "https://cryptologos.cc/logos/tether-usdt-logo.png?v=040",
+  SOL: "https://cryptologos.cc/logos/solana-sol-logo.png?v=040",
+  BNB: "https://cryptologos.cc/logos/bnb-bnb-logo.png?v=040",
+  XRP: "https://cryptologos.cc/logos/xrp-xrp-logo.png?v=040",
+  DOGE: "https://cryptologos.cc/logos/dogecoin-doge-logo.png?v=040",
+  ADA: "https://cryptologos.cc/logos/cardano-ada-logo.png?v=040",
+  TON: "https://cryptologos.cc/logos/toncoin-ton-logo.png?v=040",
+  DOT: "https://cryptologos.cc/logos/polkadot-new-dot-logo.png?v=040",
+  AVAX: "https://cryptologos.cc/logos/avalanche-avax-logo.png?v=040",
+  MATIC: "https://cryptologos.cc/logos/polygon-matic-logo.png?v=040",
+  LINK: "https://cryptologos.cc/logos/chainlink-link-logo.png?v=040",
+  TRX: "https://cryptologos.cc/logos/tron-trx-logo.png?v=040",
+  LTC: "https://cryptologos.cc/logos/litecoin-ltc-logo.png?v=040",
+  BCH: "https://cryptologos.cc/logos/bitcoin-cash-bch-logo.png?v=040",
+  UNI: "https://cryptologos.cc/logos/uniswap-uni-logo.png?v=040",
+  ATOM: "https://cryptologos.cc/logos/cosmos-atom-logo.png?v=040",
+  ETC: "https://cryptologos.cc/logos/ethereum-classic-etc-logo.png?v=040",
+  NEAR: "https://cryptologos.cc/logos/near-protocol-near-logo.png?v=040",
+  ICP: "https://cryptologos.cc/logos/internet-computer-icp-logo.png?v=040"
+};
+
+function renderAssetIcon(type, asset) {
+  if (type !== "crypto") {
+    return `<span class="crypto-icon stock-icon" aria-hidden="true">📈</span>`;
+  }
+
+  const icon = CRYPTO_ICON_MAP[asset.id] || asset.img || null;
+  if (!icon) {
+    return `<span class="crypto-icon stock-icon" aria-hidden="true">🪙</span>`;
+  }
+
+  return `<img class="crypto-icon" src="${icon}" alt="${asset.name} logo" loading="lazy" referrerpolicy="no-referrer">`;
+}
+
 function getAssetList(type) {
   return type === "crypto" ? MarketState.crypto : MarketState.stocks;
 }
@@ -546,7 +583,10 @@ function renderAssetCard(type, asset) {
 
       <div class="asset-info">
         <div class="asset-head">
-          <div class="asset-name">${asset.name}</div>
+          <div class="asset-name">
+            ${renderAssetIcon(type, asset)}
+            <span>${asset.name}</span>
+          </div>
           <div class="asset-price">₴ ${formatCompact(asset.price)}</div>
         </div>
 

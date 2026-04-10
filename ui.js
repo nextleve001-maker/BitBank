@@ -301,7 +301,11 @@ function clickPanel() {
         <div class="hint">Натискай для моментального доходу</div>
       </div>
 
-      <button id="main-click-btn" class="click-button" type="button">CLICK</button>
+      <button id="main-click-btn" class="click-button" type="button" aria-label="Tap for income">
+        <svg class="bitcoin-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <path d="M36.8 15h-4.3v4.4h-3.8V15h-4.3v4.4h-5.5v4.3h2.4c1.2 0 1.7.7 1.8 1.8v16.9c-.1 1.1-.6 1.8-1.8 1.8h-2.4v4.3h5.5V53h4.3v-4.4h2V53h4.3v-4.5c7.2-.3 12.3-2.7 12.3-9.8 0-4.8-2.9-7.2-7-8 3.3-.9 5.4-3.1 5.4-6.8 0-6-4.7-8.5-11.7-8.9V15Zm-.5 27.9h-7.6V34h7.6c3.2 0 5.1 1.4 5.1 4.4s-1.9 4.5-5.1 4.5Zm-.8-12.9h-6.8v-8h6.8c2.9 0 4.7 1.2 4.7 4 0 2.7-1.8 4-4.7 4Z" fill="currentColor"/>
+        </svg>
+      </button>
     </div>
   `;
 }
@@ -502,6 +506,10 @@ function bindUIEvents() {
   const clickBtn = document.getElementById("main-click-btn");
   if (clickBtn) {
     clickBtn.addEventListener("click", async () => {
+      clickBtn.classList.remove("is-tapping");
+      // Force reflow so the pulse animation restarts on every tap.
+      void clickBtn.offsetWidth;
+      clickBtn.classList.add("is-tapping");
       await handleClick();
       renderProfilePage();
     });
